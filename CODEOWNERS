@@ -1,0 +1,21 @@
+# CODEOWNERS
+# These owners are automatically requested for review when a PR touches
+# matching files. Update the usernames below once roles are assigned.
+
+# Default owner for anything not matched below
+*                       @your-github-username
+
+# Frontend (Angular)
+/frontend/              @frontend-owner-username
+
+# Backend (Spring Boot)
+/backend/               @backend-owner-username
+
+# Database schema / migrations
+/backend/src/main/resources/db/  @db-owner-username
+
+# CI/CD and repo config
+/.github/               @your-github-username
+
+# Docs
+/docs/                  @your-github-username
