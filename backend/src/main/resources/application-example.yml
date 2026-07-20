@@ -1,0 +1,34 @@
+# Copy this file to application-local.yml and fill in real values.
+# application-local.yml is gitignored — never commit real secrets.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hackathon_db
+    username: postgres
+    password: changeme
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: YOUR_GOOGLE_CLIENT_ID
+            client-secret: YOUR_GOOGLE_CLIENT_SECRET
+            scope:
+              - email
+              - profile
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+app:
+  jwt:
+    secret: YOUR_JWT_SIGNING_SECRET
+    expiration-ms: 3600000
