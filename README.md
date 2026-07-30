@@ -84,11 +84,11 @@ Runs at `http://localhost:8080`.
 
 | Name | Role | GitHub |
 |---|---|---|
-| Shariq | Project Lead / Backend | @your-github-username |
-| | Frontend | |
-| | Frontend | |
-| | Backend | |
-| | Backend / DB | |
+| Shariq | TBD | @ShariqNauman |
+| Shamle | TBD | @Shamle-T |
+| Jess | TBD | @Jess777-hub |
+| Darren | TBD | @Darren772 |
+| Timur | TBD | @tmurz |
 
 ## Docs
 
