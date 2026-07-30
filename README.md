@@ -4,14 +4,14 @@ Official website for the Monash University Malaysia hackathon — participant re
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Angular 21 (standalone components, Signals) |
-| Backend | Spring Boot 3.x (Java 21) |
-| Database | PostgreSQL 16 |
-| Cache / live updates | Redis + Spring WebSocket (STOMP) |
-| Auth | Google Sign-In via OAuth2/OIDC + Spring Security (JWT) |
-| CI/CD | GitHub Actions |
+| Layer                | Technology                                             |
+| -------------------- | ------------------------------------------------------ |
+| Frontend             | Angular 21 (standalone components, Signals)            |
+| Backend              | Spring Boot 3.x (Java 21)                              |
+| Database             | PostgreSQL 16                                          |
+| Cache / live updates | Redis + Spring WebSocket (STOMP)                       |
+| Auth                 | Google Sign-In via OAuth2/OIDC + Spring Security (JWT) |
+| CI/CD                | GitHub Actions                                         |
 
 ## Project Structure
 
@@ -82,13 +82,13 @@ Runs at `http://localhost:8080`.
 
 ## Team
 
-| Name | Role | GitHub |
-|---|---|---|
-| Shariq | TBD | @ShariqNauman |
-| Shamle | TBD | @Shamle-T |
-| Jess | TBD | @Jess777-hub |
-| Darren | TBD | @Darren772 |
-| Timur | TBD | @tmurz |
+| Name   | Role | GitHub        |
+| ------ | ---- | ------------- |
+| Shariq | TBD  | @ShariqNauman |
+| Shamle | TBD  | @Shamle-T     |
+| Jess   | TBD  | @Jess777-hub  |
+| Darren | TBD  | @Darren772    |
+| Timur  | TBD  | @tmurz        |
 
 ## Docs
 
