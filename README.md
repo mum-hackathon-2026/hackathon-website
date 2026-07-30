@@ -32,24 +32,47 @@ hackathon-website/
 - PostgreSQL 16 (or run via Docker — see below)
 - A Google Cloud OAuth2 client ID (ask the project lead)
 
+> `application.properties` holds shared, non-secret defaults (already committed). `application-local.properties` (see Backend setup below) holds your personal DB/secret values and is never committed.
+
 ### Frontend
 
-```bash
+​```bash
 cd frontend
 npm install
 npm start
-```
+​```
 
 Runs at `http://localhost:4200`.
 
 ### Backend
 
-```bash
-cd backend
-./mvnw spring-boot:run
-```
+**Prerequisite:** PostgreSQL running locally. Quickest way is Docker:
 
-Runs at `http://localhost:8080`. Copy `backend/src/main/resources/application-example.yml` to `application-local.yml` and fill in your local DB credentials and Google OAuth client ID/secret (this file is gitignored — never commit real secrets).
+​```bash
+docker run --name hackathon-postgres -e POSTGRES_DB=hackathon_db -e POSTGRES_PASSWORD=changeme -p 5432:5432 -d postgres:16
+​```
+
+Copy the config template and fill in your local values (Google OAuth client ID/secret, DB credentials if different from above):
+
+​```bash
+cd backend
+cp src/main/resources/application-example.properties src/main/resources/application-local.properties
+​```
+
+`application-local.properties` is gitignored — never commit real secrets in it.
+
+Run it:
+
+- **Mac/Linux:**
+  ​```bash
+  ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+  ​```
+- **Windows (PowerShell):**
+  ​```powershell
+  .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+  ​```
+
+Runs at `http://localhost:8080`.
 
 ## Branching & Workflow
 
