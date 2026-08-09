@@ -23,6 +23,14 @@ Those passwords are container-local development values, documented in `scripts/b
 
 `spring.flyway.user` / `spring.flyway.password` are configured **separately** from `spring.datasource.*` for exactly this reason. If Flyway runs as `hackathon_app`, migrations fail with `permission denied for schema public`.
 
+The container's `postgres` superuser password is chosen per-machine and is deliberately not recorded anywhere in the repo. It is only used for `scripts/bootstrap.sql`; no application config references it. README.md has connection settings and a troubleshooting table for connecting by hand.
+
+### Schema source of truth
+
+`docs/databaseSchema.pdf` defines the relational schema, and `V1__baseline_schema.sql` matches it column for column. It is **structural only** — it fixes tables, columns, primary keys, foreign keys and unique constraints, but specifies no data types, no `ON DELETE` behaviour, no CHECK vocabularies, and no team-size limits.
+
+Everything in that second list is currently an unratified proposal in V1. Don't treat the enum-like CHECK values (`users.role`, `teams.status`, `notifications_log.type`, and five others) as settled — the frontend will hardcode those literal strings, and the team has not signed off on them. `docs/README.md` tracks what is decided versus open.
+
 ### Migrations
 
 Schema lives in `backend/src/main/resources/db/migration/`, managed by Flyway. `spring.jpa.hibernate.ddl-auto=validate` — Hibernate verifies that entity mappings match the migrated schema and never issues DDL of its own.
