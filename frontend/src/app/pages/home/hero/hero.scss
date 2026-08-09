@@ -1,0 +1,173 @@
+.hero {
+  padding: clamp(56px, 10vw, 96px) 24px clamp(64px, 10vw, 96px);
+  text-align: center;
+  border-bottom: 1px solid var(--color-hairline);
+  background: linear-gradient(180deg, #f8fbff 0%, var(--color-surface) 100%);
+}
+
+.hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 28px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  background: var(--color-blue-tint);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-blue-ink);
+}
+
+.hero__badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-blue);
+}
+
+.hero__title {
+  margin: 0 auto 16px;
+  max-width: 640px;
+  font-size: clamp(32px, 7vw, 60px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.hero__wordmark {
+  position: relative;
+  display: inline-block;
+}
+
+.hero__letter--blue {
+  color: var(--color-blue);
+}
+.hero__letter--red {
+  color: var(--color-red);
+}
+.hero__letter--yellow {
+  color: var(--color-yellow);
+}
+.hero__letter--green {
+  color: var(--color-green);
+}
+
+.hero__tagline {
+  margin: 0 auto 40px;
+  max-width: 480px;
+  font-size: clamp(15px, 2.5vw, 18px);
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.hero__countdown {
+  margin-bottom: 40px;
+}
+
+/* The digits tick every second, so they are hidden from assistive tech and
+   this sentence carries the same information instead. */
+.hero__countdown-summary {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.hero__segments {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(8px, 3vw, 24px);
+}
+
+.hero__segment {
+  text-align: center;
+}
+
+.hero__segment-value {
+  display: block;
+  min-width: clamp(48px, 8vw, 72px);
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.hero__segment-label {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+.hero__separator {
+  margin-bottom: 16px;
+  font-size: clamp(20px, 4vw, 36px);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--color-faint);
+}
+
+.hero__actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.hero__cta--filled {
+  border: none;
+  background: var(--color-blue);
+  color: #fff;
+  box-shadow: 0 2px 6px rgb(66 133 244 / 25%);
+
+  &:hover {
+    background: var(--color-blue-dark);
+    box-shadow: 0 4px 14px rgb(66 133 244 / 40%);
+  }
+}
+
+.hero__cta--outlined {
+  border: 1.5px solid var(--color-faint);
+  background: var(--color-surface);
+  color: var(--color-body);
+
+  &:hover {
+    border-color: var(--color-blue);
+    background: var(--color-blue-wash);
+    color: var(--color-blue);
+  }
+}
+
+.hero__arrow {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
