@@ -2,6 +2,8 @@ package my.monash.hackathon.hackathon_website_backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import org.flywaydb.core.Flyway;
@@ -20,6 +22,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 @SpringBootTest
 class FlywayBaselineMigrationTests {
+
+    /** The only database this test is permitted to clean. */
+    private static final String EXPECTED_TEST_DATABASE = "hackathon_db_test";
 
     private static final List<String> EXPECTED_TABLES = List.of(
             "assignments",
@@ -40,6 +45,12 @@ class FlywayBaselineMigrationTests {
 
     @Test
     void baselineMigrationAppliesToAnEmptyDatabase() {
+        // flyway.clean() below drops every object in the schema. DB_TEST_URL is an
+        // overridable environment variable, so nothing structurally stops this test
+        // from being aimed at a database that matters. Refuse to run unless the
+        // target is unmistakably the disposable test database.
+        requireDisposableTestDatabase();
+
         // Start from nothing, so the migration is exercised end to end rather than
         // being reported as already-applied from a previous run.
         flyway.clean();
@@ -73,6 +84,44 @@ class FlywayBaselineMigrationTests {
                 String.class);
 
         assertThat(actualTables).containsExactlyElementsOf(EXPECTED_TABLES);
+
+        // The event_settings singleton is seeded by V1, so the application never has to
+        // handle the row being absent.
+        Map<String, Object> settings =
+                jdbcTemplate.queryForMap("select * from event_settings where id = 1");
+        assertThat(settings.get("judging_open")).isEqualTo(Boolean.FALSE);
+        assertThat(settings.get("results_published_at")).isNull();
+        assertThat(settings.get("min_team_size")).isEqualTo(1);
+        assertThat(settings.get("max_team_size")).isEqualTo(4);
+    }
+
+    /**
+     * Fails the test rather than destroying data if the configured target is anything other
+     * than the disposable test database. The URL is read from a live connection's metadata
+     * rather than from a property, so it reflects where Flyway will genuinely connect.
+     */
+    private void requireDisposableTestDatabase() {
+        String url;
+        try (Connection connection = flyway.getConfiguration().getDataSource().getConnection()) {
+            url = connection.getMetaData().getURL();
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Could not determine the JDBC URL, so it is not safe to clean the schema", e);
+        }
+
+        // Strip any query string so ?ssl=true and friends cannot mask the database name.
+        String withoutParameters = url.split("\\?", 2)[0];
+
+        assertThat(withoutParameters)
+                .as(
+                        """
+                        REFUSING TO RUN: this test calls flyway.clean(), which drops every table \
+                        in the target schema. It may only ever run against the disposable test \
+                        database, whose name must be 'hackathon_db_test'. \
+                        Configured target was: %s \
+                        Check DB_TEST_URL — it is overridable and appears to point elsewhere.""",
+                        url)
+                .endsWith("/" + EXPECTED_TEST_DATABASE);
     }
 
     private Integer countTablesInPublicSchema() {

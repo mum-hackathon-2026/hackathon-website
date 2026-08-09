@@ -54,14 +54,14 @@ create table event_settings (
     judging_open           boolean not null default false,
     results_published_at   timestamptz,
     min_team_size          integer not null default 1,
-    max_team_size          integer not null default 5,
+    max_team_size          integer not null default 4,
     screening_enabled      boolean not null default false,
     updated_by             bigint,
 
     constraint event_settings_singleton_check check (id = 1),
     constraint event_settings_event_name_length_check check (length(event_name) between 1 and 200),
     constraint event_settings_team_size_check
-        check (min_team_size >= 1 and max_team_size >= min_team_size),
+        check (min_team_size >= 1 and min_team_size <= max_team_size),
     constraint event_settings_registration_window_check
         check (registration_opens_at is null
             or registration_closes_at is null
@@ -313,20 +313,46 @@ create index audit_log_actor_user_id_idx on audit_log (actor_user_id);
 create index audit_log_created_at_idx on audit_log (created_at desc);
 
 --------------------------------------------------------------------------------
--- runtime privileges
+-- seed data
 --------------------------------------------------------------------------------
--- hackathon_migrator owns everything above. The application role gets DML only and
--- never acquires DDL rights, so a compromised app cannot alter the schema.
+-- event_settings is a singleton (id = 1). Seeding it here means the application
+-- never has to cope with the row being absent.
 --
--- Guarded: CI provisions only the migrator role, so the app role may legitimately
--- be absent there. Skipping the grants must not fail the migration.
+-- Every value below is deliberately inert: registration is neither open nor closed,
+-- judging is shut, and nothing is published. An admin sets the real dates before the
+-- event. Nothing here can accidentally expose an unfinished site.
+--
+-- NOTE: min_team_size 1 / max_team_size 4 could not be confirmed against any
+-- document — docs/ contains no schema or proposal. These are the values specified in
+-- the task brief and need team confirmation.
 
-do $$
-begin
-    if exists (select 1 from pg_roles where rolname = 'hackathon_app') then
-        grant usage on schema public to hackathon_app;
-        grant select, insert, update, delete on all tables in schema public to hackathon_app;
-        grant usage, select on all sequences in schema public to hackathon_app;
-    end if;
-end
-$$;
+insert into event_settings (
+    id,
+    event_name,
+    registration_opens_at,
+    registration_closes_at,
+    submission_deadline_at,
+    judging_open,
+    results_published_at,
+    min_team_size,
+    max_team_size,
+    screening_enabled,
+    updated_by
+) values (
+    1,
+    'Monash University Malaysia Hackathon',
+    null,
+    null,
+    null,
+    false,
+    null,
+    1,
+    4,
+    false,
+    null
+);
+
+-- Privileges are deliberately NOT granted here. They live only in
+-- scripts/bootstrap.sql, so that every environment executes byte-identical
+-- migration SQL. A database whose roles were provisioned differently should fail
+-- loudly rather than be silently patched up by the migration.
