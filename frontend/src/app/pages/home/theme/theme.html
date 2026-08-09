@@ -1,0 +1,19 @@
+<section class="theme">
+  <div class="theme__intro">
+    <p class="theme__eyebrow">Theme</p>
+    <h2 class="theme__title">Build for the world you want to live in.</h2>
+    <p class="theme__blurb">
+      There's no set problem statement. Build any project you want, using any technology, then pitch
+      it to the judges. Teams can have 1 to 5 members.
+    </p>
+  </div>
+
+  <ul class="theme__pillars">
+    @for (pillar of pillars; track pillar.name) {
+      <li class="theme__pillar theme__pillar--{{ pillar.accent }}">
+        <p class="theme__pillar-name">{{ pillar.name }}</p>
+        <p class="theme__pillar-desc">{{ pillar.description }}</p>
+      </li>
+    }
+  </ul>
+</section>
