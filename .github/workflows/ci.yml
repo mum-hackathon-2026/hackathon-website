@@ -36,6 +36,27 @@ jobs:
   backend:
     name: Backend (Spring Boot)
     runs-on: ubuntu-latest
+
+    # Tests run against a real Postgres 16 — the same major version as local
+    # development. There is no in-memory fallback; the baseline migration uses
+    # Postgres-specific DDL that a substitute engine cannot execute.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: hackathon_db_test
+          POSTGRES_USER: hackathon_migrator
+          POSTGRES_PASSWORD: ci_only_migrator_pw
+        ports:
+          - 5432:5432
+        # The job must not start compiling until Postgres accepts connections.
+        options: >-
+          --health-cmd "pg_isready -U hackathon_migrator -d hackathon_db_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 10s
+
     defaults:
       run:
         working-directory: backend
@@ -52,3 +73,10 @@ jobs:
 
       - name: Build and test
         run: ./mvnw -B clean verify
+        # The service container is published on the runner's localhost:5432.
+        # Local development uses 5433 instead, because port 5432 there belongs to
+        # an unrelated native PostgreSQL 18 install.
+        env:
+          DB_TEST_URL: jdbc:postgresql://localhost:5432/hackathon_db_test
+          DB_TEST_USER: hackathon_migrator
+          DB_TEST_PASSWORD: ci_only_migrator_pw
