@@ -55,6 +55,29 @@ h3 {
   font-family: var(--font-display);
 }
 
+/* Shared section headings — repeated across every homepage section. */
+.section-eyebrow {
+  margin: 0 0 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+.section-heading {
+  margin: 0 0 40px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-ink);
+}
+
+.section-eyebrow--center,
+.section-heading--center {
+  text-align: center;
+}
+
 /* Focus rings — always visible, never signalled by colour alone. */
 :focus-visible {
   outline: 2px solid var(--color-blue);
