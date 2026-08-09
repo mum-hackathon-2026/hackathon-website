@@ -1,0 +1,12 @@
+:host {
+  display: block;
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.home__divider {
+  max-width: 860px;
+  margin: 0 auto;
+  border: none;
+  border-top: 1px solid var(--color-hairline);
+}

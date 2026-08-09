@@ -1,1 +1,118 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles: design tokens, resets and base typography.
+   Values mirror the Figma draft in frontend/figma-draft. */
+
+:root {
+  /* Brand accents — the four Google-palette colours the design leans on. */
+  --color-blue: #4285f4;
+  --color-blue-dark: #3367d6;
+  --color-blue-ink: #1a56c4;
+  --color-blue-tint: #e8f0fe;
+  --color-blue-wash: #f0f4ff;
+  --color-red: #ea4335;
+  --color-yellow: #fbbc04;
+  --color-green: #34a853;
+
+  /* Neutrals, darkest to lightest. */
+  --color-ink: #111827;
+  --color-body: #374151;
+  --color-muted: #6b7280;
+  --color-subtle: #9ca3af;
+  --color-faint: #d1d5db;
+  --color-border: #e5e7eb;
+  --color-hairline: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-surface-alt: #fafafa;
+
+  /* 'Google Sans' is not publicly hosted — it renders for people who have it
+     installed, everyone else falls back to Roboto. */
+  --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Google Sans', 'Roboto', ui-sans-serif, system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Available to screen readers, removed from the visual layout. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Shared section headings — repeated across every homepage section. */
+.section-eyebrow {
+  margin: 0 0 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+.section-heading {
+  margin: 0 0 40px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-ink);
+}
+
+.section-eyebrow--center,
+.section-heading--center {
+  text-align: center;
+}
+
+/* Focus rings — always visible, never signalled by colour alone. */
+:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

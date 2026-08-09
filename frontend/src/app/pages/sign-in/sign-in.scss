@@ -1,0 +1,58 @@
+.sign-in {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: clamp(64px, 12vw, 120px) 24px;
+  text-align: center;
+}
+
+// The shared heading reserves 40px for a section body; this page sits tighter.
+.sign-in .section-heading {
+  margin-bottom: 16px;
+}
+
+.sign-in__blurb {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-muted);
+}
+
+.sign-in__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.sign-in__link {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 22px;
+  border: 1.5px solid var(--color-blue);
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-blue);
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover {
+    background: var(--color-blue);
+    color: #fff;
+  }
+}
+
+.sign-in__link--muted {
+  border-color: var(--color-border);
+  color: var(--color-body);
+
+  &:hover {
+    border-color: var(--color-blue);
+    background: var(--color-surface);
+    color: var(--color-blue);
+  }
+}

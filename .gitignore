@@ -23,6 +23,7 @@ frontend/coverage/
 frontend/npm-debug.log*
 frontend/yarn-error.log*
 frontend/.env
+frontend/figma-draft
 
 # ===== Backend (Spring Boot / Maven / Gradle) =====
 backend/target/
