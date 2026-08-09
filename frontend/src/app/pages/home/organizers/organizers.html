@@ -1,0 +1,23 @@
+<section class="organizers">
+  <div class="organizers__inner">
+    <p class="section-eyebrow section-eyebrow--center">Organizers</p>
+    <h2 class="section-heading section-heading--center">The team making it happen.</h2>
+
+    <ul class="organizers__grid">
+      @for (person of organizers; track person.name) {
+        <li class="organizers__card">
+          <span
+            class="organizers__avatar organizers__avatar--{{ person.accent }}"
+            aria-hidden="true"
+          >
+            {{ person.initials }}
+          </span>
+          <span class="organizers__details">
+            <span class="organizers__name">{{ person.name }}</span>
+            <span class="organizers__role">{{ person.role }}</span>
+          </span>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
