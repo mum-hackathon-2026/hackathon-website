@@ -1,0 +1,65 @@
+<section class="sponsors" id="sponsors">
+  <div class="sponsors__inner">
+    <p class="section-eyebrow">Sponsors</p>
+    <h2 class="section-heading">Supported by Australia's best tech companies.</h2>
+
+    <div class="sponsors__tiers">
+      @for (tier of tiers; track tier.key) {
+        <section class="sponsors__tier">
+          <h3 class="sponsors__tier-label sponsors__tier-label--{{ tier.key }}">{{ tier.name }}</h3>
+
+          <ul class="sponsors__logos sponsors__logos--{{ tier.key }}">
+            @for (sponsor of tier.sponsors; track sponsor.domain) {
+              <li
+                class="sponsors__logo"
+                [style.background]="hasLogo(sponsor) ? null : sponsor.background"
+              >
+                @if (hasLogo(sponsor)) {
+                  <img
+                    class="sponsors__logo-image"
+                    [src]="logoUrl(sponsor)"
+                    [alt]="sponsor.name"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    (error)="onLogoError(sponsor)"
+                  />
+                } @else {
+                  <span
+                    class="sponsors__initials"
+                    [style.color]="sponsor.color"
+                    aria-hidden="true"
+                    >{{ sponsor.initials }}</span
+                  >
+                  <span class="visually-hidden">{{ sponsor.name }}</span>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+
+    <div class="sponsors__cta">
+      <p class="sponsors__cta-copy">
+        Interested in sponsoring? Reach 200+ student developers and connect with top engineering
+        talent.
+      </p>
+      <a class="sponsors__cta-link" href="#contact">
+        Become a sponsor
+        <svg
+          class="sponsors__cta-arrow"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>

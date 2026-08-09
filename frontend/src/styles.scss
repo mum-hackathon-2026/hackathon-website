@@ -55,6 +55,22 @@ h3 {
   font-family: var(--font-display);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+/* Available to screen readers, removed from the visual layout. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Shared section headings — repeated across every homepage section. */
 .section-eyebrow {
   margin: 0 0 16px;

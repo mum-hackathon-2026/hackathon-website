@@ -65,19 +65,6 @@
   margin-bottom: 40px;
 }
 
-/* The digits tick every second, so they are hidden from assistive tech and
-   this sentence carries the same information instead. */
-.hero__countdown-summary {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .hero__segments {
   display: flex;
   justify-content: center;
