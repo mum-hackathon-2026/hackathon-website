@@ -53,11 +53,13 @@ Three commands from a clean machine.
 
 ```bash
 docker run --name hackathon-pg16 \
-  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_PASSWORD=<choose-your-own> \
   -p 5433:5432 \
   -v hackathon_pg16_data:/var/lib/postgresql/data \
   -d postgres:16
 ```
+
+Pick your own value for `<choose-your-own>` — it does not need to match anyone else's. This is the **superuser password for your container only**. The application never uses it, it belongs in no config file, and it is not the same as the `hackathon_app` or `hackathon_migrator` passwords the app connects with. You only need it when running `psql -U postgres` by hand, such as in step 2.
 
 Already created it once? Just `docker start hackathon-pg16`.
 
@@ -88,6 +90,48 @@ cp src/main/resources/application-example.properties src/main/resources/applicat
   ```
 
 Runs at `http://localhost:8080`. Flyway applies any pending migrations on startup.
+
+### Connecting to the database
+
+To browse tables or run queries by hand — from `psql`, DBeaver, pgAdmin, DataGrip, or the IntelliJ/VS Code database panel — use these settings:
+
+| Setting  | Value                                              |
+| -------- | -------------------------------------------------- |
+| Host     | `localhost`                                        |
+| Port     | **5433** (not 5432)                                |
+| Database | `hackathon_db` (or `hackathon_db_test` for tests)  |
+| Username | `hackathon_app`                                    |
+| Password | `dev_app_local`                                    |
+
+From the command line:
+
+```bash
+# through the container — no local psql needed
+docker exec -it hackathon-pg16 psql -U hackathon_app -d hackathon_db
+
+# or from your own machine, if you have psql installed
+psql -h localhost -p 5433 -U hackathon_app -d hackathon_db
+```
+
+Useful once connected: `\dt` lists tables, `\d+ users` describes one, `\q` quits.
+
+**Which login should I use?**
+
+- **`hackathon_app`** — use this by default. It can `SELECT`, `INSERT`, `UPDATE` and `DELETE`, which covers everything you need for normal development. It deliberately cannot create or alter tables; if you try, you'll get `permission denied for schema public`. That is not a broken setup — it is the point.
+- **`hackathon_migrator`** (`dev_migrator_local`) — only needed when running migrations, which Flyway does for you on startup. You should rarely connect as this role by hand.
+- **`postgres`** — the container superuser, whose password you chose in step 1. Only for `bootstrap.sql` and other admin work.
+
+Never change the schema by hand from a SQL client, even as the migrator. Hibernate validates the schema against the entity mappings at startup, so a manual change makes the app refuse to start for you and nobody else. All schema changes go through a migration file.
+
+**Troubleshooting**
+
+| Symptom                                              | Cause                                                     |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| `Connection refused`                                 | Container is not running — `docker start hackathon-pg16`  |
+| `password authentication failed`                     | Wrong port. You have hit the native Postgres on 5432      |
+| `database "hackathon_db" does not exist`             | Step 2 was skipped — run `bootstrap.sql`                  |
+| `permission denied for schema public`                | You are `hackathon_app` and tried DDL. Expected           |
+| `Validate failed: Migrations have failed validation` | An applied migration file was edited — see below          |
 
 ### Database migrations
 
