@@ -1,0 +1,175 @@
+.role--participant {
+  --role-ink: var(--color-blue-ink);
+  --role-tint: var(--color-blue-tint);
+  --role-dot: var(--color-blue);
+}
+.role--judge {
+  --role-ink: var(--color-green-ink);
+  --role-tint: var(--color-green-tint);
+  --role-dot: var(--color-green);
+}
+.role--admin {
+  --role-ink: var(--color-amber-ink);
+  --role-tint: var(--color-amber-tint);
+  --role-dot: var(--color-yellow);
+}
+
+.profile-menu__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-menu__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--role-tint);
+  color: var(--role-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.profile-menu__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profile-menu__name,
+.profile-menu__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-menu__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.profile-menu__email {
+  font-size: 11px;
+  color: var(--color-subtle);
+}
+
+.profile-menu__section {
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-menu__section--last {
+  border-bottom: none;
+  padding: 6px 10px;
+}
+
+.profile-menu__label {
+  margin: 0 0 6px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+.profile-menu__roles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-menu__role {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-hairline);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.profile-menu__role--current {
+  border-color: color-mix(in srgb, var(--role-dot) 45%, transparent);
+  background: var(--role-tint);
+
+  .profile-menu__role-label {
+    font-weight: 700;
+    color: var(--role-ink);
+  }
+}
+
+.profile-menu__dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--role-dot);
+}
+
+.profile-menu__role-label {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.profile-menu__role-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--role-ink);
+}
+
+.profile-menu__sign-out {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-red);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+
+  &:hover {
+    background: #fce8e6;
+  }
+}
+
+.profile-menu__sign-out-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}

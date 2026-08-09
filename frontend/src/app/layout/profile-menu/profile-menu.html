@@ -1,0 +1,68 @@
+<div class="profile-menu">
+  <div class="profile-menu__identity">
+    <span class="profile-menu__avatar role--{{ user().activeRole }}" aria-hidden="true">
+      {{ user().initials }}
+    </span>
+    <span class="profile-menu__who">
+      <span class="profile-menu__name">{{ user().name }}</span>
+      <span class="profile-menu__email">{{ user().email }}</span>
+    </span>
+  </div>
+
+  @if (canSwitchRole()) {
+    <div class="profile-menu__section">
+      <p class="profile-menu__label" id="viewing-as-label">Viewing as</p>
+      <ul class="profile-menu__roles" aria-labelledby="viewing-as-label">
+        @for (role of user().roles; track role) {
+          <li>
+            <button
+              type="button"
+              class="profile-menu__role role--{{ role }}"
+              [class.profile-menu__role--current]="isActive(role)"
+              [attr.aria-current]="isActive(role) ? 'true' : null"
+              [disabled]="isActive(role)"
+              (click)="switchRole(role)"
+            >
+              <span class="profile-menu__dot" aria-hidden="true"></span>
+              <span class="profile-menu__role-label">{{ roleLabels[role] }}</span>
+              @if (isActive(role)) {
+                <svg
+                  class="profile-menu__role-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <div class="profile-menu__section profile-menu__section--last">
+    <button type="button" class="profile-menu__sign-out" (click)="signOut()">
+      <svg
+        class="profile-menu__sign-out-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <polyline points="16 17 21 12 16 7" />
+        <line x1="21" y1="12" x2="9" y2="12" />
+      </svg>
+      Sign out
+    </button>
+  </div>
+</div>

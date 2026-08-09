@@ -1,0 +1,134 @@
+<header class="nav">
+  <div class="nav__inner">
+    <a class="nav__brand" routerLink="/" (click)="closeAll()">
+      <svg class="nav__logo" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="7" height="7" rx="1" fill="#4285F4" />
+        <rect x="11" y="2" width="7" height="7" rx="1" fill="#EA4335" />
+        <rect x="2" y="11" width="7" height="7" rx="1" fill="#34A853" />
+        <rect x="11" y="11" width="7" height="7" rx="1" fill="#FBBC04" />
+      </svg>
+      <span class="nav__brand-name">Monash Hackathon</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Main">
+      @for (link of links(); track link.path) {
+        <a
+          class="nav__link"
+          [routerLink]="link.path"
+          routerLinkActive="nav__link--active"
+          [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
+          >{{ link.label }}</a
+        >
+      }
+    </nav>
+
+    <div class="nav__account" #accountArea>
+      @if (user(); as currentUser) {
+        <button
+          type="button"
+          class="nav__avatar-button"
+          [attr.aria-expanded]="profileOpen()"
+          aria-haspopup="menu"
+          [attr.aria-label]="
+            currentUser.name + ' — ' + roleLabels[currentUser.activeRole] + '. Open account menu'
+          "
+          (click)="toggleProfile()"
+        >
+          <span class="nav__avatar role--{{ currentUser.activeRole }}" aria-hidden="true">
+            {{ currentUser.initials }}
+          </span>
+          <span class="nav__role-chip role--{{ currentUser.activeRole }}" aria-hidden="true">
+            {{ roleLabels[currentUser.activeRole] }}
+          </span>
+          <svg
+            class="nav__chevron"
+            [class.nav__chevron--open]="profileOpen()"
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M2 4l4 4 4-4"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+
+        @if (profileOpen()) {
+          <div class="nav__popover">
+            <app-profile-menu [user]="currentUser" (dismiss)="closeAll()" />
+          </div>
+        }
+      } @else {
+        <a class="nav__sign-in" routerLink="/sign-in" (click)="closeAll()">
+          <svg
+            class="nav__sign-in-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <polyline points="10 17 15 12 10 7" />
+            <line x1="15" y1="12" x2="3" y2="12" />
+          </svg>
+          Sign in
+        </a>
+      }
+
+      <button
+        type="button"
+        class="nav__hamburger"
+        [attr.aria-expanded]="drawerOpen()"
+        [attr.aria-label]="drawerOpen() ? 'Close menu' : 'Open menu'"
+        (click)="toggleDrawer()"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          @if (drawerOpen()) {
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          } @else {
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          }
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  @if (drawerOpen()) {
+    <div class="nav__drawer">
+      <nav class="nav__drawer-links" aria-label="Main, mobile">
+        @for (link of links(); track link.path) {
+          <a
+            class="nav__drawer-link"
+            [routerLink]="link.path"
+            routerLinkActive="nav__drawer-link--active"
+            [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
+            (click)="closeAll()"
+            >{{ link.label }}</a
+          >
+        }
+      </nav>
+
+      @if (user(); as currentUser) {
+        <app-profile-menu [user]="currentUser" (dismiss)="closeAll()" />
+      }
+    </div>
+  }
+</header>
