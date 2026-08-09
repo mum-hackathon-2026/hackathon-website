@@ -84,10 +84,10 @@ Runs at `http://localhost:8080`.
 
 | Name   | Role | GitHub        |
 | ------ | ---- | ------------- |
-| Shariq | TBD  | @ShariqNauman |
-| Shamle | TBD  | @Shamle-T     |
-| Jess   | TBD  | @Jess777-hub  |
-| Darren | TBD  | @Darren772    |
+| Shariq | Backend | @ShariqNauman |
+| Shamle | Backend | @Shamle-T     |
+| Jess   | Frontend  | @Jess777-hub  |
+| Darren | DB  | @Darren772    |
 | Timur  | TBD  | @tmurz        |
 
 ## Docs
