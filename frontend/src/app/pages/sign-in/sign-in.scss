@@ -1,7 +1,20 @@
+.role--participant {
+  --role-ink: var(--color-blue-ink);
+  --role-tint: var(--color-blue-tint);
+}
+.role--judge {
+  --role-ink: var(--color-green-ink);
+  --role-tint: var(--color-green-tint);
+}
+.role--admin {
+  --role-ink: var(--color-amber-ink);
+  --role-tint: var(--color-amber-tint);
+}
+
 .sign-in {
-  max-width: 480px;
+  max-width: 520px;
   margin: 0 auto;
-  padding: clamp(64px, 12vw, 120px) 24px;
+  padding: clamp(48px, 9vw, 88px) 24px clamp(64px, 12vw, 120px);
   text-align: center;
 }
 
@@ -17,42 +30,113 @@
   color: var(--color-muted);
 }
 
-.sign-in__actions {
+.sign-in__accounts {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 28px;
+  flex-direction: column;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.sign-in__link {
-  display: inline-flex;
+.sign-in__account {
+  display: flex;
   align-items: center;
-  padding: 10px 22px;
-  border: 1.5px solid var(--color-blue);
-  border-radius: 6px;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
   background: var(--color-surface);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:hover {
+    border-color: var(--role-ink);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 8%);
+  }
+}
+
+.sign-in__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--role-tint);
+  color: var(--role-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sign-in__details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sign-in__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.sign-in__email {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--color-subtle);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-in__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.sign-in__role-tag {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--role-tint);
+  color: var(--role-ink);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sign-in__footnote {
+  margin: 28px 0 0;
+}
+
+.sign-in__back {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-blue);
   text-decoration: none;
-  transition:
-    background 0.15s,
-    color 0.15s;
 
   &:hover {
-    background: var(--color-blue);
-    color: #fff;
+    text-decoration: underline;
   }
 }
 
-.sign-in__link--muted {
-  border-color: var(--color-border);
-  color: var(--color-body);
+@media (max-width: 480px) {
+  .sign-in__account {
+    flex-wrap: wrap;
+  }
 
-  &:hover {
-    border-color: var(--color-blue);
-    background: var(--color-surface);
-    color: var(--color-blue);
+  .sign-in__roles {
+    justify-content: flex-start;
+    width: 100%;
   }
 }
