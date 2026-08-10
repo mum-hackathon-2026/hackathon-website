@@ -1,19 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { EVENT_CONFIG } from '../../../core/event/event-config';
 
-interface Pillar {
-  readonly name: string;
-  readonly description: string;
-  /** Modifier suffix for the coloured top border, see theme.scss. */
-  readonly accent: 'blue' | 'green' | 'red' | 'yellow';
-}
-
-/** Placeholder copy from the design — judging criteria come from the API later. */
-const PILLARS: readonly Pillar[] = [
-  { accent: 'blue', name: 'Technical depth', description: "How well it's engineered." },
-  { accent: 'green', name: 'Real-world impact', description: 'Whether it solves something.' },
-  { accent: 'red', name: 'Creative ambition', description: 'How bold the idea is.' },
-  { accent: 'yellow', name: 'Working demo', description: 'That it actually runs.' },
-];
+/** Rotating accent for the pillar top borders, in palette order. */
+const ACCENTS = ['blue', 'green', 'red', 'yellow'] as const;
 
 @Component({
   selector: 'app-home-theme',
@@ -22,5 +11,25 @@ const PILLARS: readonly Pillar[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ThemeSection {
-  protected readonly pillars = PILLARS;
+  protected readonly config = inject(EVENT_CONFIG);
+
+  /** Judging criteria carry the accents; the weights come straight from config. */
+  protected readonly pillars = computed(() =>
+    this.config.site.judgingCriteria.map((criterion, i) => ({
+      ...criterion,
+      accent: ACCENTS[i % ACCENTS.length],
+    })),
+  );
+
+  protected readonly teamSize = computed(() => {
+    const { minTeamSize, maxTeamSize } = this.config.settings;
+    return minTeamSize === 1
+      ? `Teams can have up to ${maxTeamSize} members, and you may enter solo.`
+      : `Teams can have ${minTeamSize} to ${maxTeamSize} members.`;
+  });
+
+  protected readonly trackList = computed(() => {
+    const tracks = this.config.site.tracks;
+    return tracks.slice(0, -1).join(', ') + ' and ' + tracks[tracks.length - 1];
+  });
 }

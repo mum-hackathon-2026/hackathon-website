@@ -30,15 +30,15 @@
           [attr.aria-expanded]="profileOpen()"
           aria-haspopup="menu"
           [attr.aria-label]="
-            currentUser.name + ' — ' + roleLabels[currentUser.activeRole] + '. Open account menu'
+            currentUser.name + ' — ' + roleLabels[currentUser.role] + '. Open account menu'
           "
           (click)="toggleProfile()"
         >
-          <span class="nav__avatar role--{{ currentUser.activeRole }}" aria-hidden="true">
+          <span class="nav__avatar role--{{ currentUser.role }}" aria-hidden="true">
             {{ currentUser.initials }}
           </span>
-          <span class="nav__role-chip role--{{ currentUser.activeRole }}" aria-hidden="true">
-            {{ roleLabels[currentUser.activeRole] }}
+          <span class="nav__role-chip role--{{ currentUser.role }}" aria-hidden="true">
+            {{ roleLabels[currentUser.role] }}
           </span>
           <svg
             class="nav__chevron"

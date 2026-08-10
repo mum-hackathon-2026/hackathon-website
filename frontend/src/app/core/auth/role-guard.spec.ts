@@ -50,14 +50,12 @@ describe('roleGuard', () => {
     expect(router.url).toBe('/');
   });
 
-  it('admits a multi-role user regardless of which role is active', async () => {
-    auth.signIn('admin');
-    auth.switchRole('participant');
+  it('refuses a judge an admin route', async () => {
+    auth.signIn('judge');
 
     await router.navigateByUrl('/admin');
 
-    // Viewing as participant, but the admin role is still held.
-    expect(auth.activeRole()).toBe('participant');
-    expect(router.url).toBe('/admin');
+    // One role per user, so holding judge grants nothing else.
+    expect(router.url).toBe('/');
   });
 });

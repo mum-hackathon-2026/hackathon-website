@@ -3,14 +3,11 @@ import { CanActivateFn, Router } from '@angular/router';
 import { AuthService, Role } from './auth';
 
 /**
- * Guards a route behind a role.
- *
- * Checks role *possession*, not the active role, so someone holding both admin
- * and participant reaches every route they are assigned regardless of which
- * role they are currently viewing as.
+ * Guards a route behind a role. A user holds exactly one, so this is an equality
+ * check — see the note on `users.role` in auth.ts.
  *
  * - Not signed in → /sign-in, remembering where they were headed
- * - Signed in but missing the role → home
+ * - Signed in with a different role → home
  *
  * Note this is a navigation convenience, not a security control: the demo auth
  * behind it is client-side only. Real enforcement belongs on the API.

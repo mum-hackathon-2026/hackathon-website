@@ -95,40 +95,15 @@ describe('NavBar', () => {
     expect(host().querySelector('.nav__popover')).toBeNull();
   });
 
-  it('hides the role switcher for a single-role account', async () => {
-    auth.signIn('participant');
-    await fixture.whenStable();
-    host().querySelector<HTMLButtonElement>('.nav__avatar-button')!.click();
-    await fixture.whenStable();
-
-    // Nothing to switch between, so the section is omitted entirely.
-    expect(host().querySelector('.profile-menu')).toBeTruthy();
-    expect(host().querySelectorAll('.profile-menu__role').length).toBe(0);
-  });
-
-  it('lists every held role for a multi-role account', async () => {
+  it('shows the single role in the menu, with nothing to switch to', async () => {
     auth.signIn('admin');
     await fixture.whenStable();
     host().querySelector<HTMLButtonElement>('.nav__avatar-button')!.click();
     await fixture.whenStable();
 
-    expect(host().querySelectorAll('.profile-menu__role').length).toBe(3);
-  });
-
-  it('switches role from the menu and closes it', async () => {
-    auth.signIn('admin');
-    await fixture.whenStable();
-    host().querySelector<HTMLButtonElement>('.nav__avatar-button')!.click();
-    await fixture.whenStable();
-
-    // The active role is disabled, so the first enabled entry is a different one.
-    const options = Array.from(host().querySelectorAll<HTMLButtonElement>('.profile-menu__role'));
-    const other = options.find((button) => !button.disabled)!;
-    other.click();
-    await fixture.whenStable();
-
-    expect(auth.activeRole()).not.toBe('admin');
-    expect(host().querySelector('.nav__popover')).toBeNull();
+    expect(host().querySelector('.profile-menu__role')?.textContent?.trim()).toBe('Administrator');
+    // One role per user — the menu offers no way to become another.
+    expect(host().querySelectorAll('.profile-menu button').length).toBe(1);
   });
 
   it('signs out from the menu', async () => {

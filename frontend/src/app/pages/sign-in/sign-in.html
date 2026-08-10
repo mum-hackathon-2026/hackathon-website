@@ -15,11 +15,7 @@
             <span class="sign-in__name">{{ accounts[role].name }}</span>
             <span class="sign-in__email">{{ accounts[role].email }}</span>
           </span>
-          <span class="sign-in__roles">
-            @for (held of accounts[role].roles; track held) {
-              <span class="sign-in__role-tag role--{{ held }}">{{ roleLabels[held] }}</span>
-            }
-          </span>
+          <span class="sign-in__role-tag role--{{ role }}">{{ roleLabels[role] }}</span>
         </button>
       </li>
     }

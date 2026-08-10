@@ -29,7 +29,7 @@ describe('AuthService', () => {
     const auth = serviceWith(memoryStorage());
     expect(auth.user()).toBeNull();
     expect(auth.isSignedIn()).toBe(false);
-    expect(auth.roles()).toEqual([]);
+    expect(auth.role()).toBeNull();
   });
 
   it('signs a demo account in and back out', () => {
@@ -37,58 +37,32 @@ describe('AuthService', () => {
 
     auth.signIn('participant');
     expect(auth.isSignedIn()).toBe(true);
-    expect(auth.activeRole()).toBe('participant');
+    expect(auth.role()).toBe('participant');
 
     auth.signOut();
     expect(auth.isSignedIn()).toBe(false);
-    expect(auth.activeRole()).toBeNull();
+    expect(auth.role()).toBeNull();
   });
 
-  it('reports role possession, not just the active role', () => {
+  it('holds exactly one role, matching users.role', () => {
     const auth = serviceWith(memoryStorage());
     auth.signIn('admin');
 
-    expect(auth.activeRole()).toBe('admin');
-    // The admin account deliberately holds all three.
     expect(auth.hasRole('admin')).toBe(true);
-    expect(auth.hasRole('judge')).toBe(true);
-    expect(auth.hasRole('participant')).toBe(true);
-  });
-
-  it('switches between held roles', () => {
-    const auth = serviceWith(memoryStorage());
-    auth.signIn('admin');
-
-    auth.switchRole('judge');
-
-    expect(auth.activeRole()).toBe('judge');
-    // Switching is a change of view — the roles held are unchanged.
-    expect(auth.hasRole('admin')).toBe(true);
-  });
-
-  it('never grants a role the account does not hold', () => {
-    const auth = serviceWith(memoryStorage());
-    auth.signIn('participant');
-
-    auth.switchRole('admin');
-
-    expect(auth.activeRole()).toBe('participant');
-    expect(auth.hasRole('admin')).toBe(false);
+    expect(auth.hasRole('judge')).toBe(false);
+    expect(auth.hasRole('participant')).toBe(false);
   });
 
   it('restores the session across a reload', () => {
     const storage = memoryStorage();
-    const auth = serviceWith(storage);
-    auth.signIn('admin');
-    auth.switchRole('judge');
+    serviceWith(storage).signIn('judge');
     TestBed.flushEffects();
 
     // Same storage, fresh injector — stands in for a page refresh.
     const restored = serviceWith(storage);
 
     expect(restored.isSignedIn()).toBe(true);
-    expect(restored.activeRole()).toBe('judge');
-    expect(restored.hasRole('admin')).toBe(true);
+    expect(restored.role()).toBe('judge');
   });
 
   it('clears storage on sign out', () => {
@@ -103,10 +77,9 @@ describe('AuthService', () => {
     expect(serviceWith(storage).isSignedIn()).toBe(false);
   });
 
-  it('discards a stored session that no longer makes sense', () => {
-    // A participant can never be viewing as an admin.
+  it('discards a stored session naming an unknown role', () => {
     const storage = memoryStorage({
-      'hackathon.demo-auth': JSON.stringify({ account: 'participant', activeRole: 'admin' }),
+      'hackathon.demo-auth': JSON.stringify({ account: 'superuser' }),
     });
 
     expect(serviceWith(storage).user()).toBeNull();

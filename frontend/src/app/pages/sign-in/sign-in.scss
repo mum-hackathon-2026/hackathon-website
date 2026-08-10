@@ -97,15 +97,8 @@
   white-space: nowrap;
 }
 
-.sign-in__roles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: flex-end;
-  flex-shrink: 0;
-}
-
 .sign-in__role-tag {
+  flex-shrink: 0;
   padding: 2px 8px;
   border-radius: 10px;
   background: var(--role-tint);
@@ -133,10 +126,5 @@
 @media (max-width: 480px) {
   .sign-in__account {
     flex-wrap: wrap;
-  }
-
-  .sign-in__roles {
-    justify-content: flex-start;
-    width: 100%;
   }
 }

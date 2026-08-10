@@ -1,25 +1,21 @@
 .role--participant {
   --role-ink: var(--color-blue-ink);
   --role-tint: var(--color-blue-tint);
-  --role-dot: var(--color-blue);
 }
 .role--judge {
   --role-ink: var(--color-green-ink);
   --role-tint: var(--color-green-tint);
-  --role-dot: var(--color-green);
 }
 .role--admin {
   --role-ink: var(--color-amber-ink);
   --role-tint: var(--color-amber-tint);
-  --role-dot: var(--color-yellow);
 }
 
 .profile-menu__identity {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px 12px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 14px 16px 10px;
 }
 
 .profile-menu__avatar {
@@ -60,90 +56,22 @@
   color: var(--color-subtle);
 }
 
-.profile-menu__section {
-  padding: 8px 10px 6px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.profile-menu__section--last {
-  border-bottom: none;
-  padding: 6px 10px;
-}
-
-.profile-menu__label {
-  margin: 0 0 6px;
-  padding: 0 6px;
+.profile-menu__role {
+  display: inline-block;
+  margin: 0 16px 12px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: var(--role-tint);
+  color: var(--role-ink);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-subtle);
 }
 
-.profile-menu__roles {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.profile-menu__role {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 7px 10px;
-  border: 1.5px solid var(--color-border);
-  border-radius: 6px;
-  background: transparent;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.1s,
-    border-color 0.1s;
-
-  &:hover:not(:disabled) {
-    background: var(--color-hairline);
-  }
-
-  &:disabled {
-    cursor: default;
-  }
-}
-
-.profile-menu__role--current {
-  border-color: color-mix(in srgb, var(--role-dot) 45%, transparent);
-  background: var(--role-tint);
-
-  .profile-menu__role-label {
-    font-weight: 700;
-    color: var(--role-ink);
-  }
-}
-
-.profile-menu__dot {
-  flex-shrink: 0;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--role-dot);
-}
-
-.profile-menu__role-label {
-  flex: 1;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--color-ink);
-}
-
-.profile-menu__role-icon {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-  color: var(--role-ink);
+.profile-menu__section {
+  padding: 6px 10px;
+  border-top: 1px solid var(--color-border);
 }
 
 .profile-menu__sign-out {

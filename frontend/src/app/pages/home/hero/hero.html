@@ -1,9 +1,14 @@
 <section class="hero">
   <p class="hero__badge">
     <span class="hero__badge-dot" aria-hidden="true"></span>
-    Registrations open · Aug 15 2026 deadline
+    {{ status() }}
+    @if (milestone(); as next) {
+      · {{ next.at | date: 'd MMM y' : myt }}
+    }
   </p>
 
+  <!-- Brand lockup. The canonical event name lives in event-config.ts; this is
+       the typographic treatment of it and is deliberately not interpolated. -->
   <h1 class="hero__title">
     Monash
     <span class="hero__wordmark"
@@ -15,26 +20,29 @@
     2026
   </h1>
 
-  <p class="hero__tagline">48 hours. One campus. Build something that matters.</p>
+  <p class="hero__tagline">{{ config.site.tagline }}</p>
 
-  <div class="hero__countdown">
-    <!-- The digits tick every second, so they are hidden from assistive tech
-         and this sentence carries the same information instead. -->
-    <p class="visually-hidden">
-      Registrations close on 15 August 2026 at 11:59 pm, Melbourne time.
-    </p>
-    <div class="hero__segments" aria-hidden="true">
-      @for (segment of segments(); track segment.label; let last = $last) {
-        <div class="hero__segment">
-          <span class="hero__segment-value">{{ segment.value }}</span>
-          <span class="hero__segment-label">{{ segment.label }}</span>
-        </div>
-        @if (!last) {
-          <span class="hero__separator">:</span>
+  @if (milestone(); as next) {
+    <div class="hero__countdown">
+      <!-- The digits tick every second, so they are hidden from assistive tech
+           and this sentence carries the same information instead. -->
+      <p class="visually-hidden">
+        {{ next.label }} on {{ next.at | date: 'd MMMM y, h:mm a' : myt }}, Malaysian time.
+      </p>
+      <p class="hero__countdown-caption" aria-hidden="true">{{ next.label }} in</p>
+      <div class="hero__segments" aria-hidden="true">
+        @for (segment of segments(); track segment.label; let last = $last) {
+          <div class="hero__segment">
+            <span class="hero__segment-value">{{ segment.value }}</span>
+            <span class="hero__segment-label">{{ segment.label }}</span>
+          </div>
+          @if (!last) {
+            <span class="hero__separator">:</span>
+          }
         }
-      }
+      </div>
     </div>
-  </div>
+  }
 
   <!-- TODO: send signed-in people straight to their workspace once auth lands. -->
   <div class="hero__actions">

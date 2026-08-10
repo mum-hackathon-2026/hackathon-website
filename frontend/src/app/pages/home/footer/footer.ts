@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { EVENT_CONFIG } from '../../../core/event/event-config';
 
 @Component({
   selector: 'app-home-footer',
@@ -6,4 +7,6 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   styleUrl: './footer.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomeFooter {}
+export class HomeFooter {
+  protected readonly config = inject(EVENT_CONFIG);
+}

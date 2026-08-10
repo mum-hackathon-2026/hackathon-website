@@ -59,10 +59,8 @@ export class NavBar {
   protected readonly drawerOpen = signal(false);
 
   protected readonly links = computed(() => {
-    const activeRole = this.auth.activeRole();
-    return NAV_LINKS.filter(
-      (link) => !link.roles || (activeRole && link.roles.includes(activeRole)),
-    );
+    const role = this.auth.role();
+    return NAV_LINKS.filter((link) => !link.roles || (role && link.roles.includes(role)));
   });
 
   protected toggleProfile(): void {
