@@ -1,52 +1,17 @@
-<div class="profile-menu">
+<div class="profile-menu role--{{ user().role }}">
   <div class="profile-menu__identity">
-    <span class="profile-menu__avatar role--{{ user().activeRole }}" aria-hidden="true">
-      {{ user().initials }}
-    </span>
+    <span class="profile-menu__avatar" aria-hidden="true">{{ user().initials }}</span>
     <span class="profile-menu__who">
       <span class="profile-menu__name">{{ user().name }}</span>
       <span class="profile-menu__email">{{ user().email }}</span>
     </span>
   </div>
 
-  @if (canSwitchRole()) {
-    <div class="profile-menu__section">
-      <p class="profile-menu__label" id="viewing-as-label">Viewing as</p>
-      <ul class="profile-menu__roles" aria-labelledby="viewing-as-label">
-        @for (role of user().roles; track role) {
-          <li>
-            <button
-              type="button"
-              class="profile-menu__role role--{{ role }}"
-              [class.profile-menu__role--current]="isActive(role)"
-              [attr.aria-current]="isActive(role) ? 'true' : null"
-              [disabled]="isActive(role)"
-              (click)="switchRole(role)"
-            >
-              <span class="profile-menu__dot" aria-hidden="true"></span>
-              <span class="profile-menu__role-label">{{ roleLabels[role] }}</span>
-              @if (isActive(role)) {
-                <svg
-                  class="profile-menu__role-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              }
-            </button>
-          </li>
-        }
-      </ul>
-    </div>
-  }
+  <!-- The nav's role chip is hidden on narrow screens, so the role is repeated
+       here to stay visible inside the mobile drawer. -->
+  <p class="profile-menu__role">{{ roleLabels[user().role] }}</p>
 
-  <div class="profile-menu__section profile-menu__section--last">
+  <div class="profile-menu__section">
     <button type="button" class="profile-menu__sign-out" (click)="signOut()">
       <svg
         class="profile-menu__sign-out-icon"
