@@ -1,45 +1,98 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { EVENT_CONFIG, EventConfig, DEFAULT_EVENT_CONFIG } from '../../../core/event/event-config';
 import { Hero } from './hero';
 
-function countdownValues(host: HTMLElement): (string | undefined)[] {
-  return Array.from(host.querySelectorAll<HTMLElement>('.hero__segment-value')).map((el) =>
-    el.textContent?.trim(),
+function configAt(overrides: Partial<EventConfig['settings']> = {}): EventConfig {
+  return {
+    ...DEFAULT_EVENT_CONFIG,
+    settings: { ...DEFAULT_EVENT_CONFIG.settings, ...overrides },
+  };
+}
+
+async function renderAt(when: string, overrides: Partial<EventConfig['settings']> = {}) {
+  // Clock keeps advancing so Angular's scheduler settles; every `when` sits well
+  // clear of a boundary so drift can't flip an assertion.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date(when));
+
+  TestBed.resetTestingModule();
+  await TestBed.configureTestingModule({
+    imports: [Hero],
+    providers: [provideRouter([]), { provide: EVENT_CONFIG, useValue: configAt(overrides) }],
+  }).compileComponents();
+
+  const fixture = TestBed.createComponent(Hero);
+  await fixture.whenStable();
+  return fixture.nativeElement as HTMLElement;
+}
+
+function badge(host: HTMLElement): string {
+  return host.querySelector('.hero__badge')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+}
+
+function countdownValues(host: HTMLElement): string[] {
+  return Array.from(host.querySelectorAll<HTMLElement>('.hero__segment-value')).map(
+    (el) => el.textContent?.trim() ?? '',
   );
 }
 
 describe('Hero', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [Hero],
-      providers: [provideRouter([])],
-    }).compileComponents();
-  });
-
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('counts down to the registration deadline', async () => {
-    // One day and 30 seconds before the 15 Aug 2026 11:59pm AEST deadline. The
-    // clock keeps advancing so Angular's scheduler can settle, hence the 30s of
-    // slack — landing on a whole minute would make the assertion racy.
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date('2026-08-14T23:58:30+11:00'));
+  it('counts down to registration opening before the event starts', async () => {
+    // Registration opens 2026-09-21T09:00+08:00; this is a day and 30s earlier.
+    const host = await renderAt('2026-09-20T08:59:30+08:00');
 
-    const fixture = TestBed.createComponent(Hero);
-    await fixture.whenStable();
-
-    expect(countdownValues(fixture.nativeElement as HTMLElement)).toEqual(['01', '00', '00', '30']);
+    expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
+      'Registration opens in',
+    );
+    expect(countdownValues(host)).toEqual(['01', '00', '00', '30']);
+    expect(badge(host)).toContain('Registrations open soon');
   });
 
-  it('clamps at zero once the deadline has passed', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date('2026-09-01T00:00:00+11:00'));
+  it('switches to the registration deadline once registration opens', async () => {
+    const host = await renderAt('2026-09-23T12:00:00+08:00');
 
-    const fixture = TestBed.createComponent(Hero);
-    await fixture.whenStable();
+    expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
+      'Registration closes in',
+    );
+    expect(badge(host)).toContain('Registrations open');
+  });
 
-    expect(countdownValues(fixture.nativeElement as HTMLElement)).toEqual(['00', '00', '00', '00']);
+  it('switches to the submission deadline once registration closes', async () => {
+    const host = await renderAt('2026-09-30T12:00:00+08:00');
+
+    expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
+      'Submissions close in',
+    );
+    expect(badge(host)).toContain('Submissions open');
+  });
+
+  it('drops the countdown entirely once results are out', async () => {
+    const host = await renderAt('2026-10-25T12:00:00+08:00');
+
+    expect(host.querySelector('.hero__countdown')).toBeNull();
+    expect(badge(host)).toContain('Results are out');
+    // The call to action stays; only the countdown goes.
+    expect(host.querySelectorAll('.hero__cta').length).toBe(2);
+  });
+
+  it('reads dates as MYT rather than the local zone', async () => {
+    // Registration opens at 01:00 UTC. An hour before, it has not opened yet.
+    const host = await renderAt('2026-09-21T00:00:00Z');
+    expect(badge(host)).toContain('Registrations open soon');
+
+    const later = await renderAt('2026-09-21T02:00:00Z');
+    expect(badge(later)).toContain('Registrations open');
+  });
+
+  it('takes its tagline from the config', async () => {
+    const host = await renderAt('2026-09-23T12:00:00+08:00');
+    expect(host.querySelector('.hero__tagline')?.textContent?.trim()).toBe(
+      DEFAULT_EVENT_CONFIG.site.tagline,
+    );
   });
 });
