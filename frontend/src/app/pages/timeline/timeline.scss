@@ -1,0 +1,187 @@
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline__step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+}
+
+.timeline__step--green {
+  --step-accent: var(--color-green);
+  --step-ink: var(--color-green-ink);
+  --step-tint: var(--color-green-tint);
+}
+.timeline__step--blue {
+  --step-accent: var(--color-blue);
+  --step-ink: var(--color-blue-ink);
+  --step-tint: var(--color-blue-tint);
+}
+.timeline__step--red {
+  --step-accent: var(--color-red);
+  --step-ink: var(--color-red-ink);
+  --step-tint: var(--color-red-tint);
+}
+.timeline__step--amber {
+  --step-accent: var(--color-yellow);
+  --step-ink: var(--color-amber-ink);
+  --step-tint: var(--color-amber-tint);
+}
+
+/* ── Spine ─────────────────────────────────────────────────────────────── */
+
+.timeline__spine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timeline__dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  margin-top: 14px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--step-ink);
+}
+
+.timeline__tick {
+  width: 13px;
+  height: 13px;
+}
+
+.timeline__connector {
+  flex: 1;
+  width: 2px;
+  min-height: 24px;
+  margin: 4px 0;
+  background: var(--color-border);
+}
+
+/* ── Card ──────────────────────────────────────────────────────────────── */
+
+.timeline__card {
+  margin-bottom: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.timeline__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.timeline__label {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.timeline__pill {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.timeline__pill--past {
+  background: var(--color-hairline);
+  color: var(--color-muted);
+}
+
+.timeline__pill--current,
+.timeline__pill--next {
+  background: var(--step-tint);
+  color: var(--step-ink);
+}
+
+.timeline__date {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+}
+
+.timeline__zone {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-subtle);
+}
+
+.timeline__description {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--color-body);
+}
+
+.timeline__guidance {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--step-accent);
+  border-radius: 0 4px 4px 0;
+  background: var(--step-tint);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-body);
+}
+
+/* ── Status treatments ─────────────────────────────────────────────────── */
+
+/* Reached milestones read as settled: filled dot, muted card. */
+.timeline__step[data-status='past'] {
+  .timeline__dot {
+    border-color: var(--step-accent);
+    background: var(--step-tint);
+  }
+
+  .timeline__card {
+    background: transparent;
+  }
+
+  .timeline__label,
+  .timeline__description {
+    color: var(--color-muted);
+  }
+}
+
+/* The live or next milestone is the one to draw the eye. */
+.timeline__step[data-status='current'],
+.timeline__step[data-status='next'] {
+  .timeline__dot {
+    border-color: var(--step-accent);
+    background: var(--step-tint);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--step-accent) 15%, transparent);
+  }
+
+  .timeline__card {
+    border-color: color-mix(in srgb, var(--step-accent) 45%, transparent);
+    box-shadow: 0 2px 12px color-mix(in srgb, var(--step-accent) 12%, transparent);
+  }
+}
+
+.timeline__step[data-status='upcoming'] {
+  .timeline__description {
+    color: var(--color-muted);
+  }
+}
