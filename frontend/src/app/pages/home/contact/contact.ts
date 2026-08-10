@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { EVENT_CONFIG } from '../../../core/event/event-config';
 
 @Component({
   selector: 'app-home-contact',
@@ -6,4 +7,6 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   styleUrl: './contact.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ContactSection {}
+export class ContactSection {
+  protected readonly site = inject(EVENT_CONFIG).site;
+}
