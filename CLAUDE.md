@@ -6,7 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The git repository root is `hackathon-website/` (one level below the usual working directory `C:\Users\ASUS\SEM3\gdghackathon`). It is a two-app monorepo with no shared build tooling — `frontend/` and `backend/` are built, tested, and run independently, and CI treats them as two separate jobs.
 
-The backend has a database layer (Flyway migrations, roles, CI service container) but no JPA entities, repositories, controllers, or security configuration yet. The frontend is still stock generator output — `app.routes.ts` is an empty array. Most architecture described in `README.md` is planned, not implemented.
+### What exists today
+
+**The two halves are not connected.** There is no HTTP API: the backend stops at the persistence layer (no controllers, services, DTOs, or security config), and the frontend never makes a network call — `app.config.ts` provides only `provideBrowserGlobalErrorListeners()` and `provideRouter(routes)`, with no `provideHttpClient`. Wiring them together is still ahead. Much of the architecture in `README.md` is planned, not implemented.
+
+- **Backend** — Flyway baseline (11 tables), Postgres roles, CI service container, and three mapped entities: `User`, `Team`, `TeamMember`, each with a Spring Data repository and a JPA-slice test. The other eight tables in V1 have no entities yet.
+- **Frontend** — four routed pages (home, timeline, my team, sign-in), a shared layout kit, and in-memory stand-ins for the API. Zoneless Angular 21, standalone components, signals throughout.
+
+Both halves lean on **placeholder data that is marked as such in the source** — `DEMO_USERS` and `DEFAULT_EVENT_CONFIG` dates in the frontend, the seeded teams in `TeamService`. Read the file header before treating any of it as a decision the team made.
 
 ## Database
 
@@ -46,6 +53,47 @@ cd backend
 copy src\main\resources\application-example.properties src\main\resources\application-local.properties
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
+
+## Backend code
+
+Packages are by feature, not by layer: `user/` holds `User` + `UserRepository`, `team/` holds `Team`, `TeamMember` and both repositories. Keep that shape when adding the remaining tables.
+
+Four conventions hold across every entity, and each exists for a reason that is easy to undo by accident:
+
+- **`role` and `status` are `String`, not Java enums.** The CHECK vocabularies in V1 are unratified proposals (see *Schema source of truth* above). An enum would freeze them early and risks failing `ddl-auto=validate` against a text column.
+- **Column DEFAULTs are duplicated as Java field initialisers** (`role = "participant"`, `status = "forming"`, `shortlisted = false`, …). This is deliberate: those columns are `NOT NULL` and Hibernate always names them in the INSERT, so the database DEFAULT never gets a chance to apply — a null field fails the insert rather than falling back. **Nothing enforces the correspondence**, and no test can catch a mismatch since both sides stay individually valid. A migration that changes a DEFAULT must change the initialiser too.
+- **`created_at` / `joined_at` are database-owned**: `insertable = false, updatable = false` plus Hibernate's `@Generated(event = EventType.INSERT)` so the in-memory entity is refreshed after insert instead of holding a stale null.
+- **Every association is `FetchType.LAZY`.** `open-in-view` is false, so an untraversed proxy fails loudly instead of quietly opening a connection during response rendering.
+
+Two mappings encode schema rules that a naive entity would discard:
+
+- `TeamMember` has **no surrogate key**. In V1 `user_id` is simultaneously the primary key and the FK to `users` — that is what enforces one team per person. `@MapsId` on the `@OneToOne` reproduces the shared key; adding a `@GeneratedValue` id would silently drop the constraint.
+- `Team.version` is a `@Version` column, giving optimistic locking on concurrent edits.
+
+## Frontend code
+
+```
+src/app/
+  core/           singleton services, no templates
+    auth/         AuthService + role guards
+    event/        EVENT_CONFIG token, PhaseService
+    team/         TeamService
+  layout/         reusable chrome: nav-bar, profile-menu, page-header,
+                  state-locked, confirm-dialog
+  pages/          one folder per route; home/ has its own section components
+```
+
+Components are standalone, `ChangeDetectionStrategy.OnPush`, and take inputs via the signal `input()` / `input.required()` API. Services expose `signal`/`computed` state, never subjects.
+
+**The frontend is written against V1's column names and CHECK literals verbatim.** `Role`, `TeamStatus`, `EventSettings` and the `Team`/`TeamMember` interfaces each mirror a table field for field, so swapping the demo services for HTTP calls is a change of data source rather than a reshape. The flip side: changing a CHECK vocabulary in a migration breaks these types, and only the comments connect the two.
+
+- `core/auth/auth.ts` — **demo authentication, not a security boundary.** No login endpoint, no token; `signIn(role)` picks one of three hardcoded users. The session is a role key in `localStorage`, behind a `SESSION_STORAGE` injection token so tests can substitute an in-memory store (jsdom serves from an opaque origin where `localStorage` throws). `ROLE_HOME` still points every role at `/` — repoint each entry as its landing page lands.
+- `core/auth/role-guard.ts` — `participantGuard`, `judgeGuard`, `adminGuard` gate routes (only the first is used so far, on `/participant/team`). They guard *navigation only*; there is no server enforcing anything behind them.
+- `core/event/event-config.ts` — `EVENT_CONFIG` is an `InjectionToken` so tests can stand up a config in whichever phase they need. Its dates are **placeholders chosen to sit in the future**, not the real schedule. `MYT_OFFSET` (`+0800`) is passed to `DatePipe` so dates render in Malaysian time regardless of the reader's locale.
+- `core/event/phase.ts` — derives `EventPhase` from those dates against a shared 1s clock signal. `judgingOpen` is exposed separately because V1 models it as an admin-flipped boolean, not a date window.
+- `core/team/team.ts` — in-memory team state, reset on reload by design. Mirrors the constraints the database would apply (unique name, unique join code, `maxTeamSize`) so error paths are real.
+
+`styles.scss` holds the whole design system as CSS custom properties on `:root` — Google-palette brand accents with pre-darkened `-ink` variants for contrast-safe text on `-tint` backgrounds, a neutral ramp, and `--font-sans` / `--font-display`. **Use the tokens; don't introduce raw hex values in component styles.** Values mirror `frontend/figma-draft`, which is gitignored and not in the repo.
 
 ## Commands
 
@@ -90,9 +138,11 @@ npm install
 npm start                  # ng serve → http://localhost:4200
 npm run build              # production config; enforces bundle budgets (1MB initial, 8kB per component style)
 npm test                   # vitest via the @angular/build:unit-test builder (jsdom)
-npx ng test --include src/app/app.spec.ts    # single spec file
+npx ng test --include src/app/core/team/team.spec.ts    # single spec file
 npx prettier --write .     # only formatting tool configured
 ```
+
+Specs are colocated (`team.ts` → `team.spec.ts`) and need no database or dev server. Coverage is uneven — every `core/` service and each routed page has one, while most presentational pieces (`page-header`, `state-locked`, `profile-menu`, several `home/` sections) do not.
 
 There is no lint script and no ESLint config. CI's `npm run lint --if-present` is currently a no-op — don't assume linting catches anything.
 
@@ -102,6 +152,8 @@ There is no lint script and no ESLint config. CI's `npm run lint --if-present` i
 - `application-example.properties` is the template; copy it to `application-local.properties` (gitignored via `backend/.gitignore`) and add the Google OAuth client id/secret and `app.jwt.secret`.
 - `src/test/resources/application.properties` **shadows** the main file rather than merging with it — both sit at the classpath root under the same name and the test classpath wins. Any setting tests need must be repeated there.
 - The template declares `spring.data.redis.*`, but there is no Redis starter in `pom.xml` yet, so those properties are inert.
+
+**`spring-boot-starter-security` is on the classpath with no `SecurityConfig` written yet.** Spring Security's default auto-configuration therefore applies: every request needs HTTP Basic with user `user` and a random password printed to the log at startup. That is why a freshly added endpoint answers 401 rather than serving. The OAuth2 client and WebSocket starters are likewise present but unconfigured.
 
 ## CI
 
