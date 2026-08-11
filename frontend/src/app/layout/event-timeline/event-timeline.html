@@ -1,0 +1,59 @@
+<ol class="timeline">
+  @for (step of steps(); track step.id) {
+    <li class="timeline__step timeline__step--{{ step.accent }}" [attr.data-status]="step.status">
+      <div class="timeline__spine" aria-hidden="true">
+        <span class="timeline__dot">
+          @if (step.status === 'past') {
+            <svg
+              class="timeline__tick"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          }
+        </span>
+        @if (!$last) {
+          <span class="timeline__connector"></span>
+        }
+      </div>
+
+      <div class="timeline__card">
+        <div class="timeline__heading">
+          <h2 class="timeline__label">{{ step.label }}</h2>
+          @switch (step.status) {
+            @case ('past') {
+              <span class="timeline__pill timeline__pill--past">Done</span>
+            }
+            @case ('current') {
+              <span class="timeline__pill timeline__pill--current">Happening now</span>
+            }
+            @case ('next') {
+              <span class="timeline__pill timeline__pill--next">
+                {{ step.daysAway === 0 ? 'Today' : 'In ' + step.daysAway + ' days' }}
+              </span>
+            }
+          }
+        </div>
+
+        <p class="timeline__date">
+          {{ step.start | date: 'd MMM y, h:mm a' : myt }}
+          @if (step.end) {
+            — {{ step.end | date: 'd MMM y, h:mm a' : myt }}
+          }
+          <span class="timeline__zone">MYT</span>
+        </p>
+
+        <p class="timeline__description">{{ step.description }}</p>
+
+        @if (step.guidance && step.status !== 'past') {
+          <p class="timeline__guidance">{{ step.guidance }}</p>
+        }
+      </div>
+    </li>
+  }
+</ol>
