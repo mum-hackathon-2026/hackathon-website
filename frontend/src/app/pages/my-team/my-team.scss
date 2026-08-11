@@ -1,0 +1,248 @@
+.my-team__error,
+.my-team__notice {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.my-team__error {
+  border: 1px solid color-mix(in srgb, var(--color-red-ink) 35%, transparent);
+  background: var(--color-red-tint);
+  color: var(--color-red-ink);
+}
+
+.my-team__notice {
+  border: 1px solid color-mix(in srgb, var(--color-green-ink) 30%, transparent);
+  background: var(--color-green-tint);
+  color: var(--color-green-ink);
+}
+
+.my-team__card {
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.my-team__choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.my-team__title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.my-team__name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.my-team__status {
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--color-blue-tint);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-blue-ink);
+}
+
+.my-team__subheading {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.my-team__help {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+// ── Join code ─────────────────────────────────────────────────────────────
+
+.my-team__code-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.my-team__code-label {
+  margin: 0 0 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+.my-team__code {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.my-team__code-actions {
+  display: flex;
+  gap: 8px;
+}
+
+// ── Members ───────────────────────────────────────────────────────────────
+
+.my-team__members-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.my-team__count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-subtle);
+}
+
+.my-team__members {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-team__member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-hairline);
+
+  &:first-child {
+    border-top: none;
+  }
+}
+
+.my-team__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-blue-tint);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-blue-ink);
+}
+
+.my-team__member-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.my-team__member-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.my-team__member-email {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--color-subtle);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-team__you,
+.my-team__leader {
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.my-team__you {
+  background: var(--color-hairline);
+  color: var(--color-muted);
+}
+
+.my-team__leader {
+  background: var(--color-amber-tint);
+  color: var(--color-amber-ink);
+}
+
+.my-team__member-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.my-team__hint {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+
+.my-team__locked-summary {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+// ── Forms and buttons ─────────────────────────────────────────────────────
+
+.my-team__form,
+.my-team__rename {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.my-team__rename {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+
+  .input {
+    flex: 1;
+    min-width: 160px;
+  }
+}
+
+.my-team__code-input {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}

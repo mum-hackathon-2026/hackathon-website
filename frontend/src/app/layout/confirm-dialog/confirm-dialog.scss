@@ -1,0 +1,37 @@
+.confirm {
+  width: min(420px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 18%);
+
+  &::backdrop {
+    background: rgb(17 24 39 / 45%);
+  }
+}
+
+.confirm__panel {
+  padding: 20px 22px 18px;
+}
+
+.confirm__heading {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.confirm__body {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}

@@ -24,6 +24,8 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export interface AuthUser {
+  /** Mirrors `users.id`, which team_members.user_id and teams.created_by reference. */
+  readonly id: number;
   readonly name: string;
   readonly email: string;
   readonly initials: string;
@@ -32,18 +34,21 @@ export interface AuthUser {
 
 export const DEMO_USERS: Record<Role, AuthUser> = {
   participant: {
+    id: 1,
     name: 'Priya Menon',
     email: 'pmenon@student.monash.edu',
     initials: 'PM',
     role: 'participant',
   },
   judge: {
+    id: 2,
     name: 'Dr. Sofia Lindqvist',
     email: 's.lindqvist@monash.edu',
     initials: 'SL',
     role: 'judge',
   },
   admin: {
+    id: 3,
     name: 'Mei-Lin Zhao',
     email: 'mzhao@monash.edu',
     initials: 'MZ',
