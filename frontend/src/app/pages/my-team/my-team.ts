@@ -33,6 +33,8 @@ export class MyTeam {
   protected readonly members = this.teams.myTeamMembers;
   protected readonly isLeader = this.teams.isLeader;
   protected readonly isFull = this.teams.isFull;
+  /** Disables the controls while a mutation is in flight, as it will be over HTTP. */
+  protected readonly pending = this.teams.pending;
 
   /**
    * Locked once registration has closed. Derived from the phase rather than a
@@ -52,10 +54,10 @@ export class MyTeam {
 
   protected readonly error = signal<string | null>(null);
   protected readonly notice = signal<string | null>(null);
-  protected readonly pending = signal<PendingAction>(null);
+  protected readonly pendingAction = signal<PendingAction>(null);
 
   protected readonly confirmText = computed(() => {
-    const action = this.pending();
+    const action = this.pendingAction();
     switch (action?.kind) {
       case 'leave':
         return {
@@ -83,15 +85,15 @@ export class MyTeam {
     }
   });
 
-  protected createTeam(): void {
-    this.apply(this.teams.createTeam(this.newTeamName()), () => {
+  protected async createTeam(): Promise<void> {
+    await this.apply(this.teams.createTeam(this.newTeamName()), () => {
       this.newTeamName.set('');
       this.notice.set('Team created. Share the join code with your teammates.');
     });
   }
 
-  protected joinTeam(): void {
-    this.apply(this.teams.joinTeam(this.joinCode()), () => {
+  protected async joinTeam(): Promise<void> {
+    await this.apply(this.teams.joinTeam(this.joinCode()), () => {
       this.joinCode.set('');
       this.notice.set('You have joined the team.');
     });
@@ -102,15 +104,15 @@ export class MyTeam {
     this.isRenaming.set(true);
   }
 
-  protected saveRename(): void {
-    this.apply(this.teams.renameTeam(this.renameValue()), () => {
+  protected async saveRename(): Promise<void> {
+    await this.apply(this.teams.renameTeam(this.renameValue()), () => {
       this.isRenaming.set(false);
       this.notice.set('Team name updated.');
     });
   }
 
-  protected regenerateCode(): void {
-    this.apply(this.teams.regenerateJoinCode(), () =>
+  protected async regenerateCode(): Promise<void> {
+    await this.apply(this.teams.regenerateJoinCode(), () =>
       this.notice.set('New join code generated. The old one no longer works.'),
     );
   }
@@ -127,22 +129,22 @@ export class MyTeam {
     }
   }
 
-  protected confirmPending(): void {
-    const action = this.pending();
-    this.pending.set(null);
+  protected async confirmPending(): Promise<void> {
+    const action = this.pendingAction();
+    this.pendingAction.set(null);
     if (!action) return;
 
     switch (action.kind) {
       case 'leave':
-        this.apply(this.teams.leaveTeam(), () => this.notice.set('You have left the team.'));
+        await this.apply(this.teams.leaveTeam(), () => this.notice.set('You have left the team.'));
         break;
       case 'remove':
-        this.apply(this.teams.removeMember(action.userId), () =>
+        await this.apply(this.teams.removeMember(action.userId), () =>
           this.notice.set(`${action.name} was removed.`),
         );
         break;
       case 'transfer':
-        this.apply(this.teams.transferLeadership(action.userId), () =>
+        await this.apply(this.teams.transferLeadership(action.userId), () =>
           this.notice.set(`${action.name} is now the team leader.`),
         );
         break;
@@ -150,14 +152,15 @@ export class MyTeam {
   }
 
   protected ask(action: NonNullable<PendingAction>): void {
-    this.pending.set(action);
+    this.pendingAction.set(action);
   }
 
   protected cancelPending(): void {
-    this.pending.set(null);
+    this.pendingAction.set(null);
   }
 
-  private apply(result: TeamActionResult, onSuccess: () => void): void {
+  private async apply(action: Promise<TeamActionResult>, onSuccess: () => void): Promise<void> {
+    const result = await action;
     if (result.ok) {
       this.error.set(null);
       onSuccess();
