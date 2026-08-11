@@ -36,7 +36,17 @@ The container's `postgres` superuser password is chosen per-machine and is delib
 
 `docs/databaseSchema.pdf` defines the relational schema, and `V1__baseline_schema.sql` matches it column for column. It is **structural only** — it fixes tables, columns, primary keys, foreign keys and unique constraints, but specifies no data types, no `ON DELETE` behaviour, no CHECK vocabularies, and no team-size limits.
 
-Everything in that second list is currently an unratified proposal in V1. Don't treat the enum-like CHECK values (`users.role`, `teams.status`, `notifications_log.type`, and five others) as settled — the frontend will hardcode those literal strings, and the team has not signed off on them. `docs/README.md` tracks what is decided versus open.
+Most of that second list is still an unratified proposal. Don't treat the remaining enum-like CHECK values (`users.role`, `notifications_log.type`, and five others) as settled — the frontend hardcodes those literal strings, and the team has not signed off on them. `docs/README.md` tracks what is decided versus open.
+
+**V2 ratified three of them**, and the schema now differs from V1 in ways the PDF does not show:
+
+- **`users.status` is gone.** Deletion is a **hard delete**, not a soft delete — a deleted user is removed from `users`, not flagged. There is no `'active' / 'suspended' / 'deleted'` column to filter on, and no `status` field on the `User` entity.
+- **`teams.status` no longer has `'submitted'`** — the vocabulary is `forming`, `complete`, `disqualified`, `withdrawn`. Submission state lives **only** on `submissions.status`, which keeps its full vocabulary (`draft`, `submitted`, `withdrawn`, `disqualified`). V1 recorded the same fact in both places with nothing keeping them in step. When you need to know whether a team submitted, join `submissions` — don't look at `teams.status`.
+- **`assignments.judge_id` is `ON DELETE CASCADE`** (V1 had `RESTRICT`). Under hard delete, `RESTRICT` would stop a judge deleting their own account for as long as they held any assignment. `scores.assignment_id` already cascades, so deleting a judge removes their assignments and their scores with them.
+
+**The `ON DELETE` rules are now live behaviour, not a theoretical annotation.** While users were soft-deleted nothing exercised them; now that a delete really removes the row, each rule fires for real. Deleting a user cascades away their `team_members` row and (as a judge) their `assignments` and `scores`, and nulls out `teams.created_by`, `event_settings.updated_by`, `notifications_log.user_id` and `audit_log.actor_user_id`. That last one means **deleting a user anonymises their audit trail rather than deleting it** — the entries survive with a null actor.
+
+**Empty teams are retained deliberately.** `team_members.user_id` cascades, so a team whose last member leaves stays behind with no members. Nothing auto-deletes it — no trigger, no cascade, no sweep — and that is a decision, not an oversight. The team keeps its UNIQUE name and join code, so the name stays reserved and anyone with the code can rejoin and revive it. V2 says so in a comment; don't "fix" it.
 
 ### Migrations
 
@@ -60,7 +70,7 @@ Packages are by feature, not by layer: `user/` holds `User` + `UserRepository`, 
 
 Four conventions hold across every entity, and each exists for a reason that is easy to undo by accident:
 
-- **`role` and `status` are `String`, not Java enums.** The CHECK vocabularies in V1 are unratified proposals (see *Schema source of truth* above). An enum would freeze them early and risks failing `ddl-auto=validate` against a text column.
+- **`role` and `status` are `String`, not Java enums.** The remaining CHECK vocabularies are unratified proposals (see *Schema source of truth* above). An enum would freeze them early and risks failing `ddl-auto=validate` against a text column. `User` has no `status` field at all — V2 dropped the column.
 - **Column DEFAULTs are duplicated as Java field initialisers** (`role = "participant"`, `status = "forming"`, `shortlisted = false`, …). This is deliberate: those columns are `NOT NULL` and Hibernate always names them in the INSERT, so the database DEFAULT never gets a chance to apply — a null field fails the insert rather than falling back. **Nothing enforces the correspondence**, and no test can catch a mismatch since both sides stay individually valid. A migration that changes a DEFAULT must change the initialiser too.
 - **`created_at` / `joined_at` are database-owned**: `insertable = false, updatable = false` plus Hibernate's `@Generated(event = EventType.INSERT)` so the in-memory entity is refreshed after insert instead of holding a stale null.
 - **Every association is `FetchType.LAZY`.** `open-in-view` is false, so an untraversed proxy fails loudly instead of quietly opening a connection during response rendering.
@@ -87,6 +97,8 @@ Components are standalone, `ChangeDetectionStrategy.OnPush`, and take inputs via
 
 **The frontend is written against V1's column names and CHECK literals verbatim.** `Role`, `TeamStatus`, `EventSettings` and the `Team`/`TeamMember` interfaces each mirror a table field for field, so swapping the demo services for HTTP calls is a change of data source rather than a reshape. The flip side: changing a CHECK vocabulary in a migration breaks these types, and only the comments connect the two.
 
+**That has already happened once and is not yet fixed.** `TeamStatus` in `core/team/team.ts` still lists `'submitted'`, which V2 removed from `teams.status`. Nothing catches it — the literal is declared in the union but never used as a value, so the build and the specs both stay green while the type permits a status the database will reject.
+
 - `core/auth/auth.ts` — **demo authentication, not a security boundary.** No login endpoint, no token; `signIn(role)` picks one of three hardcoded users. The session is a role key in `localStorage`, behind a `SESSION_STORAGE` injection token so tests can substitute an in-memory store (jsdom serves from an opaque origin where `localStorage` throws). `ROLE_HOME` still points every role at `/` — repoint each entry as its landing page lands.
 - `core/auth/role-guard.ts` — `participantGuard`, `judgeGuard`, `adminGuard` gate routes (only the first is used so far, on `/participant/team`). They guard *navigation only*; there is no server enforcing anything behind them.
 - `core/event/event-config.ts` — `EVENT_CONFIG` is an `InjectionToken` so tests can stand up a config in whichever phase they need. Its dates are **placeholders chosen to sit in the future**, not the real schedule. `MYT_OFFSET` (`+0800`) is passed to `DatePipe` so dates render in Malaysian time regardless of the reader's locale.
@@ -108,7 +120,7 @@ Windows/PowerShell needs `.\mvnw.cmd` and quoted `-D` args; Mac/Linux uses `./mv
 .\mvnw.cmd -B clean verify                                      # what CI runs
 ```
 
-**Tests require a running Postgres.** H2 has been removed from `pom.xml` entirely — the baseline schema uses Postgres-specific DDL (`timestamptz`, `jsonb`, identity columns, cross-column CHECKs) that no substitute engine can execute. `FlywayBaselineMigrationTests` cleans `hackathon_db_test`, re-applies every migration, and asserts `flyway_schema_history` records V1 as successful. If it fails with a connection error, the container is not running.
+**Tests require a running Postgres.** H2 has been removed from `pom.xml` entirely — the baseline schema uses Postgres-specific DDL (`timestamptz`, `jsonb`, identity columns, cross-column CHECKs) that no substitute engine can execute. `FlywayBaselineMigrationTests` cleans `hackathon_db_test`, re-applies every migration, and asserts `flyway_schema_history` records V1 and V2 as successful. It proves the migrations work **from empty**; it does not prove V2 applies on top of an existing V1 database, which is how teammates will meet it — start the app against the local database for that. If it fails with a connection error, the container is not running.
 
 Test connection settings are environment-overridable so CI can supply its own: `DB_TEST_URL`, `DB_TEST_USER`, `DB_TEST_PASSWORD`, each defaulting to the local 5433 container.
 
