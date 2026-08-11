@@ -104,6 +104,8 @@ html {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-body);
+  /* Anchors styled as buttons must not keep their underline. */
+  text-decoration: none;
   cursor: pointer;
   transition:
     background 0.15s,
