@@ -93,6 +93,98 @@ html {
   max-width: 720px;
 }
 
+/* Form controls. Shared because every page with a form needs the same ones. */
+.button {
+  align-self: flex-start;
+  padding: 9px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-body);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.button:hover {
+  background: var(--color-hairline);
+}
+
+.button--primary {
+  border-color: var(--color-blue);
+  background: var(--color-blue);
+  color: #fff;
+}
+
+.button--primary:hover {
+  background: var(--color-blue-dark);
+  border-color: var(--color-blue-dark);
+}
+
+.button--danger {
+  border-color: color-mix(in srgb, var(--color-red-ink) 40%, transparent);
+  color: var(--color-red-ink);
+}
+
+.button--danger:hover {
+  background: var(--color-red-tint);
+}
+
+/* Filled destructive, for the confirm step of a dangerous action. */
+.button--danger-solid {
+  border-color: var(--color-red-ink);
+  background: var(--color-red-ink);
+  color: #fff;
+}
+
+.button--danger-solid:hover {
+  background: #a51c19;
+  border-color: #a51c19;
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-blue);
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.link-button--danger {
+  color: var(--color-red-ink);
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-body);
+}
+
+.input {
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
+.input:focus {
+  border-color: var(--color-blue);
+}
+
 /* Shared section headings — repeated across every homepage section. */
 .section-eyebrow {
   margin: 0 0 16px;

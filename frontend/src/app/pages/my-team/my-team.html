@@ -1,0 +1,187 @@
+<div class="page page--narrow">
+  <app-page-header
+    eyebrow="Participant"
+    title="My team"
+    subtitle="Form a team, share your join code, and manage who's on it."
+  />
+
+  @if (error(); as message) {
+    <p class="my-team__error" role="alert">{{ message }}</p>
+  }
+  @if (notice(); as message) {
+    <p class="my-team__notice" role="status">{{ message }}</p>
+  }
+
+  @if (isLocked()) {
+    <app-state-locked
+      heading="Team changes are closed"
+      reason="Registration has closed, so teams can no longer be created, joined or changed."
+      [deadline]="
+        registrationClosesAt
+          ? 'Registration closed ' + (registrationClosesAt | date: 'd MMM y, h:mm a' : myt) + ' MYT'
+          : ''
+      "
+    >
+      @if (team(); as current) {
+        <p class="my-team__locked-summary">
+          {{ current.name }} — {{ members().length }} member{{ members().length === 1 ? '' : 's' }}
+        </p>
+      }
+    </app-state-locked>
+  } @else if (team(); as current) {
+    <!-- ── Has a team ─────────────────────────────────────────────────── -->
+    <section class="my-team__card">
+      <div class="my-team__title-row">
+        @if (isRenaming()) {
+          <form class="my-team__rename" (ngSubmit)="saveRename()">
+            <label class="visually-hidden" for="team-name">Team name</label>
+            <input
+              id="team-name"
+              class="input"
+              [ngModel]="renameValue()"
+              (ngModelChange)="renameValue.set($event)"
+              name="teamName"
+              maxlength="120"
+              required
+            />
+            <button type="submit" class="button button--primary">Save</button>
+            <button type="button" class="button" (click)="isRenaming.set(false)">Cancel</button>
+          </form>
+        } @else {
+          <h2 class="my-team__name">{{ current.name }}</h2>
+          <span class="my-team__status">{{ current.status }}</span>
+          @if (isLeader()) {
+            <button type="button" class="link-button" (click)="startRename()">Rename</button>
+          }
+        }
+      </div>
+
+      <div class="my-team__code-row">
+        <div>
+          <p class="my-team__code-label">Join code</p>
+          <p class="my-team__code">{{ current.joinCode }}</p>
+        </div>
+        <div class="my-team__code-actions">
+          <button type="button" class="button" (click)="copyCode()">Copy</button>
+          @if (isLeader()) {
+            <button type="button" class="button" (click)="regenerateCode()">Regenerate</button>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="my-team__card">
+      <div class="my-team__members-head">
+        <h3 class="my-team__subheading">Members</h3>
+        <span class="my-team__count">
+          {{ members().length }} of {{ config.settings.maxTeamSize }}
+        </span>
+      </div>
+
+      <ul class="my-team__members">
+        @for (member of members(); track member.userId) {
+          <li class="my-team__member">
+            <span class="my-team__avatar" aria-hidden="true">{{ member.initials }}</span>
+            <span class="my-team__member-text">
+              <span class="my-team__member-name">
+                {{ member.name }}
+                @if (member.isYou) {
+                  <span class="my-team__you">You</span>
+                }
+                @if (member.isLeader) {
+                  <span class="my-team__leader">Leader</span>
+                }
+              </span>
+              <span class="my-team__member-email">{{ member.email }}</span>
+            </span>
+
+            @if (isLeader() && !member.isYou) {
+              <span class="my-team__member-actions">
+                <button
+                  type="button"
+                  class="link-button"
+                  (click)="ask({ kind: 'transfer', userId: member.userId, name: member.name })"
+                >
+                  Make leader
+                </button>
+                <button
+                  type="button"
+                  class="link-button link-button--danger"
+                  (click)="ask({ kind: 'remove', userId: member.userId, name: member.name })"
+                >
+                  Remove
+                </button>
+              </span>
+            }
+          </li>
+        }
+      </ul>
+
+      @if (isFull()) {
+        <p class="my-team__hint">
+          Your team is full. Regenerate the join code to stop further requests.
+        </p>
+      }
+    </section>
+
+    <button type="button" class="button button--danger" (click)="ask({ kind: 'leave' })">
+      Leave team
+    </button>
+  } @else {
+    <!-- ── No team yet ────────────────────────────────────────────────── -->
+    <div class="my-team__choices">
+      <section class="my-team__card">
+        <h2 class="my-team__subheading">Create a team</h2>
+        <p class="my-team__help">
+          You'll get a join code to share. Teams can have up to
+          {{ config.settings.maxTeamSize }} members.
+        </p>
+        <form class="my-team__form" (ngSubmit)="createTeam()">
+          <label class="field-label" for="new-team">Team name</label>
+          <input
+            id="new-team"
+            class="input"
+            [ngModel]="newTeamName()"
+            (ngModelChange)="newTeamName.set($event)"
+            name="newTeam"
+            maxlength="120"
+            placeholder="Null Pointer Exception"
+            required
+          />
+          <button type="submit" class="button button--primary">Create team</button>
+        </form>
+      </section>
+
+      <section class="my-team__card">
+        <h2 class="my-team__subheading">Join a team</h2>
+        <p class="my-team__help">Ask a teammate for the code shown on their team page.</p>
+        <form class="my-team__form" (ngSubmit)="joinTeam()">
+          <label class="field-label" for="join-code">Join code</label>
+          <input
+            id="join-code"
+            class="input my-team__code-input"
+            [ngModel]="joinCode()"
+            (ngModelChange)="joinCode.set($event)"
+            name="joinCode"
+            maxlength="32"
+            placeholder="QLEAP7"
+            required
+          />
+          <button type="submit" class="button button--primary">Join team</button>
+        </form>
+      </section>
+    </div>
+  }
+</div>
+
+@if (confirmText(); as text) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="text.heading"
+    [body]="text.body"
+    [confirmLabel]="text.confirmLabel"
+    [danger]="true"
+    (confirmed)="confirmPending()"
+    (cancelled)="cancelPending()"
+  />
+}

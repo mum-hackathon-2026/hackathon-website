@@ -5,13 +5,13 @@
       <p class="confirm__body">{{ text }}</p>
     }
     <div class="confirm__actions">
-      <button type="button" class="confirm__button" (click)="cancelled.emit()">
+      <button type="button" class="button" (click)="cancelled.emit()">
         {{ cancelLabel() }}
       </button>
       <button
         type="button"
-        class="confirm__button confirm__button--primary"
-        [class.confirm__button--danger]="danger()"
+        class="button button--primary"
+        [class.button--danger-solid]="danger()"
         (click)="confirmed.emit()"
       >
         {{ confirmLabel() }}

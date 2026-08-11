@@ -49,7 +49,7 @@ describe('ConfirmDialog', () => {
     await fixture.whenStable();
 
     (fixture.nativeElement as HTMLElement)
-      .querySelector<HTMLButtonElement>('.confirm__button--primary')!
+      .querySelector<HTMLButtonElement>('.button--primary')!
       .click();
 
     expect(fixture.componentInstance.confirmed).toBe(1);
