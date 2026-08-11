@@ -28,8 +28,13 @@ const TICK_MS = 1000;
 export class PhaseService {
   private readonly config = inject(EVENT_CONFIG);
 
-  /** Ticks so countdowns re-render; every derived signal below depends on it. */
-  private readonly now = signal(Date.now());
+  private readonly clock = signal(Date.now());
+
+  /**
+   * Ticks once a second so countdowns re-render. Exposed so pages that lay out
+   * their own view of the schedule share one clock rather than starting another.
+   */
+  readonly now = this.clock.asReadonly();
 
   readonly phase = computed<EventPhase>(() => {
     const { registrationOpensAt, registrationClosesAt, submissionDeadlineAt, resultsPublishedAt } =
@@ -72,7 +77,7 @@ export class PhaseService {
   });
 
   constructor() {
-    const ticker = setInterval(() => this.now.set(Date.now()), TICK_MS);
+    const ticker = setInterval(() => this.clock.set(Date.now()), TICK_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(ticker));
   }
 }
