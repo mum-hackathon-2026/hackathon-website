@@ -3,36 +3,6 @@
     <p class="section-eyebrow section-eyebrow--center">FAQ</p>
     <h2 class="section-heading section-heading--center">Common questions.</h2>
 
-    <div class="faq__list">
-      @for (item of faqs; track item.question; let i = $index) {
-        <div class="faq__item">
-          <h3 class="faq__question">
-            <button
-              type="button"
-              class="faq__trigger"
-              [attr.aria-expanded]="isOpen(i)"
-              [attr.aria-controls]="'faq-answer-' + i"
-              (click)="toggle(i)"
-            >
-              <span class="faq__question-text">{{ item.question }}</span>
-              <span class="faq__chevron" [class.faq__chevron--open]="isOpen(i)" aria-hidden="true">
-                <svg viewBox="0 0 12 12" fill="none">
-                  <path
-                    d="M2 4l4 4 4-4"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </span>
-            </button>
-          </h3>
-          <p class="faq__answer" [id]="'faq-answer-' + i" [hidden]="!isOpen(i)">
-            {{ item.answer }}
-          </p>
-        </div>
-      }
-    </div>
+    <app-faq-list [faqs]="faqs" />
   </div>
 </section>

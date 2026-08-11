@@ -1,12 +1,13 @@
 import { DEFAULT_EVENT_CONFIG } from './event-config';
 
 /**
- * List content the homepage renders. Kept beside event-config.ts so "change what
- * the site says" is one folder to open.
+ * List content the homepage and the organisers page render. Kept beside
+ * event-config.ts so "change what the site says" is one folder to open.
  *
- * UNVERIFIED: the sponsor line-up and the organiser names came from the design
- * draft and nobody has ratified them. The prize figures likewise. Treat them as
- * placeholder until the team confirms.
+ * UNVERIFIED: the sponsor line-up and the organiser names, roles, departments,
+ * emails and bios all came from the design draft and nobody has ratified them.
+ * The prize figures likewise. Treat them as placeholder until the team confirms
+ * — the email addresses in particular are constructed, not real inboxes.
  */
 
 const { settings, site } = DEFAULT_EVENT_CONFIG;
@@ -57,6 +58,59 @@ export const FAQS: readonly Faq[] = [
       'results ceremony.',
   },
 ];
+
+/**
+ * The longer tail of questions. The homepage keeps to `FAQS` so its section stays
+ * scannable; the organisers page is where someone goes looking for detail, so it
+ * renders `ALL_FAQS`.
+ */
+export const EXTRA_FAQS: readonly Faq[] = [
+  {
+    question: 'Can I participate solo?',
+    answer:
+      settings.minTeamSize === 1
+        ? 'Yes. Solo entries are accepted, though most teams find the workload easier to share. ' +
+          `You can add up to ${settings.maxTeamSize - 1} teammates at any point before ` +
+          'registration closes.'
+        : `No — every team needs at least ${settings.minTeamSize} members. If you do not have a ` +
+          'team yet, create one and share your join code, or ask a friend to send you theirs.',
+  },
+  {
+    question: 'How do I join a team?',
+    answer:
+      'Every team has a six-character join code. Ask whoever created the team for theirs, then ' +
+      'enter it on the My Team page. You can also create a team yourself and share your own code.',
+  },
+  {
+    question: 'What challenge tracks are available?',
+    answer:
+      `${site.tracks.length} tracks: ${site.tracks.join(', ')}. You pick one when you submit, ` +
+      'and it decides which track prize you are considered for.',
+  },
+  {
+    question: 'Can we use external APIs or libraries?',
+    answer:
+      'Yes — any publicly available library, framework or free-tier API is fair game. All code ' +
+      'you submit must be written during the hackathon period, though; prior work cannot be ' +
+      'entered.',
+  },
+  {
+    question: 'Where do I submit?',
+    answer:
+      'Sign in and open My Submission. You need a project title, a challenge track, a description ' +
+      'and a link to your repository. A live demo link is optional but strongly recommended. The ' +
+      'page accepts edits right up to the deadline.',
+  },
+  {
+    question: 'What happens if my team has an eligibility issue?',
+    answer:
+      'Contact the participant experience lead below before registration closes. Teams with an ' +
+      'unresolved eligibility issue are locked from submitting until it is cleared.',
+  },
+];
+
+/** Everything, in the order the organisers page shows it. */
+export const ALL_FAQS: readonly Faq[] = [...FAQS, ...EXTRA_FAQS];
 
 export interface Sponsor {
   readonly name: string;
@@ -155,13 +209,71 @@ export interface Organizer {
   readonly role: string;
   readonly initials: string;
   readonly accent: 'blue' | 'green' | 'red' | 'yellow';
+  readonly department: string;
+  readonly email: string;
+  /** One line on what this person actually handles, so readers pick the right inbox. */
+  readonly bio: string;
 }
 
+const STUDENT_EXPERIENCE = 'Student Experience Office';
+
+/**
+ * The homepage grid shows name, role and initials; the organisers page adds the
+ * rest. One list either way, so the two pages cannot name different people.
+ */
 export const ORGANIZERS: readonly Organizer[] = [
-  { name: 'Mei-Lin Zhao', role: 'Event Director', initials: 'MZ', accent: 'blue' },
-  { name: 'Rohan Patel', role: 'Sponsorship Lead', initials: 'RP', accent: 'green' },
-  { name: 'Sofia Andersen', role: 'Logistics', initials: 'SA', accent: 'red' },
-  { name: 'Kwame Asante', role: 'Judging Coordinator', initials: 'KA', accent: 'yellow' },
-  { name: 'Yuki Tanaka', role: 'Marketing', initials: 'YT', accent: 'blue' },
-  { name: 'Caitlin Murphy', role: 'Participant Experience', initials: 'CM', accent: 'green' },
+  {
+    name: 'Mei-Lin Zhao',
+    role: 'Event Director',
+    initials: 'MZ',
+    accent: 'blue',
+    department: site.faculty,
+    email: 'mei-lin.zhao@monash.edu',
+    bio: 'Oversees the hackathon programme end to end, from the challenge tracks through to the awards ceremony.',
+  },
+  {
+    name: 'Rohan Patel',
+    role: 'Sponsorship Lead',
+    initials: 'RP',
+    accent: 'green',
+    department: 'Industry Engagement Office',
+    email: 'rohan.patel@monash.edu',
+    bio: 'Looks after partner and sponsor relationships. Contact him about sponsoring the event or running a workshop.',
+  },
+  {
+    name: 'Sofia Andersen',
+    role: 'Logistics',
+    initials: 'SA',
+    accent: 'red',
+    department: STUDENT_EXPERIENCE,
+    email: 'sofia.andersen@monash.edu',
+    bio: 'Runs the venue, catering and equipment. Contact her about accessibility needs or anything you need on site.',
+  },
+  {
+    name: 'Kwame Asante',
+    role: 'Judging Coordinator',
+    initials: 'KA',
+    accent: 'yellow',
+    department: site.faculty,
+    email: 'kwame.asante@monash.edu',
+    bio: 'Recruits the judging panel and administers scoring. Contact him with questions about the judging criteria.',
+  },
+  {
+    name: 'Yuki Tanaka',
+    role: 'Marketing',
+    initials: 'YT',
+    accent: 'blue',
+    department: STUDENT_EXPERIENCE,
+    email: 'yuki.tanaka@monash.edu',
+    bio: 'Handles announcements, social channels and press. Contact her about media enquiries or promoting the event.',
+  },
+  {
+    name: 'Caitlin Murphy',
+    role: 'Participant Experience',
+    initials: 'CM',
+    accent: 'green',
+    department: STUDENT_EXPERIENCE,
+    email: 'caitlin.murphy@monash.edu',
+    bio: 'First point of contact for participants — registration, team eligibility and account problems.',
+  },
 ];

@@ -17,4 +17,10 @@ describe('routes', () => {
     const router = TestBed.inject(Router);
     expect(await router.navigateByUrl('/sign-in')).toBe(true);
   });
+
+  it('resolves the public pages the nav bar offers when signed out', async () => {
+    const router = TestBed.inject(Router);
+    expect(await router.navigateByUrl('/timeline')).toBe(true);
+    expect(await router.navigateByUrl('/organizers')).toBe(true);
+  });
 });
