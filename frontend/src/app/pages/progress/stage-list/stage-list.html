@@ -1,0 +1,54 @@
+<ol class="stages">
+  @for (stage of stages(); track stage.id) {
+    <li class="stages__step stages__step--{{ stage.accent }}" [attr.data-state]="stage.state">
+      <div class="stages__spine" aria-hidden="true">
+        <span class="stages__node">
+          @if (stage.state === 'done') {
+            <svg
+              class="stages__tick"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          } @else if (stage.state === 'current') {
+            <span class="stages__pip"></span>
+          }
+        </span>
+        @if (!$last) {
+          <span class="stages__connector"></span>
+        }
+      </div>
+
+      <div class="stages__body">
+        <div class="stages__heading">
+          <h2 class="stages__label">{{ stage.label }}</h2>
+          @switch (stage.state) {
+            @case ('done') {
+              <span class="stages__pill stages__pill--done">Completed</span>
+            }
+            @case ('current') {
+              <span class="stages__pill stages__pill--current">In progress</span>
+            }
+          }
+        </div>
+
+        @if (stage.state === 'pending') {
+          <p class="stages__pending">Pending</p>
+        } @else {
+          <p class="stages__description">{{ stage.description }}</p>
+          @if (stage.at; as at) {
+            <p class="stages__time">
+              {{ at | date: 'd MMM y, h:mm a' : myt }}
+              <span class="stages__zone">MYT</span>
+            </p>
+          }
+        }
+      </div>
+    </li>
+  }
+</ol>

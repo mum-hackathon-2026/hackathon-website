@@ -1,0 +1,104 @@
+<div class="page page--narrow">
+  <app-page-header
+    [eyebrow]="eventName"
+    title="Progress"
+    subtitle="Where your team stands, and what the event is doing next."
+  />
+
+  <nav class="tabs" aria-label="Progress views">
+    <a
+      class="tabs__tab"
+      routerLink="/participant/progress/team"
+      routerLinkActive="tabs__tab--active"
+      #teamTab="routerLinkActive"
+      [attr.aria-current]="teamTab.isActive ? 'page' : null"
+    >
+      My team
+    </a>
+    <a
+      class="tabs__tab"
+      routerLink="/participant/progress/event"
+      routerLinkActive="tabs__tab--active"
+      #eventTab="routerLinkActive"
+      [attr.aria-current]="eventTab.isActive ? 'page' : null"
+    >
+      Event timeline
+    </a>
+  </nav>
+
+  @if (tab() === 'event') {
+    <app-event-timeline />
+  } @else if (team(); as myTeam) {
+    <!-- ── Summary ──────────────────────────────────────────────────────── -->
+
+    @if (currentStage(); as stage) {
+      <div class="summary summary--{{ stage.accent }}">
+        <div class="summary__item">
+          <p class="summary__label">Current stage</p>
+          <p class="summary__value summary__value--accent">
+            <span class="summary__dot" aria-hidden="true"></span>
+            {{ stage.label }}
+          </p>
+        </div>
+        <div class="summary__item">
+          <p class="summary__label">Next milestone</p>
+          <p class="summary__value">{{ nextStage()?.label ?? '—' }}</p>
+        </div>
+        <div class="summary__item">
+          <p class="summary__label">Team size</p>
+          <p class="summary__value">{{ members().length }} / {{ maxTeamSize }} members</p>
+        </div>
+      </div>
+    }
+
+    <!-- ── Next action ──────────────────────────────────────────────────── -->
+
+    @if (nextAction(); as action) {
+      <div class="action" [class.action--urgent]="action.urgent">
+        <p class="action__text"><strong>Next action:</strong> {{ action.message }}</p>
+        @if (action.cta; as cta) {
+          <a class="button" [routerLink]="cta.link">{{ cta.label }}</a>
+        }
+      </div>
+    }
+
+    <app-stage-list [stages]="stages()" />
+
+    <!-- ── Team card ────────────────────────────────────────────────────── -->
+
+    <section class="team-card" aria-labelledby="team-card-heading">
+      <div class="team-card__heading">
+        <div>
+          <p class="team-card__eyebrow">Your team</p>
+          <h2 class="team-card__name" id="team-card-heading">{{ myTeam.name }}</h2>
+        </div>
+        <a class="button" routerLink="/participant/team">View team</a>
+      </div>
+
+      <ul class="team-card__members">
+        @for (member of members(); track member.userId) {
+          <li class="team-card__member">
+            <span class="team-card__avatar" aria-hidden="true">{{ member.initials }}</span>
+            <span class="team-card__member-text">
+              <span class="team-card__member-name">{{ member.name }}</span>
+              @if (member.isLeader) {
+                <span class="team-card__member-role">Leader</span>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+  } @else {
+    <!-- ── No team yet ──────────────────────────────────────────────────── -->
+
+    <div class="empty">
+      <p class="empty__heading">You are not on a team yet</p>
+      <p class="empty__body">
+        Progress starts once you create a team or join one with a code. Everything else on this page
+        follows from that.
+      </p>
+      <a class="button button--primary" routerLink="/participant/team">Create or join a team</a>
+    </div>
+  }
+</div>

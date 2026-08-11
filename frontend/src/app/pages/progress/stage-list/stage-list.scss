@@ -1,0 +1,164 @@
+.stages {
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+}
+
+.stages__step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+}
+
+/* Declared here rather than on the page: view encapsulation means a custom
+   property set on the parent's copy of this class would not reach these nodes. */
+.stages__step--green {
+  --stage-accent: var(--color-green);
+  --stage-ink: var(--color-green-ink);
+  --stage-tint: var(--color-green-tint);
+}
+.stages__step--blue {
+  --stage-accent: var(--color-blue);
+  --stage-ink: var(--color-blue-ink);
+  --stage-tint: var(--color-blue-tint);
+}
+.stages__step--red {
+  --stage-accent: var(--color-red);
+  --stage-ink: var(--color-red-ink);
+  --stage-tint: var(--color-red-tint);
+}
+.stages__step--amber {
+  --stage-accent: var(--color-yellow);
+  --stage-ink: var(--color-amber-ink);
+  --stage-tint: var(--color-amber-tint);
+}
+
+.stages__spine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stages__node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--stage-ink);
+}
+
+.stages__tick {
+  width: 13px;
+  height: 13px;
+}
+
+.stages__pip {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--stage-accent);
+}
+
+.stages__connector {
+  flex: 1;
+  width: 2px;
+  min-height: 22px;
+  margin: 4px 0;
+  background: var(--color-border);
+}
+
+.stages__body {
+  padding-bottom: 22px;
+}
+
+.stages__heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.stages__label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.stages__pill {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.stages__pill--done {
+  background: var(--color-hairline);
+  color: var(--color-muted);
+}
+
+.stages__pill--current {
+  background: var(--stage-tint);
+  color: var(--stage-ink);
+}
+
+.stages__description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-body);
+}
+
+.stages__time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+}
+
+.stages__zone {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-subtle);
+}
+
+.stages__pending {
+  margin: 0;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--color-faint);
+}
+
+/* Reached stages get a filled node; the live one also gets a halo. */
+.stages__step[data-state='done'] .stages__node {
+  border-color: var(--stage-accent);
+  background: var(--stage-tint);
+}
+
+.stages__step[data-state='current'] .stages__node {
+  border-color: var(--stage-accent);
+  background: var(--stage-tint);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage-accent) 15%, transparent);
+}
+
+.stages__step[data-state='done'] .stages__label {
+  color: var(--color-muted);
+}
+
+.stages__step[data-state='current'] .stages__label {
+  font-weight: 700;
+}
