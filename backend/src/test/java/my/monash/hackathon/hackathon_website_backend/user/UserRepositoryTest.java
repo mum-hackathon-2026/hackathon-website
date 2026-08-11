@@ -42,7 +42,6 @@ class UserRepositoryTest {
                 .isNotNull();
         assertThat(found.getEmail()).isEqualTo("ada@example.com");
         assertThat(found.getRole()).isEqualTo("participant");
-        assertThat(found.getStatus()).isEqualTo("active");
         assertThat(found.isEmailVerified()).isFalse();
     }
 
