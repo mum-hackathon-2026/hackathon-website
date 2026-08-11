@@ -14,11 +14,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Verifies that the baseline migration applies cleanly to a genuinely empty database.
+ * Verifies that the migrations apply cleanly, in order, to a genuinely empty database.
  *
  * <p>Runs against a real PostgreSQL 16 instance — hackathon_db_test locally, or the CI
  * service container when DB_TEST_URL is set. There is no in-memory fallback on purpose:
  * V1 uses Postgres-specific DDL that a substitute engine could not execute.
+ *
+ * <p>This proves the migrations work from empty. It does not prove V2 applies on top of an
+ * existing V1 database, which is how every teammate will actually encounter it — that path
+ * is exercised by starting the app against the long-lived local database.
  */
 @SpringBootTest
 class FlywayBaselineMigrationTests {
@@ -60,17 +64,26 @@ class FlywayBaselineMigrationTests {
 
         MigrateResult result = flyway.migrate();
 
-        assertThat(result.migrationsExecuted).isEqualTo(1);
-        assertThat(result.targetSchemaVersion).isEqualTo("1");
+        assertThat(result.migrationsExecuted).isEqualTo(2);
+        assertThat(result.targetSchemaVersion).isEqualTo("2");
 
-        Map<String, Object> historyRow = jdbcTemplate.queryForMap(
+        Map<String, Object> baselineRow = jdbcTemplate.queryForMap(
                 "select version, description, success from flyway_schema_history where version = ?",
                 "1");
 
-        assertThat(historyRow.get("success"))
+        assertThat(baselineRow.get("success"))
                 .as("V1 must be recorded as successfully applied")
                 .isEqualTo(Boolean.TRUE);
-        assertThat(historyRow.get("description")).isEqualTo("baseline schema");
+        assertThat(baselineRow.get("description")).isEqualTo("baseline schema");
+
+        Map<String, Object> hardDeleteRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "2");
+
+        assertThat(hardDeleteRow.get("success"))
+                .as("V2 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(hardDeleteRow.get("description")).isEqualTo("hard delete and status cleanup");
 
         List<String> actualTables = jdbcTemplate.queryForList(
                 """
