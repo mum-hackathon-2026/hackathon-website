@@ -1,0 +1,249 @@
+/* ── Section scaffolding ───────────────────────────────────────────────── */
+
+.organisers__section {
+  margin-bottom: 40px;
+}
+
+.organisers__section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+.organisers__zone {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--color-faint);
+}
+
+.organisers__aside {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-muted);
+
+  a {
+    color: var(--color-blue);
+    font-weight: 600;
+  }
+}
+
+/* ── Key dates ─────────────────────────────────────────────────────────── */
+
+.key-dates {
+  margin: 0;
+  padding: 4px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.key-dates__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-hairline);
+
+  &:first-child {
+    border-top: none;
+  }
+}
+
+.key-dates__row--green {
+  --date-accent: var(--color-green);
+}
+.key-dates__row--blue {
+  --date-accent: var(--color-blue);
+}
+.key-dates__row--red {
+  --date-accent: var(--color-red);
+}
+.key-dates__row--amber {
+  --date-accent: var(--color-yellow);
+}
+
+.key-dates__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.key-dates__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--date-accent);
+}
+
+.key-dates__value {
+  margin: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--color-muted);
+}
+
+/* Stacking keeps the longest row — the judging span — off two cramped columns. */
+@media (max-width: 30rem) {
+  .key-dates__row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .key-dates__value {
+    padding-left: 18px;
+    text-align: left;
+  }
+}
+
+/* ── Organising team ───────────────────────────────────────────────────── */
+
+.people {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people__card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  /* The accent reads as a spine down the card rather than a full border. */
+  border-left: 3px solid var(--person-accent);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.people__card--blue {
+  --person-accent: var(--color-blue);
+  --person-ink: var(--color-blue-ink);
+  --person-tint: var(--color-blue-tint);
+}
+.people__card--green {
+  --person-accent: var(--color-green);
+  --person-ink: var(--color-green-ink);
+  --person-tint: var(--color-green-tint);
+}
+.people__card--red {
+  --person-accent: var(--color-red);
+  --person-ink: var(--color-red-ink);
+  --person-tint: var(--color-red-tint);
+}
+.people__card--yellow {
+  --person-accent: var(--color-yellow);
+  --person-ink: var(--color-amber-ink);
+  --person-tint: var(--color-amber-tint);
+}
+
+.people__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--person-tint);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--person-ink);
+}
+
+.people__body {
+  min-width: 0;
+}
+
+.people__heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.people__name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.people__role {
+  padding: 1px 8px;
+  border-radius: 20px;
+  background: var(--person-tint);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--person-ink);
+  white-space: nowrap;
+}
+
+.people__department {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  color: var(--color-subtle);
+}
+
+.people__bio {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-body);
+}
+
+.people__email {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-blue);
+  text-decoration: none;
+  /* Long addresses must not push the card wider than the page on small screens. */
+  overflow-wrap: anywhere;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.people__email-icon {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Catch-all contact ─────────────────────────────────────────────────── */
+
+.organisers__contact {
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--color-blue) 25%, transparent);
+  border-radius: 8px;
+  background: var(--color-blue-wash);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-body);
+
+  a {
+    font-weight: 700;
+    color: var(--color-blue-ink);
+  }
+}

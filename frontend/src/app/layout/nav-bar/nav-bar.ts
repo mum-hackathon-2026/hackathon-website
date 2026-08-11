@@ -28,9 +28,9 @@ interface NavLink {
 const NAV_LINKS: readonly NavLink[] = [
   { path: '/', label: 'Home', exact: true },
   { path: '/timeline', label: 'Timeline' },
+  { path: '/organizers', label: 'Organisers' },
   { path: '/participant/team', label: 'My Team', roles: ['participant'] },
   { path: '/participant/submission', label: 'My Submission', roles: ['participant'] },
-  // { path: '/organizers', label: 'Organisers' },
   // { path: '/participant/progress/team', label: 'Progress', roles: ['participant'] },
   // { path: '/judge/portal', label: 'Judge Portal', roles: ['judge'] },
   // { path: '/admin/dashboard', label: 'Dashboard', roles: ['admin'] },

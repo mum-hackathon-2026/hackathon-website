@@ -1,0 +1,92 @@
+<div class="page page--narrow">
+  <app-page-header
+    [eyebrow]="eventName"
+    title="Organisers & information"
+    subtitle="Key dates, who to contact, and answers to the questions we get asked most."
+  />
+
+  <!-- ── Key dates ────────────────────────────────────────────────────────── -->
+
+  <section class="organisers__section" aria-labelledby="key-dates-heading">
+    <h2 class="organisers__section-title" id="key-dates-heading">
+      Key dates
+      <span class="organisers__zone">MYT</span>
+    </h2>
+
+    <dl class="key-dates">
+      @for (entry of keyDates(); track entry.id) {
+        <div class="key-dates__row key-dates__row--{{ entry.accent }}">
+          <dt class="key-dates__label">
+            <span class="key-dates__dot" aria-hidden="true"></span>
+            {{ entry.label }}
+          </dt>
+          <dd class="key-dates__value">
+            {{ entry.start | date: 'd MMM y, h:mm a' : myt }}
+            @if (entry.end) {
+              — {{ entry.end | date: 'd MMM y, h:mm a' : myt }}
+            }
+          </dd>
+        </div>
+      }
+    </dl>
+
+    <p class="organisers__aside">
+      Every date is Malaysian time (MYT, UTC+8).
+      <a routerLink="/timeline">See the full timeline</a> for what happens at each stage.
+    </p>
+  </section>
+
+  <!-- ── Organising team ──────────────────────────────────────────────────── -->
+
+  <section class="organisers__section" aria-labelledby="team-heading">
+    <h2 class="organisers__section-title" id="team-heading">Organising team</h2>
+
+    <ul class="people">
+      @for (person of organizers; track person.name) {
+        <li class="people__card people__card--{{ person.accent }}">
+          <span class="people__avatar" aria-hidden="true">{{ person.initials }}</span>
+
+          <div class="people__body">
+            <div class="people__heading">
+              <h3 class="people__name">{{ person.name }}</h3>
+              <span class="people__role">{{ person.role }}</span>
+            </div>
+            <p class="people__department">{{ person.department }}</p>
+            <p class="people__bio">{{ person.bio }}</p>
+            <a class="people__email" [href]="'mailto:' + person.email">
+              <svg
+                class="people__email-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <polyline points="2 7 12 14 22 7" />
+              </svg>
+              {{ person.email }}
+            </a>
+          </div>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <!-- ── FAQ ──────────────────────────────────────────────────────────────── -->
+
+  <section class="organisers__section" aria-labelledby="faq-heading">
+    <h2 class="organisers__section-title" id="faq-heading">Frequently asked questions</h2>
+    <app-faq-list [faqs]="faqs" idPrefix="organisers-faq" />
+  </section>
+
+  <!-- ── Catch-all contact ────────────────────────────────────────────────── -->
+
+  <p class="organisers__contact">
+    Still stuck? Email
+    <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a>
+    and we will come back to you within one working day.
+  </p>
+</div>
