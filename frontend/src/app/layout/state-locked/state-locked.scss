@@ -1,0 +1,54 @@
+.state-locked__preview {
+  margin-bottom: 12px;
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.state-locked__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: clamp(14px, 2vw, 20px);
+  border: 1px solid var(--color-faint);
+  border-radius: 8px;
+  background: var(--color-hairline);
+}
+
+.state-locked__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-muted);
+}
+
+.state-locked__text {
+  min-width: 0;
+}
+
+.state-locked__heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.state-locked__reason {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.state-locked__deadline {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-body);
+}

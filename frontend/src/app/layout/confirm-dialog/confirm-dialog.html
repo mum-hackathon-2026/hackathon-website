@@ -1,0 +1,21 @@
+<dialog #dialog class="confirm" (close)="onClose()" (click)="onBackdropClick($event)">
+  <div class="confirm__panel">
+    <h2 class="confirm__heading">{{ heading() }}</h2>
+    @if (body(); as text) {
+      <p class="confirm__body">{{ text }}</p>
+    }
+    <div class="confirm__actions">
+      <button type="button" class="confirm__button" (click)="cancelled.emit()">
+        {{ cancelLabel() }}
+      </button>
+      <button
+        type="button"
+        class="confirm__button confirm__button--primary"
+        [class.confirm__button--danger]="danger()"
+        (click)="confirmed.emit()"
+      >
+        {{ confirmLabel() }}
+      </button>
+    </div>
+  </div>
+</dialog>
