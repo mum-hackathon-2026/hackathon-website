@@ -71,7 +71,7 @@ describe('MyTeam', () => {
 
   it('shows the team, join code and members once you have one', async () => {
     await setUp();
-    teams.createTeam('Late Night Commits');
+    await teams.createTeam('Late Night Commits');
     await fixture.whenStable();
 
     expect(host().querySelector('.my-team__name')?.textContent?.trim()).toBe('Late Night Commits');
@@ -97,7 +97,7 @@ describe('MyTeam', () => {
 
   it('hides leader-only actions from an ordinary member', async () => {
     await setUp();
-    teams.joinTeam('QLEAP7'); // Joining does not make you the leader.
+    await teams.joinTeam('QLEAP7'); // Joining does not make you the leader.
     await fixture.whenStable();
 
     expect(teams.isLeader()).toBe(false);
@@ -108,7 +108,7 @@ describe('MyTeam', () => {
 
   it('shows leader-only actions to the leader', async () => {
     await setUp();
-    teams.createTeam('Command Centre');
+    await teams.createTeam('Command Centre');
     await fixture.whenStable();
 
     expect(text()).toContain('Rename');
@@ -117,7 +117,7 @@ describe('MyTeam', () => {
 
   it('confirms before leaving rather than acting immediately', async () => {
     await setUp();
-    teams.createTeam('Second Thoughts');
+    await teams.createTeam('Second Thoughts');
     await fixture.whenStable();
 
     const leave = Array.from(host().querySelectorAll<HTMLButtonElement>('button')).find(
@@ -138,7 +138,7 @@ describe('MyTeam', () => {
 
   it('does nothing when the confirmation is dismissed', async () => {
     await setUp();
-    teams.createTeam('Still Here');
+    await teams.createTeam('Still Here');
     await fixture.whenStable();
 
     Array.from(host().querySelectorAll<HTMLButtonElement>('button'))

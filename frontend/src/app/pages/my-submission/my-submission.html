@@ -1,0 +1,162 @@
+<div class="page page--narrow">
+  <app-page-header
+    eyebrow="Participant"
+    title="My submission"
+    subtitle="Your project entry. Save a draft as you go and submit before the deadline."
+  />
+
+  @if (error(); as message) {
+    <p class="submission__error" role="alert">{{ message }}</p>
+  }
+
+  @if (!team()) {
+    <!-- ── No team ─────────────────────────────────────────────────────── -->
+    <section class="submission__card">
+      <h2 class="submission__subheading">You need a team first</h2>
+      <p class="submission__help">
+        Submissions belong to a team, so create or join one before starting your entry.
+      </p>
+      <a class="button button--primary" routerLink="/participant/team">Go to My team</a>
+    </section>
+  } @else if (isBeforeWindow()) {
+    <!-- ── Not open yet ────────────────────────────────────────────────── -->
+    <app-state-locked
+      heading="Submissions aren't open yet"
+      reason="You'll be able to start your entry once registration closes."
+      [deadline]="
+        deadline ? 'Submissions close ' + (deadline | date: 'd MMM y, h:mm a' : myt) + ' MYT' : ''
+      "
+    />
+  } @else if (!isOpen()) {
+    <!-- ── Closed ──────────────────────────────────────────────────────── -->
+    <app-state-locked
+      heading="Submissions are closed"
+      reason="The deadline has passed, so your entry can no longer be changed."
+      [deadline]="deadline ? 'Closed ' + (deadline | date: 'd MMM y, h:mm a' : myt) + ' MYT' : ''"
+    >
+      @if (submission(); as record) {
+        <p class="submission__locked-summary">
+          {{ record.projectTitle || 'Untitled project' }} — {{ record.status }}
+        </p>
+      }
+    </app-state-locked>
+  } @else {
+    <!-- ── Open ────────────────────────────────────────────────────────── -->
+    <div class="submission__status-row">
+      <span class="submission__pill" [class.submission__pill--submitted]="isSubmitted()">
+        {{ isSubmitted() ? 'Submitted' : 'Draft' }}
+      </span>
+      @if (submission()?.submittedAt; as when) {
+        <span class="submission__meta">
+          Submitted {{ when | date: 'd MMM y, h:mm a' : myt }} MYT
+        </span>
+      }
+      @if (countdown(); as left) {
+        <span class="submission__meta submission__meta--deadline">
+          {{ left.days }}d {{ left.hours }}h {{ left.minutes }}m left
+        </span>
+      }
+    </div>
+
+    <form class="submission__card" (ngSubmit)="confirming.set(true)">
+      <div class="submission__field">
+        <label class="field-label" for="title">Project title</label>
+        <input
+          id="title"
+          class="input"
+          name="title"
+          maxlength="200"
+          [ngModel]="form().projectTitle"
+          (ngModelChange)="update('projectTitle', $event)"
+          placeholder="EduPath — adaptive learning"
+        />
+      </div>
+
+      <div class="submission__field">
+        <label class="field-label" for="track">Track</label>
+        <select
+          id="track"
+          class="input"
+          name="track"
+          [ngModel]="form().trackLabel"
+          (ngModelChange)="update('trackLabel', $event)"
+        >
+          <option value="">Choose a track…</option>
+          @for (track of tracks; track track) {
+            <option [value]="track">{{ track }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="submission__field">
+        <label class="field-label" for="description">Description</label>
+        <textarea
+          id="description"
+          class="input submission__textarea"
+          name="description"
+          rows="5"
+          [ngModel]="form().description"
+          (ngModelChange)="update('description', $event)"
+          placeholder="What it does, who it's for, and how you built it."
+        ></textarea>
+      </div>
+
+      <div class="submission__field">
+        <label class="field-label" for="github">Repository link</label>
+        <input
+          id="github"
+          class="input"
+          name="github"
+          type="url"
+          [ngModel]="form().githubUrl"
+          (ngModelChange)="update('githubUrl', $event)"
+          placeholder="https://github.com/your-team/project"
+        />
+      </div>
+
+      <div class="submission__field">
+        <label class="field-label" for="demo"
+          >Demo link <span class="submission__optional">optional</span></label
+        >
+        <input
+          id="demo"
+          class="input"
+          name="demo"
+          type="url"
+          [ngModel]="form().deployedUrl"
+          (ngModelChange)="update('deployedUrl', $event)"
+          placeholder="https://your-project.example.com"
+        />
+      </div>
+
+      <div class="submission__actions">
+        <button type="button" class="button" [disabled]="pending()" (click)="saveDraft()">
+          Save draft
+        </button>
+        <button type="submit" class="button button--primary" [disabled]="pending()">
+          {{ isSubmitted() ? 'Update submission' : 'Submit project' }}
+        </button>
+        @if (savedAt(); as when) {
+          <span class="submission__saved">Saved {{ when | date: 'h:mm a' : myt }}</span>
+        }
+      </div>
+    </form>
+
+    <p class="submission__hint">You can keep editing after submitting, right up to the deadline.</p>
+  }
+</div>
+
+@if (confirming()) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="isSubmitted() ? 'Update your submission?' : 'Submit your project?'"
+    [body]="
+      isSubmitted()
+        ? 'Your entry stays submitted and the judges will see the updated version.'
+        : 'Your entry will be marked submitted. You can still edit it until the deadline.'
+    "
+    [confirmLabel]="isSubmitted() ? 'Update' : 'Submit'"
+    (confirmed)="confirmSubmit()"
+    (cancelled)="confirming.set(false)"
+  />
+}

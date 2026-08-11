@@ -175,117 +175,155 @@ export class TeamService {
 
   readonly isFull = computed(() => this.myTeamMembers().length >= this.config.settings.maxTeamSize);
 
-  createTeam(name: string): TeamActionResult {
-    const me = this.auth.user();
-    if (!me) return { ok: false, error: 'You need to be signed in.' };
-    if (this.myMembership()) return { ok: false, error: "You're already in a team." };
+  /** Counted, not a flag, so overlapping calls don't clear each other's state. */
+  private readonly inFlight = signal(0);
+  readonly pending = computed(() => this.inFlight() > 0);
 
-    const nameCheck = this.validateName(name);
-    if (!nameCheck.ok) return nameCheck;
-
-    const team: Team = {
-      id: this.nextTeamId++,
-      name: name.trim(),
-      joinCode: this.uniqueJoinCode(),
-      status: 'forming',
-      shortlisted: false,
-      createdBy: me.id,
-      version: 0,
-      createdAt: new Date(),
-    };
-
-    this.teams.update((teams) => [...teams, team]);
-    this.members.update((members) => [
-      ...members,
-      { userId: me.id, teamId: team.id, joinedAt: new Date() },
-    ]);
-    return { ok: true };
-  }
-
-  joinTeam(code: string): TeamActionResult {
-    const me = this.auth.user();
-    if (!me) return { ok: false, error: 'You need to be signed in.' };
-    if (this.myMembership()) return { ok: false, error: "You're already in a team." };
-
-    const team = this.teams().find((t) => t.joinCode.toLowerCase() === code.trim().toLowerCase());
-    if (!team) return { ok: false, error: 'No team has that join code.' };
-
-    const size = this.members().filter((m) => m.teamId === team.id).length;
-    if (size >= this.config.settings.maxTeamSize) {
-      return { ok: false, error: `${team.name} is already full.` };
+  /**
+   * Runs a mutation the way a real endpoint will: asynchronously, with pending
+   * tracked around it. The bodies stay synchronous because the data is local —
+   * only the boundary is async, which is the part callers have to cope with.
+   * No artificial delay; resolving on a microtask is enough for a caller to
+   * observe the pending state.
+   */
+  private async run(operation: () => TeamActionResult): Promise<TeamActionResult> {
+    this.inFlight.update((n) => n + 1);
+    try {
+      await Promise.resolve();
+      return operation();
+    } finally {
+      this.inFlight.update((n) => n - 1);
     }
-
-    this.members.update((members) => [
-      ...members,
-      { userId: me.id, teamId: team.id, joinedAt: new Date() },
-    ]);
-    return { ok: true };
   }
 
-  renameTeam(name: string): TeamActionResult {
-    const team = this.myTeam();
-    if (!team || !this.isLeader()) return { ok: false, error: 'Only the team leader can do that.' };
+  createTeam(name: string): Promise<TeamActionResult> {
+    return this.run(() => {
+      const me = this.auth.user();
+      if (!me) return { ok: false, error: 'You need to be signed in.' };
+      if (this.myMembership()) return { ok: false, error: "You're already in a team." };
 
-    const nameCheck = this.validateName(name, team.id);
-    if (!nameCheck.ok) return nameCheck;
+      const nameCheck = this.validateName(name);
+      if (!nameCheck.ok) return nameCheck;
 
-    this.patchMyTeam({ name: name.trim() });
-    return { ok: true };
+      const team: Team = {
+        id: this.nextTeamId++,
+        name: name.trim(),
+        joinCode: this.uniqueJoinCode(),
+        status: 'forming',
+        shortlisted: false,
+        createdBy: me.id,
+        version: 0,
+        createdAt: new Date(),
+      };
+
+      this.teams.update((teams) => [...teams, team]);
+      this.members.update((members) => [
+        ...members,
+        { userId: me.id, teamId: team.id, joinedAt: new Date() },
+      ]);
+      return { ok: true };
+    });
   }
 
-  regenerateJoinCode(): TeamActionResult {
-    if (!this.myTeam() || !this.isLeader()) {
-      return { ok: false, error: 'Only the team leader can do that.' };
-    }
-    this.patchMyTeam({ joinCode: this.uniqueJoinCode() });
-    return { ok: true };
+  joinTeam(code: string): Promise<TeamActionResult> {
+    return this.run(() => {
+      const me = this.auth.user();
+      if (!me) return { ok: false, error: 'You need to be signed in.' };
+      if (this.myMembership()) return { ok: false, error: "You're already in a team." };
+
+      const team = this.teams().find((t) => t.joinCode.toLowerCase() === code.trim().toLowerCase());
+      if (!team) return { ok: false, error: 'No team has that join code.' };
+
+      const size = this.members().filter((m) => m.teamId === team.id).length;
+      if (size >= this.config.settings.maxTeamSize) {
+        return { ok: false, error: `${team.name} is already full.` };
+      }
+
+      this.members.update((members) => [
+        ...members,
+        { userId: me.id, teamId: team.id, joinedAt: new Date() },
+      ]);
+      return { ok: true };
+    });
   }
 
-  removeMember(userId: number): TeamActionResult {
-    const team = this.myTeam();
-    const me = this.auth.user();
-    if (!team || !this.isLeader()) return { ok: false, error: 'Only the team leader can do that.' };
-    if (userId === me?.id)
-      return { ok: false, error: 'Leave the team instead of removing yourself.' };
+  renameTeam(name: string): Promise<TeamActionResult> {
+    return this.run(() => {
+      const team = this.myTeam();
+      if (!team || !this.isLeader())
+        return { ok: false, error: 'Only the team leader can do that.' };
 
-    this.members.update((members) =>
-      members.filter((m) => !(m.userId === userId && m.teamId === team.id)),
-    );
-    return { ok: true };
+      const nameCheck = this.validateName(name, team.id);
+      if (!nameCheck.ok) return nameCheck;
+
+      this.patchMyTeam({ name: name.trim() });
+      return { ok: true };
+    });
+  }
+
+  regenerateJoinCode(): Promise<TeamActionResult> {
+    return this.run(() => {
+      if (!this.myTeam() || !this.isLeader()) {
+        return { ok: false, error: 'Only the team leader can do that.' };
+      }
+      this.patchMyTeam({ joinCode: this.uniqueJoinCode() });
+      return { ok: true };
+    });
+  }
+
+  removeMember(userId: number): Promise<TeamActionResult> {
+    return this.run(() => {
+      const team = this.myTeam();
+      const me = this.auth.user();
+      if (!team || !this.isLeader())
+        return { ok: false, error: 'Only the team leader can do that.' };
+      if (userId === me?.id)
+        return { ok: false, error: 'Leave the team instead of removing yourself.' };
+
+      this.members.update((members) =>
+        members.filter((m) => !(m.userId === userId && m.teamId === team.id)),
+      );
+      return { ok: true };
+    });
   }
 
   /** Moves teams.created_by. There is no member role column to move as well. */
-  transferLeadership(userId: number): TeamActionResult {
-    const team = this.myTeam();
-    if (!team || !this.isLeader()) return { ok: false, error: 'Only the team leader can do that.' };
+  transferLeadership(userId: number): Promise<TeamActionResult> {
+    return this.run(() => {
+      const team = this.myTeam();
+      if (!team || !this.isLeader())
+        return { ok: false, error: 'Only the team leader can do that.' };
 
-    const isMember = this.members().some((m) => m.teamId === team.id && m.userId === userId);
-    if (!isMember) return { ok: false, error: 'That person is not on your team.' };
+      const isMember = this.members().some((m) => m.teamId === team.id && m.userId === userId);
+      if (!isMember) return { ok: false, error: 'That person is not on your team.' };
 
-    this.patchMyTeam({ createdBy: userId });
-    return { ok: true };
+      this.patchMyTeam({ createdBy: userId });
+      return { ok: true };
+    });
   }
 
-  leaveTeam(): TeamActionResult {
-    const me = this.auth.user();
-    const team = this.myTeam();
-    if (!me || !team) return { ok: false, error: "You're not in a team." };
+  leaveTeam(): Promise<TeamActionResult> {
+    return this.run(() => {
+      const me = this.auth.user();
+      const team = this.myTeam();
+      if (!me || !team) return { ok: false, error: "You're not in a team." };
 
-    const remaining = this.members().filter((m) => m.teamId === team.id && m.userId !== me.id);
+      const remaining = this.members().filter((m) => m.teamId === team.id && m.userId !== me.id);
 
-    this.members.update((members) => members.filter((m) => m.userId !== me.id));
+      this.members.update((members) => members.filter((m) => m.userId !== me.id));
 
-    if (remaining.length === 0) {
-      // Last one out: the team goes with them rather than lingering empty.
-      this.teams.update((teams) => teams.filter((t) => t.id !== team.id));
-    } else if (team.createdBy === me.id) {
-      // Leadership can't be left vacant, so it passes to the longest-serving member.
-      const next = [...remaining].sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())[0];
-      this.teams.update((teams) =>
-        teams.map((t) => (t.id === team.id ? { ...t, createdBy: next.userId } : t)),
-      );
-    }
-    return { ok: true };
+      if (remaining.length === 0) {
+        // Last one out: the team goes with them rather than lingering empty.
+        this.teams.update((teams) => teams.filter((t) => t.id !== team.id));
+      } else if (team.createdBy === me.id) {
+        // Leadership can't be left vacant, so it passes to the longest-serving member.
+        const next = [...remaining].sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())[0];
+        this.teams.update((teams) =>
+          teams.map((t) => (t.id === team.id ? { ...t, createdBy: next.userId } : t)),
+        );
+      }
+      return { ok: true };
+    });
   }
 
   private validateName(name: string, ignoreTeamId?: number): TeamActionResult {

@@ -44,14 +44,23 @@
               maxlength="120"
               required
             />
-            <button type="submit" class="button button--primary">Save</button>
+            <button type="submit" class="button button--primary" [disabled]="pending()">
+              Save
+            </button>
             <button type="button" class="button" (click)="isRenaming.set(false)">Cancel</button>
           </form>
         } @else {
           <h2 class="my-team__name">{{ current.name }}</h2>
           <span class="my-team__status">{{ current.status }}</span>
           @if (isLeader()) {
-            <button type="button" class="link-button" (click)="startRename()">Rename</button>
+            <button
+              type="button"
+              class="link-button"
+              [disabled]="pending()"
+              (click)="startRename()"
+            >
+              Rename
+            </button>
           }
         }
       </div>
@@ -64,7 +73,9 @@
         <div class="my-team__code-actions">
           <button type="button" class="button" (click)="copyCode()">Copy</button>
           @if (isLeader()) {
-            <button type="button" class="button" (click)="regenerateCode()">Regenerate</button>
+            <button type="button" class="button" [disabled]="pending()" (click)="regenerateCode()">
+              Regenerate
+            </button>
           }
         </div>
       </div>
@@ -100,6 +111,7 @@
                 <button
                   type="button"
                   class="link-button"
+                  [disabled]="pending()"
                   (click)="ask({ kind: 'transfer', userId: member.userId, name: member.name })"
                 >
                   Make leader
@@ -107,6 +119,7 @@
                 <button
                   type="button"
                   class="link-button link-button--danger"
+                  [disabled]="pending()"
                   (click)="ask({ kind: 'remove', userId: member.userId, name: member.name })"
                 >
                   Remove
@@ -124,7 +137,12 @@
       }
     </section>
 
-    <button type="button" class="button button--danger" (click)="ask({ kind: 'leave' })">
+    <button
+      type="button"
+      class="button button--danger"
+      [disabled]="pending()"
+      (click)="ask({ kind: 'leave' })"
+    >
       Leave team
     </button>
   } @else {
@@ -148,7 +166,9 @@
             placeholder="Null Pointer Exception"
             required
           />
-          <button type="submit" class="button button--primary">Create team</button>
+          <button type="submit" class="button button--primary" [disabled]="pending()">
+            Create team
+          </button>
         </form>
       </section>
 
@@ -167,7 +187,9 @@
             placeholder="QLEAP7"
             required
           />
-          <button type="submit" class="button button--primary">Join team</button>
+          <button type="submit" class="button button--primary" [disabled]="pending()">
+            Join team
+          </button>
         </form>
       </section>
     </div>

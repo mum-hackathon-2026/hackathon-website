@@ -104,6 +104,8 @@ html {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-body);
+  /* Anchors styled as buttons must not keep their underline. */
+  text-decoration: none;
   cursor: pointer;
   transition:
     background 0.15s,
@@ -111,7 +113,7 @@ html {
     color 0.15s;
 }
 
-.button:hover {
+.button:not(:disabled):hover {
   background: var(--color-hairline);
 }
 
@@ -121,7 +123,7 @@ html {
   color: #fff;
 }
 
-.button--primary:hover {
+.button--primary:not(:disabled):hover {
   background: var(--color-blue-dark);
   border-color: var(--color-blue-dark);
 }
@@ -131,7 +133,7 @@ html {
   color: var(--color-red-ink);
 }
 
-.button--danger:hover {
+.button--danger:not(:disabled):hover {
   background: var(--color-red-tint);
 }
 
@@ -142,7 +144,7 @@ html {
   color: #fff;
 }
 
-.button--danger-solid:hover {
+.button--danger-solid:not(:disabled):hover {
   background: #a51c19;
   border-color: #a51c19;
 }
@@ -158,12 +160,19 @@ html {
   cursor: pointer;
 }
 
-.link-button:hover {
+.link-button:not(:disabled):hover {
   text-decoration: underline;
 }
 
 .link-button--danger {
   color: var(--color-red-ink);
+}
+
+/* Anything mid-request reads as unavailable rather than merely unstyled. */
+.button:disabled,
+.link-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .field-label {
