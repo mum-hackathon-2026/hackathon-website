@@ -181,7 +181,7 @@ Production budgets are 500 kB warning / 1 MB error on the initial bundle and 4 k
 
 Coverage is uneven and thinner than it looks. Every routed page has a spec, but four `core/` files have none — `results/results.ts`, `event/milestones.ts`, `event/event-content.ts`, `event/event-config.ts` — and most presentational pieces are untested (`page-header`, `state-locked`, `profile-menu`, `event-timeline`, `stage-list`, `rankings-table`, `judge-reviews`, and several `home/` sections).
 
-There is no lint script and no ESLint config. CI's `npm run lint --if-present` is currently a no-op — don't assume linting catches anything.
+There is no lint script and no ESLint config — nothing lints this code. Prettier is the only tool configured, and it only formats. CI no longer has a lint step at all; the workflow marks where one goes once ESLint is configured.
 
 ## Configuration and profiles
 
@@ -196,7 +196,7 @@ There is no lint script and no ESLint config. CI's `npm run lint --if-present` i
 
 `.github/workflows/ci.yml` runs two independent jobs.
 
-- **Frontend** — `npm ci`, `npm run lint --if-present` (a no-op), `npm run build`. **It does not run the frontend tests.** A broken spec reaches `main` unless someone runs `npm test` locally.
+- **Frontend** — `npm ci`, `npx ng test --watch=false`, `npm run build`. **A failing spec fails the job**: the test step carries no `continue-on-error` and no `--if-present`, so a broken spec cannot reach `main`. `--watch=false` is passed explicitly rather than left to the builder's CI detection — a runner with no TTY that fell into watch mode would hang until the job timeout, which reports as a hang rather than as a test failure. There is no lint step; the workflow comments where one goes once ESLint is configured.
 - **Backend** — `./mvnw -B clean verify` against a **`postgres:16` service container** with a `pg_isready` health check, exposed on the runner's `localhost:5432`, with `DB_TEST_URL`/`DB_TEST_USER`/`DB_TEST_PASSWORD` set on the build step. Local development stays on 5433; only CI uses 5432.
 
 ## Spring Boot 4 gotchas
