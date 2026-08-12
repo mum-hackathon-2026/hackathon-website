@@ -11,7 +11,7 @@ The git repository root is `hackathon-website/` (one level below the usual worki
 **The two halves are not connected.** There is no HTTP API: the backend stops at the persistence layer (no controllers, services, DTOs, or security config — grep for `@RestController`/`@Service` returns nothing), and the frontend makes no network call — `app.config.ts` provides only `provideBrowserGlobalErrorListeners()` and `provideRouter(routes)`, with no `provideHttpClient`, and nothing imports `HttpClient` or calls `fetch`. Wiring them together is still ahead.
 
 - **Backend** — Flyway migrations V1 + V2, Postgres roles, CI service container, and **all 11 tables mapped**: `User`, `EventSettings`, `Team`, `TeamMember`, `Submission`, `JudgingCriteria`, `Assignment`, `Score`, `TeamResult`, `NotificationLog`, `AuditLog`. Each has a Spring Data repository and a JPA-slice test. Nothing above that layer exists.
-- **Frontend** — eight page components behind nine routes (home, timeline, organisers, my team, my submission, progress ×2, results, sign-in), a shared layout kit, and in-memory stand-ins for the API. Zoneless Angular 21, standalone components, signals throughout.
+- **Frontend** — twelve page components behind thirteen routes covering all three roles (home, timeline, organisers, my team, my submission, progress ×2, judge portal, judge review, admin dashboard, results, sign-in, 404), a shared layout kit, and in-memory stand-ins for the API. Zoneless Angular 21, standalone components, signals throughout.
 
 Both halves lean on **placeholder data that is marked as such in the source** — `DEMO_USERS` and `DEFAULT_EVENT_CONFIG` dates in the frontend, the seeds in `TeamService`, `SubmissionService` and `ResultsService`. Read the file header before treating any of it as a decision the team made.
 
@@ -39,7 +39,7 @@ The container's `postgres` superuser password is chosen per-machine and is delib
 Most of that second list is still an unratified proposal. Don't treat the remaining enum-like CHECK values as settled — the frontend hardcodes those literal strings, and the team has not signed off on them. They divide by how much scrutiny they have had:
 
 - `users.role`, `submissions.status`, `team_results.outcome` — used verbatim by the frontend, so at least read and exercised, but never formally approved.
-- `assignments.status`, `notifications_log.type`, `notifications_log.status` — **never reviewed at all.** No judge or admin page exists, so nothing consumes them and nothing has pushed back. Treat them as a first draft.
+- `assignments.status`, `notifications_log.type`, `notifications_log.status` — **never formally reviewed.** `assignments.status` is now consumed by the judge portal, which took V1's proposal verbatim rather than ratifying it; the two `notifications_log` vocabularies still have no consumer at all. Treat all three as a first draft.
 
 `docs/README.md` tracks decided versus open in full, and is current as of V2.
 
@@ -103,14 +103,18 @@ A naive entity would discard each of these:
 ```
 src/app/
   core/            singleton services, no templates
+    admin/         AdminService — event-wide read model for organisers
     auth/          AuthService, role guards, SESSION_STORAGE token
     event/         EVENT_CONFIG token, PhaseService, MilestoneService, static copy
+    judge/         JudgeService — assignments, scores, criteria
     results/       ResultsService
     submission/    SubmissionService
     team/          TeamService
   layout/          reusable chrome: nav-bar, profile-menu, page-header,
-                   state-locked, confirm-dialog, event-timeline, faq-list
-  pages/           one folder per route; home/, progress/ and results/ have
+                   state-locked, confirm-dialog, event-timeline, faq-list,
+                   status-pill
+  pages/           one folder per route; home/, progress/, results/,
+                   judge-portal/, judge-review/ and admin-dashboard/ have
                    their own section components
 ```
 
@@ -126,11 +130,11 @@ Expect the next one to be equally silent, and note that the usual safety nets do
 
 ### Core services
 
-- `core/auth/auth.ts` — **demo authentication, not a security boundary.** No login endpoint, no token; `signIn(role)` picks one of three hardcoded users. The session is a role key in `localStorage`, behind a `SESSION_STORAGE` injection token so tests can substitute an in-memory store (jsdom serves from an opaque origin where `localStorage` throws). `ROLE_HOME` still points every role at `/` — repoint each entry as its landing page lands.
-- `core/auth/role-guard.ts` — `roleGuard(role)` builds `participantGuard`, `judgeGuard` and `adminGuard`; only `participantGuard` is used so far. `signedInGuard` gates `/results` on being signed in with *any* role, because results go to participants, judges and admins alike. All of them guard **navigation only**; there is no server enforcing anything behind them.
+- `core/auth/auth.ts` — **demo authentication, not a security boundary.** No login endpoint, no token; `signIn(role)` picks one of three hardcoded users. The session is a role key in `localStorage`, behind a `SESSION_STORAGE` injection token so tests can substitute an in-memory store (jsdom serves from an opaque origin where `localStorage` throws). `ROLE_HOME` now sends each role to its own landing page — `/participant/team`, `/judge/portal`, `/admin/dashboard`.
+- `core/auth/role-guard.ts` — `roleGuard(role)` builds `participantGuard`, `judgeGuard` and `adminGuard`, and all three are now in use. `signedInGuard` gates `/results` on being signed in with *any* role, because results go to participants, judges and admins alike. All of them guard **navigation only**; there is no server enforcing anything behind them.
 - `core/event/event-config.ts` — `EVENT_CONFIG` is an `InjectionToken` so tests can stand up a config in whichever phase they need. Its dates are **placeholders chosen to sit in the future**, not the real schedule. `MYT_OFFSET` (`+0800`) is passed to `DatePipe` so dates render in Malaysian time regardless of the reader's locale. `SiteCopy` holds wording that has no column yet.
 - `core/event/phase.ts` — derives `EventPhase` from those dates against a shared 1s clock signal, and exposes `nextMilestone` / `remainingMs` for countdowns. Pages must reuse `PhaseService.now()` rather than starting a second interval. `judgingOpen` is exposed separately because V1 models it as an admin-flipped boolean, not a date window.
-- `core/team/team.ts`, `core/submission/submission.ts`, `core/results/results.ts` — in-memory stand-ins, reset on reload by design. They mirror the constraints the database would apply (unique team name, unique join code, `maxTeamSize`, `submissions_submitted_at_check`) so error paths are real. **Mutations are deliberately `async` and return `Promise<{ok} | {ok:false,error}>`** even though nothing awaits I/O: the async boundary is the part callers must cope with when a real endpoint replaces them, so it exists from the start.
+- `core/team/team.ts`, `core/submission/submission.ts`, `core/results/results.ts`, `core/judge/judge.ts`, `core/admin/admin.ts` — in-memory stand-ins, reset on reload by design. `JudgeService` and `AdminService` are the newest; `AdminService` is read-only (the dashboard reports, it does not edit) so it alone has no async mutations, and its seeds match the `JudgeService` and `ResultsService` team ids on purpose so the three do not describe different universes. They mirror the constraints the database would apply (unique team name, unique join code, `maxTeamSize`, `submissions_submitted_at_check`) so error paths are real. **Mutations are deliberately `async` and return `Promise<{ok} | {ok:false,error}>`** even though nothing awaits I/O: the async boundary is the part callers must cope with when a real endpoint replaces them, so it exists from the start.
 
 `styles.scss` holds the whole design system as CSS custom properties on `:root` — Google-palette brand accents with pre-darkened `-ink` variants for contrast-safe text on `-tint` backgrounds, a neutral ramp, and `--font-sans` / `--font-display`. **Prefer the tokens over raw hex in component styles.** A handful of literals have crept in anyway (`nav-bar`, `profile-menu`, `hero`, `sponsors`, `organizers`, `contact`, `footer`); some are genuine one-offs with no token (the Discord brand blue, a gradient stop), but several duplicate an existing `-tint` value and should be replaced when those files are next touched. Token values mirror `frontend/figma-draft`, which is gitignored and not in the repo.
 
@@ -235,9 +239,9 @@ There is no lint script and no ESLint config — nothing lints this code. Pretti
 Both of these were stale and have been brought current — they no longer need to be read against a correction:
 
 - `docs/README.md` — the record of which schema decisions are ratified and which are still proposals. Current as of V2.
-- `docs/BACKEND-STATUS.md` — the backend handover report, rewritten against `a8499ad`. It covers the entity conventions, the test traps and the security default in more depth than this file does.
+- `docs/PROJECT-STATUS.md` — the progress tracker: what is built across both halves, what is not, and what comes next, with a per-PR delivery log. It replaced the backend-only handover report. It defers to this file for conventions rather than repeating them.
 
-**These go stale the same way everything else here does.** This file, `docs/README.md` and `docs/BACKEND-STATUS.md` all describe the same schema from different angles, and nothing checks them against each other or against the database. A migration that changes a CHECK vocabulary, a DEFAULT or an `ON DELETE` rule has to update all three, plus the frontend union that mirrors it. When in doubt, read the live constraint rather than any of these:
+**These go stale the same way everything else here does.** This file, `docs/README.md` and `docs/PROJECT-STATUS.md` all describe the same system from different angles, and nothing checks them against each other or against the database. A migration that changes a CHECK vocabulary, a DEFAULT or an `ON DELETE` rule has to update all three, plus the frontend union that mirrors it. When in doubt, read the live constraint rather than any of these:
 
 ```powershell
 docker exec hackathon-pg16 psql -U postgres -d hackathon_db -c "\d+ teams"
