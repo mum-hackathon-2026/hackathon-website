@@ -6,18 +6,25 @@ import { TeamService } from '../team/team';
 /**
  * DEMO RESULTS DATA — NOT PERSISTED.
  *
- * There is no results endpoint, no entity, and no rows: `team_results`,
- * `scores`, `assignments` and `judging_criteria` exist only as tables. This
- * service stands in for that API, mirroring their columns so replacing it with
- * HTTP calls is a change of data source rather than a reshape.
+ * There is no results endpoint and no rows. `team_results`, `scores`,
+ * `assignments` and `judging_criteria` are mapped as JPA entities with
+ * repositories, but nothing above persistence exists — no controller, so
+ * nothing to call. This service stands in for that API, mirroring their columns
+ * so replacing it with HTTP calls is a change of data source rather than a
+ * reshape.
  *
  * UNRATIFIED: `team_results.outcome` is one of the CHECK vocabularies the team
- * has not signed off on (see docs/README.md). The literals below are V1's
- * proposal verbatim; if the vocabulary changes, this union and the labels that
- * hang off it change with it.
+ * has not signed off on (see docs/README.md, which records which vocabularies
+ * are settled and which are not). The literals below are the proposal verbatim;
+ * if the vocabulary changes, this union and the labels that hang off it change
+ * with it.
  */
 
-/** V1's team_results_outcome_check vocabulary, verbatim. */
+/**
+ * Mirrors the `team_results_outcome_check` CHECK constraint, verbatim. V2 left
+ * it untouched, so it is still V1's proposal. The two must stay in sync —
+ * nothing at build or test time compares them.
+ */
 export type ResultOutcome = 'winner' | 'runner_up' | 'finalist' | 'participant' | 'disqualified';
 
 export const OUTCOME_LABELS: Record<ResultOutcome, string> = {
