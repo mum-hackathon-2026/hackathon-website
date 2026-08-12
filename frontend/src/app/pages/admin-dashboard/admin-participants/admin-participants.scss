@@ -1,0 +1,36 @@
+@use '../admin-table';
+
+/* ── Eligibility ─────────────────────────────────────────────────────────── */
+
+/* Derived states rather than a stored column, so they get their own dots
+   instead of reusing the status vocabulary the other sections share. */
+.dot--eligible {
+  background: var(--color-green);
+}
+
+.dot--unverified {
+  background: var(--color-yellow);
+}
+
+.dot--not_student {
+  background: var(--color-red-ink);
+}
+
+/* ── Bits ────────────────────────────────────────────────────────────────── */
+
+/* Screening is off by default, so this sits on most views: it should read as a
+   footnote, not as something gone wrong. */
+.banner--muted {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-muted);
+}
+
+.banner--muted code {
+  color: var(--color-body);
+}
+
+.grid__email {
+  color: var(--color-muted);
+  font-size: 12px;
+}

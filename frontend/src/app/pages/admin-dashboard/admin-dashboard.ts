@@ -6,6 +6,7 @@ import { AdminService, SECTIONS, SectionId, isSectionId } from '../../core/admin
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { PhaseService } from '../../core/event/phase';
 import { AdminOverview } from './admin-overview/admin-overview';
+import { AdminParticipants } from './admin-participants/admin-participants';
 import { AdminSidebar } from './admin-sidebar/admin-sidebar';
 import { AdminSubmissions } from './admin-submissions/admin-submissions';
 import { AdminTeams } from './admin-teams/admin-teams';
@@ -28,7 +29,7 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
  */
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [AdminOverview, AdminSidebar, AdminSubmissions, AdminTeams],
+  imports: [AdminOverview, AdminParticipants, AdminSidebar, AdminSubmissions, AdminTeams],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

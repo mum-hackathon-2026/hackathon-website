@@ -121,6 +121,89 @@ describe('AdminService', () => {
     });
   });
 
+  describe('participants', () => {
+    it('counts a team from its roster rather than a seeded number', () => {
+      // Two fields recording one fact can disagree; memberCount falls out of the
+      // roster so it cannot. This guards the two together.
+      const admin = serviceWith();
+      const rows = admin.teams();
+
+      for (const team of rows) {
+        const onTeam = admin.participants().filter((p) => p.teamId === team.teamId).length;
+        expect(onTeam, `${team.teamName} member count`).toBe(team.memberCount);
+      }
+    });
+
+    it('keeps everyone distinct by email, the way users.email would', () => {
+      const emails = serviceWith()
+        .participants()
+        .map((p) => p.email);
+
+      expect(new Set(emails).size).toBe(emails.length);
+    });
+
+    it('includes people who joined no team', () => {
+      const unteamed = serviceWith()
+        .participants()
+        .filter((p) => p.teamId === null);
+
+      expect(unteamed.length).toBeGreaterThan(0);
+      expect(unteamed.every((p) => p.teamName === '')).toBe(true);
+    });
+
+    it('screens a confirmed student address as eligible', () => {
+      const rows = serviceWith().participants();
+      const eligible = rows.filter((p) => p.eligibility === 'eligible');
+
+      expect(eligible.length).toBeGreaterThan(0);
+      expect(eligible.every((p) => p.emailVerified)).toBe(true);
+      expect(eligible.every((p) => p.email.endsWith('@student.monash.edu'))).toBe(true);
+    });
+
+    it('separates an unconfirmed address from a non-student one', () => {
+      const rows = serviceWith().participants();
+
+      const unverified = rows.filter((p) => p.eligibility === 'unverified');
+      expect(unverified.length).toBeGreaterThan(0);
+      expect(unverified.every((p) => p.email.endsWith('@student.monash.edu'))).toBe(true);
+      expect(unverified.every((p) => !p.emailVerified)).toBe(true);
+
+      const notStudent = rows.filter((p) => p.eligibility === 'not_student');
+      expect(notStudent.length).toBeGreaterThan(0);
+      expect(notStudent.every((p) => !p.email.endsWith('@student.monash.edu'))).toBe(true);
+    });
+
+    it('screens against the configured domain, not a hardcoded one', () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          {
+            provide: EVENT_CONFIG,
+            useValue: {
+              ...DEFAULT_EVENT_CONFIG,
+              site: { ...DEFAULT_EVENT_CONFIG.site, studentEmailDomain: 'students.example.edu' },
+            },
+          },
+        ],
+      });
+
+      const rows = TestBed.inject(AdminService).participants();
+
+      expect(rows.some((p) => p.email.endsWith('@students.example.edu'))).toBe(true);
+      expect(rows.every((p) => !p.email.endsWith('@student.monash.edu'))).toBe(true);
+    });
+
+    it('follows a team rename rather than holding the old name', async () => {
+      const admin = serviceWith();
+      await admin.renameTeam(209, 'Cartographers');
+
+      const onTeam = admin.participants().filter((p) => p.teamId === 209);
+
+      expect(onTeam.length).toBeGreaterThan(0);
+      expect(onTeam.every((p) => p.teamName === 'Cartographers')).toBe(true);
+    });
+  });
+
   describe('stats', () => {
     it('counts teams, people and submission states', () => {
       const admin = serviceWith();

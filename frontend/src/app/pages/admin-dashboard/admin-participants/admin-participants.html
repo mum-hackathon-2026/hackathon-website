@@ -1,0 +1,106 @@
+<p class="lede">{{ summary() }}</p>
+
+@if (!screeningEnabled) {
+  <p class="banner banner--muted">
+    Screening is off — <code>event_settings.screening_enabled</code> is false, so these checks are
+    advisory and gate nothing.
+  </p>
+}
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="participant-search">Search participants</label>
+  <input
+    id="participant-search"
+    class="input filters__search"
+    type="search"
+    name="participantSearch"
+    placeholder="Search name or email"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="participant-team">Filter by team</label>
+  <select
+    id="participant-team"
+    class="input"
+    name="participantTeam"
+    [ngModel]="teamFilter()"
+    (ngModelChange)="teamFilter.set($event)"
+  >
+    <option value="all">All teams</option>
+    <option value="none">On no team</option>
+    @for (team of teams(); track team.id) {
+      <option [value]="team.id">{{ team.name }}</option>
+    }
+  </select>
+
+  <label class="visually-hidden" for="participant-eligibility">Filter by eligibility</label>
+  <select
+    id="participant-eligibility"
+    class="input"
+    name="participantEligibility"
+    [ngModel]="eligibilityFilter()"
+    (ngModelChange)="eligibilityFilter.set($event)"
+  >
+    @for (option of eligibilityFilters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+
+@if (rows().length === 0) {
+  <p class="empty">Nobody matches that search.</p>
+} @else {
+  <div class="scroller">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Team</th>
+          <th scope="col">Eligibility</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.userId) {
+          <tr>
+            <td>
+              <span class="grid__team">{{ row.fullName }}</span>
+            </td>
+            <td>
+              <span class="grid__email">{{ row.email }}</span>
+            </td>
+            <td>
+              @if (row.teamName) {
+                {{ row.teamName }}
+              } @else {
+                <span class="grid__none">No team</span>
+              }
+            </td>
+            <td>
+              <span class="dot" [class]="'dot--' + row.eligibility"></span>
+              {{ eligibilityLabels[row.eligibility] }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<p class="note">
+  Eligibility is worked out from the address and <code>users.email_verified</code>, not stored:
+  anything on <code>&#64;{{ studentDomain }}</code> that has confirmed itself is eligible. The
+  design draft instead shows a student ID behind a reveal toggle and offers Verify and Flag per
+  person. <code>users</code> has neither a student ID column nor an eligibility one, so both would
+  need a migration first — and until then a stored answer could only disagree with the address it
+  was meant to check.
+</p>

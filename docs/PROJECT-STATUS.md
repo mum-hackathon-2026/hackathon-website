@@ -1,8 +1,8 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** commit `98e50df` (= `origin/main`), 2026-08-12.
-**Verified:** both test suites were run against this commit on the day it was written — see [§7](#7-verification). Everything else here is read from the source tree.
+**As of:** `ed3aa51` (= `origin/main`) plus the Participants section on `feature/admin-participants`, 2026-08-13.
+**Verified:** the frontend suite and a production build were run against the branch; the backend figures are carried forward from `98e50df` — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
 
@@ -17,6 +17,7 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 | **Backend API** | 🔴 Not started | Zero controllers, services, DTOs — no HTTP endpoint exists |
 | **Backend security** | 🔴 Not started | Starter on the classpath, no `SecurityFilterChain` written |
 | **Frontend pages** | 🟢 Done | 12 components behind 13 routes, all three roles covered |
+| **Admin workspace** | 🟡 4 of 10 | Overview, Teams, Participants, Submissions built; six sections still stubs |
 | **Frontend data** | 🟡 Stand-ins | 7 in-memory services shaped like the API that will replace them |
 | **Integration** | 🔴 Not started | The two halves have never spoken; no HTTP client is even provided |
 | **CI** | 🟢 Done | Two jobs, both gating; a failing spec cannot reach `main` |
@@ -93,7 +94,26 @@ The 11 tables: `users`, `event_settings`, `teams`, `team_members`, `submissions`
 - [x] `event/` — `EVENT_CONFIG` token, `PhaseService`, `MilestoneService`, static site copy
 - [x] `team/`, `submission/`, `results/` — participant-scoped stand-ins
 - [x] `judge/` — assignments, scores, criteria; validation repeats the tables' CHECK constraints so the UI never accepts what the API would reject
-- [x] `admin/` — event-wide read model (a join across `teams`, `team_members`, `submissions`, `assignments`); read-only, so no async mutations
+- [x] `admin/` — event-wide read model (a join across `teams`, `team_members`, `submissions`, `assignments`), plus rename and settle mutations on a team
+
+> `AdminService` counts a team's members from its roster rather than storing the number beside it, because two fields recording one fact can disagree and nothing would catch it — the same shape of bug V2 undid on `teams.status`. The spec asserts the two agree for every team.
+
+### The admin workspace
+
+`admin/dashboard/:section` is ten sections, each its own URL. **Four are built:**
+
+| Section | State | Note |
+| ------- | ----- | ---- |
+| Overview | ✅ Built | Six stat tiles, urgent actions, activity feed |
+| Teams | ✅ Built | Filterable; rename, withdraw, disqualify |
+| Participants | ✅ Built | Roster with derived eligibility; read-only |
+| Submissions | ✅ Built | Filterable, with links |
+| Judges, Assignments, Judging Progress, Results & Publication, Event Settings, Audit Log | ⬜ Stub | Placeholder rather than hidden, so the shape is visible |
+
+**None of the six is blocked on the schema.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
+
+- **Participants** — no student ID column and no eligibility column, so no Verify/Flag action. Eligibility is derived from the address and `users.email_verified` instead, screened against `site.studentEmailDomain`. `event_settings.screening_enabled` is surfaced but gates nothing.
+- **Teams** — no `locked` status in `teams_status_check`, so no Lock action; Withdraw and Disqualify are the settled states that do exist.
 
 All seven mirror their tables field for field, and the three team-facing ones share seed data on purpose so they do not describe different universes.
 
@@ -104,7 +124,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Tests
 
-- [x] **27 spec files / 274 tests**, colocated, no database or dev server needed
+- [x] **27 spec files / 304 tests**, colocated, no database or dev server needed
 - [x] Zoneless Angular 21 throughout — signals for state, `await fixture.whenStable()` in tests, vitest under jsdom (not Karma)
 
 ---
@@ -153,8 +173,10 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #26 | 08-12 | **Admin dashboard** |
 | #27 | 08-12 | 404 page, roles land on their own pages, stale judge copy fixed |
 | #28 | 08-12 | Docs brought current with V2; backend handover moved in-tree |
+| #29 | 08-12 | **Admin dashboard rebuilt** as the ten-section workspace — sidebar, Overview, Teams, Submissions |
+| #30 | 08-13 | This file added; `docs/BACKEND-STATUS.md` retired |
 
-**In flight:** `origin/feature/admin-workspace` (`fa9433f`) builds the admin dashboard out into a sectioned workspace. Unmerged at time of writing.
+**In flight:** `feature/admin-participants` — the Participants section, plus the roster read model behind it.
 
 ---
 
@@ -169,16 +191,19 @@ In order. The first item is not optional and is not first by preference.
 5. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them.
 6. **Add ESLint**, and fill the coverage gaps listed in [§4](#4-what-is-not-done).
 
+Running alongside, and not waiting on any of the above: **the six remaining workspace sections**. None is blocked on the schema — Assignments, Judging Progress and Audit Log map onto their tables as designed, and Judges, Results and Event Settings ship reduced the way Participants and Teams already do.
+
 ---
 
 ## 7. Verification
 
-Both suites were run against `98e50df` on 2026-08-12:
+| Suite | Command | Result | Run against |
+| ----- | ------- | ------ | ----------- |
+| Frontend | `npx ng test --watch=false` | **27 files, 304 tests passed** | `feature/admin-participants`, 2026-08-13 |
+| Frontend | `npm run build` | **490.74 kB initial, no budget warning** | `feature/admin-participants`, 2026-08-13 |
+| Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
-| Suite | Command | Result |
-| ----- | ------- | ------ |
-| Frontend | `npx ng test --watch=false` | **27 files, 274 tests passed** |
-| Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** |
+The initial bundle has not moved since #29: the admin route is lazy, so Participants went into the `admin-dashboard` chunk (57.32 kB) rather than the initial one. Every other route is still eager, and the 500 kB figure is the **warning** threshold — the hard error is 1 MB.
 
 The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
 

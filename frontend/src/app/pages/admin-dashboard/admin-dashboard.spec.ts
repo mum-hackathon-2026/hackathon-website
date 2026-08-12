@@ -236,6 +236,69 @@ describe('AdminDashboard', () => {
     });
   });
 
+  describe('participants', () => {
+    it('lists everyone, including people who joined no team', async () => {
+      await render({ section: 'participants' });
+
+      expect(teamNames()).toContain('Aisha Rahman');
+      expect(teamNames()).toContain('Nicholas Yap');
+      expect(host().querySelector('.grid__none')?.textContent).toBe('No team');
+    });
+
+    it('searches by email as well as name', async () => {
+      await render({ section: 'participants' });
+      await setInput('#participant-search', 'a.rahman@');
+
+      expect(teamNames()).toEqual(['Aisha Rahman']);
+    });
+
+    it('filters to the people on no team', async () => {
+      await render({ section: 'participants' });
+      await setInput('#participant-team', 'none');
+
+      expect(teamNames()).toContain('Nicholas Yap');
+      expect(teamNames()).not.toContain('Aisha Rahman');
+    });
+
+    it('separates an unconfirmed address from a non-student one', async () => {
+      await render({ section: 'participants' });
+
+      await setInput('#participant-eligibility', 'unverified');
+      expect(teamNames()).toContain('Priya Ramasamy');
+
+      await setInput('#participant-eligibility', 'not_student');
+      const notStudent = teamNames();
+      expect(notStudent).toContain('Ryan Teoh');
+      expect(notStudent).not.toContain('Priya Ramasamy');
+    });
+
+    it('offers no per-person action, because there is no column to write to', async () => {
+      await render({ section: 'participants' });
+
+      expect(host().querySelectorAll('.grid__actions').length).toBe(0);
+      expect(host().querySelector('.note')?.textContent).toContain('email_verified');
+    });
+
+    it('says screening is off rather than implying the checks gate anything', async () => {
+      await render({ section: 'participants', settings: { screeningEnabled: false } });
+
+      expect(host().querySelector('.banner--muted')?.textContent).toContain('Screening is off');
+    });
+
+    it('drops the screening note once screening is on', async () => {
+      await render({ section: 'participants', settings: { screeningEnabled: true } });
+
+      expect(host().querySelector('.banner--muted')).toBeNull();
+    });
+
+    it('says so when nothing matches', async () => {
+      await render({ section: 'participants' });
+      await setInput('#participant-search', 'zzzz');
+
+      expect(host().querySelector('.empty')?.textContent).toContain('Nobody matches');
+    });
+  });
+
   describe('submissions', () => {
     it('lists submissions with their links', async () => {
       await render({ section: 'submissions' });

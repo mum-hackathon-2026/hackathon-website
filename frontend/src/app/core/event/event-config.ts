@@ -34,6 +34,11 @@ export interface SiteCopy {
   readonly tagline: string;
   readonly contactEmail: string;
   readonly discordUrl: string;
+  /**
+   * The address domain a student registers with. There is no eligibility column
+   * on `users`, so this is what the roster screens against — see AdminService.
+   */
+  readonly studentEmailDomain: string;
   readonly tracks: readonly string[];
   /** Judging criteria and their weights. Should total 100. */
   readonly judgingCriteria: readonly { readonly name: string; readonly weight: number }[];
@@ -71,6 +76,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     tagline: '48 hours. One campus. Build something that matters.',
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
+    studentEmailDomain: 'student.monash.edu',
     tracks: ['Open Innovation', 'Sustainability', 'HealthTech'],
     judgingCriteria: [
       { name: 'Innovation', weight: 30 },
