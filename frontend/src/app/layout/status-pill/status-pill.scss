@@ -1,0 +1,42 @@
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--pill-tint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--pill-ink);
+  white-space: nowrap;
+}
+
+.status-pill__dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Not started is deliberately the quietest: it is the default, not a problem. */
+.status-pill--pending {
+  --pill-tint: var(--color-hairline);
+  --pill-ink: var(--color-muted);
+}
+
+.status-pill--in_progress {
+  --pill-tint: var(--color-amber-tint);
+  --pill-ink: var(--color-amber-ink);
+}
+
+.status-pill--completed {
+  --pill-tint: var(--color-green-tint);
+  --pill-ink: var(--color-green-ink);
+}
+
+.status-pill--declined {
+  --pill-tint: var(--color-red-tint);
+  --pill-ink: var(--color-red-ink);
+}

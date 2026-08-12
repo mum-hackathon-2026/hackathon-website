@@ -57,13 +57,16 @@ export const DEMO_USERS: Record<Role, AuthUser> = {
 };
 
 /**
- * Where each role lands after signing in. All point at home for now because no
- * role-specific page exists yet; repoint each one as its page lands
- * (`/participant/team`, `/judge/portal`, `/admin/dashboard` in the draft).
+ * Where each role lands after signing in. Repointed as each role's landing page
+ * lands; admin still goes home because `/admin/dashboard` does not exist yet.
+ *
+ * Nothing reads this yet — `SignIn` uses the guard's `returnUrl` and falls back
+ * to `/`. Wiring it in changes the landing page for all three roles at once, so
+ * it waits until the last of them has somewhere of its own to go.
  */
 export const ROLE_HOME: Record<Role, string> = {
-  participant: '/',
-  judge: '/',
+  participant: '/participant/team',
+  judge: '/judge/portal',
   admin: '/',
 };
 

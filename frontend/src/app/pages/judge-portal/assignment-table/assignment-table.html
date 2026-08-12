@@ -1,0 +1,48 @@
+<!-- Scrolls inside itself rather than widening the page. -->
+<div class="table-scroll">
+  <table class="assignments">
+    <caption class="visually-hidden">
+      Teams assigned to you for judging
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Team</th>
+        <th scope="col">Track</th>
+        <th scope="col">Status</th>
+        <th scope="col">Progress</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id) {
+        <tr>
+          <td>
+            <span class="assignments__team">{{ row.teamName }}</span>
+            <span class="assignments__project">{{ row.projectTitle }}</span>
+          </td>
+          <td class="assignments__track">{{ row.trackLabel }}</td>
+          <td><app-status-pill [status]="row.status" /></td>
+          <td class="assignments__progress">
+            @if (row.status === 'declined') {
+              <span class="assignments__muted">—</span>
+            } @else {
+              {{ row.scoredCount }}/{{ row.criteriaCount }} scored
+            }
+          </td>
+          <td class="assignments__actions">
+            @if (row.status === 'pending') {
+              <button
+                type="button"
+                class="link-button link-button--danger"
+                [disabled]="busy()"
+                (click)="declined.emit(row.id)"
+              >
+                Decline
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
