@@ -79,6 +79,45 @@ export interface AdminStats {
   readonly activeJudges: number;
 }
 
+/**
+ * How far a registration has got towards being allowed to compete.
+ *
+ * There is no eligibility column. `users` has `email` and `email_verified` and
+ * nothing else bearing on this, so the state below is *derived* from those two
+ * rather than stored: a student address that has confirmed itself is eligible,
+ * one that has not is unverified, and anything off the student domain is not a
+ * student address at all.
+ *
+ * The design draft stores this instead, with an organiser pressing Verify or
+ * Flag per person. That needs columns nobody has added — see the note in the
+ * Participants section — so this reports what the data already knows and offers
+ * no override.
+ */
+export type EligibilityState = 'eligible' | 'unverified' | 'not_student';
+
+export const ELIGIBILITY_LABELS: Record<EligibilityState, string> = {
+  eligible: 'Eligible',
+  unverified: 'Email unconfirmed',
+  not_student: 'Non-student address',
+};
+
+/**
+ * One registered person as an organiser sees them: the `users` row joined to
+ * the team they are on, if any.
+ */
+export interface AdminParticipantRow {
+  readonly userId: number;
+  readonly fullName: string;
+  readonly email: string;
+  /** Null when they have registered but joined nothing — `team_members` is optional. */
+  readonly teamId: number | null;
+  /** '' when they are on no team, so the column has something to sort on. */
+  readonly teamName: string;
+  /** `users.email_verified`. */
+  readonly emailVerified: boolean;
+  readonly eligibility: EligibilityState;
+}
+
 /** Mirrors the `judging_criteria`-adjacent view of a judge the sections list. */
 export interface AdminJudge {
   readonly userId: number;
@@ -161,10 +200,81 @@ interface SeedTeam {
   readonly track: number;
   readonly status: TeamStatus;
   readonly shortlisted: boolean;
-  readonly memberCount: number;
   readonly submissionStatus: SubmissionStatus | null;
   readonly reviewsCompleted: number;
 }
+
+/**
+ * Who is on each team, and the handful of people who joined none.
+ *
+ * `memberCount` is counted from this rather than seeded alongside it. Two
+ * fields recording one fact can disagree, and nothing would catch it — the
+ * schema has been bitten by exactly that before (V1 recorded "this team
+ * submitted" on both `teams.status` and `submissions.status`, which V2 undid).
+ * The roster is the one source; the count falls out of it.
+ *
+ * Emails are derived rather than written out, so the seed stays readable and
+ * `users.email`'s UNIQUE constraint cannot be broken by a typo. The spec asserts
+ * they come out distinct.
+ */
+const ROSTER: readonly { readonly teamId: number | null; readonly names: readonly string[] }[] = [
+  { teamId: 201, names: ['Aisha Rahman', 'Daniel Wong', 'Priya Ramasamy', 'Marcus Tan'] },
+  { teamId: 101, names: ['Chen Wei Lim', 'Sarah Abdullah', 'Rajesh Kumar', 'Emily Foo'] },
+  { teamId: 202, names: ['Nurul Hakim', 'Jason Yeo', 'Divya Nair'] },
+  { teamId: 203, names: ['Amir Hafiz', 'Grace Ng', 'Lucas Pereira', 'Siti Nabilah'] },
+  { teamId: 102, names: ['Kevin Chua', 'Farah Idris', 'Tan Jia Hui'] },
+  { teamId: 204, names: ['Arjun Menon', 'Chloe Lee', 'Hafizuddin Roslan', 'Wong Mei Xin'] },
+  { teamId: 205, names: ['Iman Zulkifli', 'Benjamin Ooi'] },
+  { teamId: 206, names: ['Zara Anand', 'Ryan Teoh', 'Nurin Batrisyia'] },
+  { teamId: 103, names: ['Adrian Soh', 'Kavitha Selvam'] },
+  { teamId: 207, names: ['Joshua Lai'] },
+  { teamId: 208, names: ['Melissa Chin', 'Haziq Aiman', 'Tania Dass'] },
+  { teamId: 209, names: ['Ethan Goh', 'Aina Sofea'] },
+  // 210 'Byte Me' is absent on purpose: everyone left, and V2 keeps the team.
+  { teamId: 211, names: ['Bryan Koh', 'Sharifah Alia', 'Vincent Lau', 'Meera Pillai'] },
+  // Registered, never joined a team. `team_members` is optional, so these are
+  // ordinary `users` rows with nothing pointing at them.
+  { teamId: null, names: ['Nicholas Yap', 'Sabrina Aziz', 'Terence Sim'] },
+];
+
+/** `users.email_verified` is false for these — registered but never confirmed. */
+const UNVERIFIED = new Set(['Priya Ramasamy', 'Iman Zulkifli', 'Sabrina Aziz']);
+
+/** Signed up with a personal address rather than a student one. */
+const NON_STUDENT = new Set(['Ryan Teoh', 'Terence Sim']);
+
+const NON_STUDENT_DOMAIN = 'gmail.com';
+
+/** First initial and family name, the same shape as the judge seed's addresses. */
+function addressFor(fullName: string, domain: string): string {
+  const parts = fullName
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .split(/\s+/);
+  const initial = parts[0]?.charAt(0) ?? 'x';
+  const family = parts[parts.length - 1] ?? 'unknown';
+  return `${initial}.${family}@${domain}`;
+}
+
+/**
+ * Neither input is a stored column on its own account — see EligibilityState.
+ * A non-student address outranks an unconfirmed one: it is the more basic
+ * problem, and confirming the address would not fix it.
+ */
+function eligibilityOf(studentAddress: boolean, emailVerified: boolean): EligibilityState {
+  if (!studentAddress) return 'not_student';
+  return emailVerified ? 'eligible' : 'unverified';
+}
+
+/** Team id → how many people are on it. Counted from ROSTER, never seeded. */
+const MEMBER_COUNTS: ReadonlyMap<number, number> = new Map(
+  ROSTER.flatMap((entry) =>
+    entry.teamId === null ? [] : [[entry.teamId, entry.names.length] as const],
+  ),
+);
+
+/** Well clear of the team ids and the judge seed's user ids. */
+const FIRST_PARTICIPANT_ID = 3001;
 
 /**
  * Twelve teams covering every `teams.status` and every `submissions.status`,
@@ -185,7 +295,6 @@ const SEED: readonly SeedTeam[] = [
     track: 0,
     status: 'complete',
     shortlisted: true,
-    memberCount: 4,
     submissionStatus: 'submitted',
     reviewsCompleted: 3,
   },
@@ -196,7 +305,6 @@ const SEED: readonly SeedTeam[] = [
     track: 0,
     status: 'complete',
     shortlisted: true,
-    memberCount: 4,
     submissionStatus: 'submitted',
     reviewsCompleted: 3,
   },
@@ -207,7 +315,6 @@ const SEED: readonly SeedTeam[] = [
     track: 2,
     status: 'complete',
     shortlisted: true,
-    memberCount: 3,
     submissionStatus: 'submitted',
     reviewsCompleted: 3,
   },
@@ -218,7 +325,6 @@ const SEED: readonly SeedTeam[] = [
     track: 1,
     status: 'complete',
     shortlisted: false,
-    memberCount: 4,
     submissionStatus: 'submitted',
     reviewsCompleted: 3,
   },
@@ -230,7 +336,6 @@ const SEED: readonly SeedTeam[] = [
     track: 0,
     status: 'complete',
     shortlisted: false,
-    memberCount: 3,
     submissionStatus: 'submitted',
     reviewsCompleted: 2,
   },
@@ -241,7 +346,6 @@ const SEED: readonly SeedTeam[] = [
     track: 1,
     status: 'complete',
     shortlisted: false,
-    memberCount: 4,
     submissionStatus: 'submitted',
     reviewsCompleted: 1,
   },
@@ -252,7 +356,6 @@ const SEED: readonly SeedTeam[] = [
     track: 2,
     status: 'complete',
     shortlisted: false,
-    memberCount: 2,
     submissionStatus: 'submitted',
     reviewsCompleted: 0,
   },
@@ -263,7 +366,6 @@ const SEED: readonly SeedTeam[] = [
     track: 0,
     status: 'complete',
     shortlisted: false,
-    memberCount: 3,
     submissionStatus: 'submitted',
     reviewsCompleted: 3,
   },
@@ -275,7 +377,6 @@ const SEED: readonly SeedTeam[] = [
     track: 1,
     status: 'forming',
     shortlisted: false,
-    memberCount: 2,
     submissionStatus: 'draft',
     reviewsCompleted: 0,
   },
@@ -286,7 +387,6 @@ const SEED: readonly SeedTeam[] = [
     track: 2,
     status: 'forming',
     shortlisted: false,
-    memberCount: 1,
     submissionStatus: 'draft',
     reviewsCompleted: 0,
   },
@@ -298,7 +398,6 @@ const SEED: readonly SeedTeam[] = [
     track: 1,
     status: 'withdrawn',
     shortlisted: false,
-    memberCount: 3,
     submissionStatus: 'withdrawn',
     reviewsCompleted: 0,
   },
@@ -310,7 +409,6 @@ const SEED: readonly SeedTeam[] = [
     track: 0,
     status: 'forming',
     shortlisted: false,
-    memberCount: 2,
     submissionStatus: null,
     reviewsCompleted: 0,
   },
@@ -322,7 +420,6 @@ const SEED: readonly SeedTeam[] = [
     track: 0,
     status: 'forming',
     shortlisted: false,
-    memberCount: 0,
     submissionStatus: null,
     reviewsCompleted: 0,
   },
@@ -334,7 +431,6 @@ const SEED: readonly SeedTeam[] = [
     track: 0,
     status: 'disqualified',
     shortlisted: false,
-    memberCount: 4,
     submissionStatus: 'disqualified',
     reviewsCompleted: 0,
   },
@@ -486,12 +582,14 @@ export class AdminService {
       const slug = team.teamName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const hasSubmission = team.submissionStatus !== null;
 
+      const memberCount = MEMBER_COUNTS.get(team.teamId) ?? 0;
+
       return {
         teamId: team.teamId,
         teamName: team.teamName,
         status: team.status,
         shortlisted: team.shortlisted,
-        memberCount: team.memberCount,
+        memberCount,
         submissionStatus: team.submissionStatus,
         projectTitle: team.projectTitle,
         trackLabel: tracks[team.track] ?? tracks[0],
@@ -500,9 +598,42 @@ export class AdminService {
         submittedAt: team.submissionStatus === 'submitted' ? SUBMITTED_AT : null,
         reviewsCompleted: team.reviewsCompleted,
         reviewsExpected,
-        attention: attentionFor(team, { minTeamSize, judgingOpen, reviewsExpected }),
+        attention: attentionFor(team, memberCount, { minTeamSize, judgingOpen, reviewsExpected }),
       };
     });
+  });
+
+  /**
+   * Everyone registered, teamed or not.
+   *
+   * Stands in for `users` left-joined to `team_members` and `teams`. The team
+   * name is read back off `rows()` rather than copied into the roster, so
+   * renaming a team in the Teams section shows up here too.
+   *
+   * Addresses are built against the configured student domain, so a test that
+   * changes the domain changes who screens as a student.
+   */
+  readonly participants = computed<readonly AdminParticipantRow[]>(() => {
+    const domain = this.config.site.studentEmailDomain;
+    const teamNames = new Map(this.rows().map((team) => [team.teamId, team.teamName]));
+    let nextId = FIRST_PARTICIPANT_ID;
+
+    return ROSTER.flatMap((entry) =>
+      entry.names.map((fullName) => {
+        const studentAddress = !NON_STUDENT.has(fullName);
+        const emailVerified = !UNVERIFIED.has(fullName);
+
+        return {
+          userId: nextId++,
+          fullName,
+          email: addressFor(fullName, studentAddress ? domain : NON_STUDENT_DOMAIN),
+          teamId: entry.teamId,
+          teamName: entry.teamId === null ? '' : (teamNames.get(entry.teamId) ?? ''),
+          emailVerified,
+          eligibility: eligibilityOf(studentAddress, emailVerified),
+        };
+      }),
+    );
   });
 
   /** The teams an organiser should follow up, most reasons first. */
@@ -643,14 +774,18 @@ interface AttentionContext {
  * Withdrawn and disqualified teams are settled — an organiser has already dealt
  * with them — so they raise nothing however incomplete they look.
  */
-function attentionFor(team: SeedTeam, ctx: AttentionContext): readonly AttentionReason[] {
+function attentionFor(
+  team: SeedTeam,
+  memberCount: number,
+  ctx: AttentionContext,
+): readonly AttentionReason[] {
   if (team.status === 'withdrawn' || team.status === 'disqualified') return [];
 
   const reasons: AttentionReason[] = [];
 
   // An empty team is retained deliberately, so this is a prompt to look, not a fault.
-  if (team.memberCount === 0) reasons.push('empty');
-  else if (team.memberCount < ctx.minTeamSize) reasons.push('undersized');
+  if (memberCount === 0) reasons.push('empty');
+  else if (memberCount < ctx.minTeamSize) reasons.push('undersized');
 
   if (team.submissionStatus === null) reasons.push('no_submission');
   else if (team.submissionStatus === 'draft') reasons.push('draft_only');
