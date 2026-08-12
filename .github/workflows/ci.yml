@@ -27,8 +27,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint --if-present
+      # No lint step: there is no ESLint config and no `lint` script in
+      # package.json. The previous `npm run lint --if-present` silently did
+      # nothing while reading as though the code was linted. Add a real step
+      # here when ESLint is configured — without `--if-present`, so that a
+      # missing script fails loudly instead of passing quietly.
+
+      # Vitest under jsdom via the @angular/build:unit-test builder, so no
+      # browser is needed. `--watch=false` is explicit rather than left to the
+      # builder's CI detection: without it a runner with no TTY would sit in
+      # watch mode until the job hit its timeout, which reports as a hang
+      # rather than as a test failure. Non-zero exit on a failing spec fails
+      # the job — no `continue-on-error`, no `--if-present`.
+      - name: Test
+        run: npx ng test --watch=false
 
       - name: Build
         run: npm run build
