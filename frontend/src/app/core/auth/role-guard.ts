@@ -30,3 +30,18 @@ export function roleGuard(role: Role): CanActivateFn {
 export const participantGuard = roleGuard('participant');
 export const judgeGuard = roleGuard('judge');
 export const adminGuard = roleGuard('admin');
+
+/**
+ * Signed in, any role. Results are published to participants, judges and admins
+ * alike, so gating that page on a single role would lock out two thirds of the
+ * people the nav offers it to.
+ */
+export const signedInGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return (
+    auth.isSignedIn() ||
+    router.createUrlTree(['/sign-in'], { queryParams: { returnUrl: state.url } })
+  );
+};

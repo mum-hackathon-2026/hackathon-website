@@ -1,0 +1,36 @@
+<!-- The table scrolls inside itself rather than widening the page. -->
+<div class="table-scroll">
+  <table class="rankings">
+    <caption class="visually-hidden">
+      Final standings for all
+      {{
+        rows().length
+      }}
+      teams
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col" class="rankings__rank-col">Rank</th>
+        <th scope="col">Team</th>
+        <th scope="col">Track</th>
+        <th scope="col" class="rankings__score-col">Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.teamId) {
+        <tr [class.rankings__row--mine]="row.isMine">
+          <td class="rankings__rank">{{ row.tied ? '=' : '' }}{{ row.rank }}</td>
+          <td>
+            <span class="rankings__team">{{ row.teamName }}</span>
+            @if (row.isMine) {
+              <span class="rankings__you">You</span>
+            }
+            <span class="rankings__project">{{ row.projectTitle }}</span>
+          </td>
+          <td class="rankings__track">{{ row.trackLabel }}</td>
+          <td class="rankings__score">{{ row.finalScore | number: '1.1-1' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
