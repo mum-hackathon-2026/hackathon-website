@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminGuard, judgeGuard, participantGuard, signedInGuard } from './core/auth/role-guard';
 import { Home } from './pages/home/home';
+import { NotFound } from './pages/not-found/not-found';
 import { MySubmission } from './pages/my-submission/my-submission';
 import { MyTeam } from './pages/my-team/my-team';
 import { Organizers } from './pages/organizers/organizers';
@@ -73,4 +74,6 @@ export const routes: Routes = [
     title: 'Results · Monash Hackathon 2026',
   },
   { path: 'sign-in', component: SignIn, title: 'Sign in · Monash Hackathon 2026' },
+  // Must stay last: the wildcard matches anything the routes above did not.
+  { path: '**', component: NotFound, title: 'Page not found · Monash Hackathon 2026' },
 ];
