@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { judgeGuard, participantGuard, signedInGuard } from './core/auth/role-guard';
+import { adminGuard, judgeGuard, participantGuard, signedInGuard } from './core/auth/role-guard';
 import { Home } from './pages/home/home';
 import { MySubmission } from './pages/my-submission/my-submission';
 import { MyTeam } from './pages/my-team/my-team';
@@ -53,6 +53,17 @@ export const routes: Routes = [
     component: JudgeReview,
     canActivate: [judgeGuard],
     title: 'Review · Monash Hackathon 2026',
+  },
+  // Lazy, unlike every route above it. Eagerly importing this page took the
+  // initial bundle past its 500 kB budget, and organisers are the rarest role —
+  // nobody else ever needs this code. The budget is close enough now that the
+  // next page added will face the same choice.
+  {
+    path: 'admin/dashboard',
+    loadComponent: () =>
+      import('./pages/admin-dashboard/admin-dashboard').then((m) => m.AdminDashboard),
+    canActivate: [adminGuard],
+    title: 'Dashboard · Monash Hackathon 2026',
   },
   // Every signed-in role sees results, so this is gated on sign-in, not a role.
   {

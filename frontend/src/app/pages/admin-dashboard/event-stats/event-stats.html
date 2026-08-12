@@ -1,0 +1,55 @@
+@if (stats(); as s) {
+  <ul class="tiles">
+    <li class="tiles__tile">
+      <span class="tiles__value">{{ s.teams }}</span>
+      <span class="tiles__label">Teams</span>
+    </li>
+    <li class="tiles__tile">
+      <span class="tiles__value">{{ s.participants }}</span>
+      <span class="tiles__label">Participants</span>
+    </li>
+    <li class="tiles__tile tiles__tile--green">
+      <span class="tiles__value">{{ s.submitted }}</span>
+      <span class="tiles__label">Submitted</span>
+    </li>
+    <li class="tiles__tile" [class.tiles__tile--amber]="s.needingAttention > 0">
+      <span class="tiles__value">{{ s.needingAttention }}</span>
+      <span class="tiles__label">Need attention</span>
+    </li>
+  </ul>
+
+  <div class="bar">
+    <div class="bar__head">
+      <span class="bar__label">Judging progress</span>
+      @if (judgingOpen()) {
+        <span class="bar__value">{{ s.percentJudged }}%</span>
+      }
+    </div>
+
+    @if (judgingOpen()) {
+      <div
+        class="bar__track"
+        role="progressbar"
+        [attr.aria-valuenow]="s.percentJudged"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-label="Reviews completed across the event"
+      >
+        <span
+          class="bar__fill"
+          [class.bar__fill--done]="s.percentJudged === 100"
+          [style.width.%]="s.percentJudged"
+        ></span>
+      </div>
+      <p class="bar__note">
+        {{ s.reviewsCompleted }} of {{ s.reviewsExpected }} reviews in, across
+        {{ s.submitted }} submitted teams.
+      </p>
+    } @else {
+      <p class="bar__note">
+        Judging is closed. {{ s.reviewsExpected }} reviews are lined up across
+        {{ s.submitted }} submitted teams.
+      </p>
+    }
+  </div>
+}

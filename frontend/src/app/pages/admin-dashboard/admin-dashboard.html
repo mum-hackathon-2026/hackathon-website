@@ -1,0 +1,73 @@
+<div class="page page--narrow">
+  <app-page-header eyebrow="Organiser" title="Dashboard" [subtitle]="subtitle()" />
+
+  <app-event-stats [stats]="stats()" [judgingOpen]="judgingOpen()" />
+
+  <!-- ── Where the event is ───────────────────────────────────────────────── -->
+
+  <section class="pulse" aria-label="Event status">
+    <div class="pulse__item">
+      <span class="pulse__label">Phase</span>
+      <span class="pulse__value">{{ phaseLabel() }}</span>
+    </div>
+
+    <div class="pulse__item">
+      <span class="pulse__label">Judging</span>
+      <span class="pulse__value">
+        <span class="dot" [class.dot--on]="judgingOpen()"></span>
+        {{ judgingOpen() ? 'Open' : 'Closed' }}
+      </span>
+    </div>
+
+    <div class="pulse__item">
+      <span class="pulse__label">Next</span>
+      @if (milestone(); as next) {
+        <span class="pulse__value">
+          {{ next.label }}
+          @if (countdown(); as left) {
+            <span class="pulse__countdown">in {{ left }}</span>
+          }
+        </span>
+      } @else {
+        <span class="pulse__value pulse__value--muted">Nothing scheduled</span>
+      }
+    </div>
+  </section>
+
+  <!-- ── Follow-ups ───────────────────────────────────────────────────────── -->
+
+  <h2 class="section-title">Teams needing attention</h2>
+
+  @if (topAttention().length === 0) {
+    <p class="note note--standalone">
+      Every team has members and a submission, and nothing is outstanding. Nothing to chase.
+    </p>
+  } @else {
+    <ul class="attention">
+      @for (row of topAttention(); track row.teamId) {
+        <li class="attention__row">
+          <div class="attention__text">
+            <span class="attention__team">{{ row.teamName }}</span>
+            <span class="attention__meta">
+              {{ row.memberCount }}
+              {{ row.memberCount === 1 ? 'member' : 'members' }} · {{ row.trackLabel }}
+            </span>
+          </div>
+          <span class="attention__reasons">{{ reasonText(row) }}</span>
+        </li>
+      }
+    </ul>
+
+    @if (attentionOverflow() > 0) {
+      <p class="note">
+        {{ attentionOverflow() }} more team{{ attentionOverflow() === 1 ? '' : 's' }} need a look.
+        The full teams view lands next.
+      </p>
+    }
+  }
+
+  <p class="note">
+    This dashboard reports on {{ eventName }}; it does not change anything yet. Editing event
+    settings and managing teams land as their own screens.
+  </p>
+</div>
