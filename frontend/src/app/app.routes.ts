@@ -1,9 +1,10 @@
 import { Routes } from '@angular/router';
-import { participantGuard, signedInGuard } from './core/auth/role-guard';
+import { judgeGuard, participantGuard, signedInGuard } from './core/auth/role-guard';
 import { Home } from './pages/home/home';
 import { MySubmission } from './pages/my-submission/my-submission';
 import { MyTeam } from './pages/my-team/my-team';
 import { Organizers } from './pages/organizers/organizers';
+import { JudgePortal } from './pages/judge-portal/judge-portal';
 import { Progress } from './pages/progress/progress';
 import { Results } from './pages/results/results';
 import { SignIn } from './pages/sign-in/sign-in';
@@ -39,6 +40,12 @@ export const routes: Routes = [
     canActivate: [participantGuard],
     data: { tab: 'event' },
     title: 'Progress · Monash Hackathon 2026',
+  },
+  {
+    path: 'judge/portal',
+    component: JudgePortal,
+    canActivate: [judgeGuard],
+    title: 'Judge portal · Monash Hackathon 2026',
   },
   // Every signed-in role sees results, so this is gated on sign-in, not a role.
   {

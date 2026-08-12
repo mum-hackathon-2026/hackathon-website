@@ -1,0 +1,48 @@
+@if (stats(); as s) {
+  <ul class="tiles">
+    <li class="tiles__tile">
+      <span class="tiles__value">{{ s.total }}</span>
+      <span class="tiles__label">Assigned</span>
+    </li>
+    <li class="tiles__tile tiles__tile--green">
+      <span class="tiles__value">{{ s.completed }}</span>
+      <span class="tiles__label">Completed</span>
+    </li>
+    <li class="tiles__tile tiles__tile--amber">
+      <span class="tiles__value">{{ s.inProgress }}</span>
+      <span class="tiles__label">In progress</span>
+    </li>
+    <li class="tiles__tile">
+      <span class="tiles__value">{{ s.pending }}</span>
+      <span class="tiles__label">Not started</span>
+    </li>
+  </ul>
+
+  <div class="bar">
+    <div class="bar__head">
+      <span class="bar__label">Overall progress</span>
+      <span class="bar__value">{{ s.percentComplete }}%</span>
+    </div>
+    <div
+      class="bar__track"
+      role="progressbar"
+      [attr.aria-valuenow]="s.percentComplete"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-label="Reviews completed"
+    >
+      <span
+        class="bar__fill"
+        [class.bar__fill--done]="s.percentComplete === 100"
+        [style.width.%]="s.percentComplete"
+      ></span>
+    </div>
+    <p class="bar__note">
+      @if (s.declined > 0) {
+        {{ s.completed }} of {{ s.total - s.declined }} to score, and {{ s.declined }} declined.
+      } @else {
+        {{ s.completed }} of {{ s.total }} reviews submitted.
+      }
+    </p>
+  </div>
+}

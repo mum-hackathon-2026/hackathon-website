@@ -23,4 +23,9 @@ describe('routes', () => {
     expect(await router.navigateByUrl('/timeline')).toBe(true);
     expect(await router.navigateByUrl('/organizers')).toBe(true);
   });
+
+  // Registered, though the guard sends anyone who is not a judge to /sign-in.
+  it('registers the judge portal', () => {
+    expect(routes.some((route) => route.path === 'judge/portal')).toBe(true);
+  });
 });
