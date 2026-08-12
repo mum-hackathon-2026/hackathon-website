@@ -204,6 +204,132 @@ describe('AdminService', () => {
     });
   });
 
+  describe('assignments', () => {
+    it('offers only teams that have something to review', () => {
+      const admin = serviceWith();
+      const teamIds = new Set(admin.assignments().map((row) => row.teamId));
+
+      expect(teamIds.size).toBeGreaterThan(0);
+      for (const team of admin.teams()) {
+        expect(teamIds.has(team.teamId), `${team.teamName} listed`).toBe(
+          team.submissionStatus !== null,
+        );
+      }
+    });
+
+    it('counts a judge workload from the assignments, not a seeded number', () => {
+      const admin = serviceWith();
+      const all = admin.assignments().flatMap((row) => row.judges);
+
+      for (const judge of admin.judges()) {
+        const mine = all.filter((a) => a.judgeId === judge.userId);
+        expect(mine.length, `${judge.name} assigned`).toBe(judge.assigned);
+        expect(mine.filter((a) => a.status === 'completed').length).toBe(judge.completed);
+      }
+    });
+
+    it("counts a team's completed reviews from the same rows", () => {
+      const admin = serviceWith();
+      const rows = admin.assignments();
+
+      for (const team of admin.teams()) {
+        const panel = rows.find((row) => row.teamId === team.teamId);
+        const done = panel?.judges.filter((a) => a.status === 'completed').length ?? 0;
+        expect(done, `${team.teamName} reviews`).toBe(team.reviewsCompleted);
+      }
+    });
+
+    it('assigns a judge, and the workload follows', async () => {
+      // Judge 15 carries the lightest load and is not yet on CipherCraft.
+      const admin = serviceWith();
+      const before = admin.judges().find((j) => j.userId === 15)!.assigned;
+
+      await expect(admin.assignJudge(206, 15)).resolves.toEqual({ ok: true });
+
+      expect(admin.judges().find((j) => j.userId === 15)!.assigned).toBe(before + 1);
+      const panel = admin.assignments().find((row) => row.teamId === 206)!;
+      expect(panel.judges.some((a) => a.judgeId === 15)).toBe(true);
+      // assignments.status DEFAULT 'pending' — a new row has no work on it yet.
+      expect(panel.judges.find((a) => a.judgeId === 15)!.status).toBe('pending');
+    });
+
+    it('refuses the same judge twice, the way the UNIQUE key would', async () => {
+      // assignments_team_id_judge_id_key. The design draft silently ignores this.
+      const admin = serviceWith();
+      const result = await admin.assignJudge(201, 2);
+
+      expect(result).toEqual({
+        ok: false,
+        error: 'Dr. Sofia Lindqvist is already reviewing NeuralNest.',
+      });
+    });
+
+    it('refuses a team with nothing to review', async () => {
+      // MapMind has no submissions row at all.
+      const admin = serviceWith();
+
+      expect(await admin.assignJudge(209, 2)).toEqual({
+        ok: false,
+        error: 'That team has nothing to review.',
+      });
+    });
+
+    it('refuses somebody who is not on the panel', async () => {
+      const admin = serviceWith();
+
+      expect(await admin.assignJudge(201, 9999)).toEqual({
+        ok: false,
+        error: 'That judge is not on the panel.',
+      });
+    });
+
+    it('unassigns, dropping the team back below a full panel', async () => {
+      const admin = serviceWith();
+      const panel = admin.assignments().find((row) => row.teamId === 201)!;
+      expect(panel.underAssigned).toBe(false);
+
+      await expect(admin.unassignJudge(panel.judges[0].id)).resolves.toEqual({ ok: true });
+
+      const after = admin.assignments().find((row) => row.teamId === 201)!;
+      expect(after.judges.length).toBe(panel.judges.length - 1);
+      expect(after.underAssigned).toBe(true);
+    });
+
+    it('takes the completed review away with the assignment', async () => {
+      // scores.assignment_id is ON DELETE CASCADE, so the score goes too — the
+      // team's completed count has to drop with it.
+      const admin = serviceWith();
+      const before = admin.teams().find((t) => t.teamId === 201)!.reviewsCompleted;
+      const completed = admin
+        .assignments()
+        .find((row) => row.teamId === 201)!
+        .judges.find((a) => a.status === 'completed')!;
+
+      await admin.unassignJudge(completed.id);
+
+      expect(admin.teams().find((t) => t.teamId === 201)!.reviewsCompleted).toBe(before - 1);
+    });
+
+    it('refuses an assignment that is already gone', async () => {
+      const admin = serviceWith();
+
+      expect(await admin.unassignJudge(9999)).toEqual({
+        ok: false,
+        error: 'That assignment is already gone.',
+      });
+    });
+
+    it('does not chase a settled team for a short panel', async () => {
+      const admin = serviceWith();
+      await admin.setTeamStatus(201, 'disqualified');
+      const panel = admin.assignments().find((row) => row.teamId === 201)!;
+
+      await admin.unassignJudge(panel.judges[0].id);
+
+      expect(admin.assignments().find((row) => row.teamId === 201)!.underAssigned).toBe(false);
+    });
+  });
+
   describe('stats', () => {
     it('counts teams, people and submission states', () => {
       const admin = serviceWith();
@@ -247,8 +373,7 @@ describe('AdminService', () => {
       const stats = admin.stats();
 
       expect(stats.judges).toBe(admin.judges().length);
-      expect(stats.activeJudges).toBe(admin.judges().filter((j) => j.isActive).length);
-      expect(stats.activeJudges).toBeLessThan(stats.judges);
+      expect(stats.judges).toBeGreaterThan(0);
     });
   });
 

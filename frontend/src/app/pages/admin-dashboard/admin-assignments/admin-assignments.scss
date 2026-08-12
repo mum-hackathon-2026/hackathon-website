@@ -1,0 +1,117 @@
+@use '../admin-table';
+
+// Comments here are `//` rather than `/* */` on purpose: Sass strips these at
+// compile, and this file sits close to the 4 kB per-component style budget.
+
+// ── Panels ──────────────────────────────────────────────────────────────────
+
+.panel {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.panel__title {
+  margin: 0 0 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+// ── Assign ──────────────────────────────────────────────────────────────────
+
+.assign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.assign__field {
+  flex: 1 1 200px;
+}
+
+.assign__field .input {
+  width: 100%;
+}
+
+.assign__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-body);
+}
+
+// ── Judge chips ─────────────────────────────────────────────────────────────
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.chip__name {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.chip__status {
+  color: var(--color-muted);
+  font-size: 10.5px;
+}
+
+// Status tints the chip rather than the text, so the name stays readable.
+.chip--completed {
+  border-color: color-mix(in srgb, var(--color-green) 55%, transparent);
+  background: var(--color-green-tint);
+}
+
+.chip--in_progress {
+  border-color: color-mix(in srgb, var(--color-yellow) 60%, transparent);
+  background: var(--color-amber-tint);
+}
+
+.chip--declined {
+  border-color: color-mix(in srgb, var(--color-red-ink) 35%, transparent);
+  background: var(--color-red-tint);
+}
+
+.chip__remove {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chip__remove:not(:disabled):hover {
+  background: var(--color-surface);
+  color: var(--color-red-ink);
+}
+
+.chip__remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

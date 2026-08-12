@@ -1,0 +1,22 @@
+<section class="panel" aria-labelledby="load-heading">
+  <h2 class="panel__title" id="load-heading">Judge workload</h2>
+
+  <ul class="loads">
+    @for (judge of judges(); track judge.userId) {
+      <li class="load">
+        <span class="load__name">{{ judge.name }}</span>
+        <span
+          class="load__track"
+          role="progressbar"
+          [attr.aria-valuenow]="judge.assigned"
+          [attr.aria-valuemin]="0"
+          [attr.aria-valuemax]="peak()"
+          [attr.aria-label]="judge.name + ' workload'"
+        >
+          <span class="load__fill" [style.width.%]="(judge.assigned / peak()) * 100"></span>
+        </span>
+        <span class="load__count">{{ judge.assigned }} · {{ judge.completed }} done</span>
+      </li>
+    }
+  </ul>
+</section>

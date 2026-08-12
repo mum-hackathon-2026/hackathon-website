@@ -299,6 +299,114 @@ describe('AdminDashboard', () => {
     });
   });
 
+  describe('assignments', () => {
+    it('lists only teams that have something to review', async () => {
+      await render({ section: 'assignments' });
+
+      // MapMind has no submissions row, so there is nothing to assign against.
+      expect(teamNames()).toContain('NeuralNest');
+      expect(teamNames()).not.toContain('MapMind');
+    });
+
+    it('shows each judge with the state of their review', async () => {
+      await render({ section: 'assignments' });
+
+      const chips = Array.from(host().querySelectorAll('.chip'));
+      expect(chips.length).toBeGreaterThan(0);
+      expect(host().querySelector('.chip--completed')).not.toBeNull();
+      expect(host().querySelector('.chip--declined')).not.toBeNull();
+    });
+
+    it('filters to the teams with nobody assigned', async () => {
+      await render({ section: 'assignments' });
+      await setInput('#assignment-coverage', 'unassigned');
+
+      // Drafts have a submissions row, so they are assignable and nobody is on
+      // them yet. Fully-panelled teams drop out.
+      expect(teamNames()).toContain('Full House');
+      expect(teamNames()).not.toContain('NeuralNest');
+    });
+
+    it('does not chase a settled team for an empty panel', async () => {
+      await render({ section: 'assignments' });
+      await setInput('#assignment-coverage', 'under');
+      const short = teamNames();
+
+      // Both have a submission and no judges; only the live one is chased.
+      expect(short).toContain('MindBridge');
+      expect(short).not.toContain('WaterWatch');
+    });
+
+    it('assigns a judge to a team', async () => {
+      await render({ section: 'assignments' });
+      await setInput('#assign-team', '206');
+      await setInput('#assign-judge', '15');
+
+      const assign = Array.from(host().querySelectorAll<HTMLButtonElement>('.assign button')).find(
+        (b) => b.textContent?.trim() === 'Assign',
+      );
+      assign!.click();
+      await fixture.whenStable();
+
+      expect(host().querySelector('.banner--notice')?.textContent).toContain('is now reviewing');
+    });
+
+    it('refuses a judge who is already on that team', async () => {
+      await render({ section: 'assignments' });
+      await setInput('#assign-team', '201');
+      await setInput('#assign-judge', '2');
+
+      const assign = Array.from(host().querySelectorAll<HTMLButtonElement>('.assign button')).find(
+        (b) => b.textContent?.trim() === 'Assign',
+      );
+      assign!.click();
+      await fixture.whenStable();
+
+      expect(host().querySelector('.banner--error')?.textContent).toContain('already reviewing');
+    });
+
+    it('removes a judge who has not started without asking', async () => {
+      await render({ section: 'assignments' });
+      await setInput('#assignment-search', 'HealthHive');
+
+      // HealthHive's panel is two pending and one declined.
+      const remove = host().querySelector<HTMLButtonElement>('.chip--pending .chip__remove');
+      expect(remove, 'a pending judge should be removable outright').toBeTruthy();
+      remove!.click();
+      await fixture.whenStable();
+
+      expect(host().querySelector('.confirm')).toBeNull();
+      expect(host().querySelector('.banner--notice')?.textContent).toContain('is off HealthHive');
+    });
+
+    it('asks before removing a judge whose scores would be cascaded away', async () => {
+      await render({ section: 'assignments' });
+      await setInput('#assignment-search', 'NeuralNest');
+
+      const remove = host().querySelector<HTMLButtonElement>('.chip--completed .chip__remove');
+      remove!.click();
+      await fixture.whenStable();
+
+      expect(host().textContent).toContain('deletes their scores');
+
+      const confirm = Array.from(
+        host().querySelectorAll<HTMLButtonElement>('.confirm__actions button'),
+      ).find((b) => b.textContent?.trim() === 'Remove judge');
+      confirm!.click();
+      await fixture.whenStable();
+
+      expect(host().querySelector('.banner--notice')?.textContent).toContain('is off NeuralNest');
+    });
+
+    it('shows the panel workload', async () => {
+      await render({ section: 'assignments' });
+
+      const bars = Array.from(host().querySelectorAll('.load__track'));
+      expect(bars.length).toBe(5);
+      expect(bars.every((b) => b.getAttribute('aria-valuenow')?.match(/^\d+$/))).toBe(true);
+    });
+  });
+
   describe('submissions', () => {
     it('lists submissions with their links', async () => {
       await render({ section: 'submissions' });

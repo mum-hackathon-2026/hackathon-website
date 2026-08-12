@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { AdminService, SECTIONS, SectionId, isSectionId } from '../../core/admin/admin';
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { PhaseService } from '../../core/event/phase';
+import { AdminAssignments } from './admin-assignments/admin-assignments';
 import { AdminOverview } from './admin-overview/admin-overview';
 import { AdminParticipants } from './admin-participants/admin-participants';
 import { AdminSidebar } from './admin-sidebar/admin-sidebar';
@@ -23,13 +24,20 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
  * missing section falls back to the overview instead of 404ing — the route
  * matched, it is only the section name that is wrong.
  *
- * Four sections are built. The rest render a short placeholder rather than
+ * Five sections are built. The rest render a short placeholder rather than
  * being hidden, so the shape of the finished workspace is visible and nobody
  * wonders whether a section was forgotten.
  */
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [AdminOverview, AdminParticipants, AdminSidebar, AdminSubmissions, AdminTeams],
+  imports: [
+    AdminAssignments,
+    AdminOverview,
+    AdminParticipants,
+    AdminSidebar,
+    AdminSubmissions,
+    AdminTeams,
+  ],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

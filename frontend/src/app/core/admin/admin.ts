@@ -76,7 +76,8 @@ export interface AdminStats {
   readonly needingAttention: number;
   readonly activeTeams: number;
   readonly judges: number;
-  readonly activeJudges: number;
+  /** Assignments with nobody on them yet — a team short of its full panel. */
+  readonly unassignedTeams: number;
 }
 
 /**
@@ -118,12 +119,69 @@ export interface AdminParticipantRow {
   readonly eligibility: EligibilityState;
 }
 
-/** Mirrors the `judging_criteria`-adjacent view of a judge the sections list. */
+/**
+ * A judge: a `users` row whose role is 'judge', with its assignment counts.
+ *
+ * There is no active/inactive flag, and there was never a column for one. V1
+ * had `users.status`, V2 dropped it for hard delete, and nothing replaced it —
+ * so being a judge *is* holding the role, and an organiser revokes it by taking
+ * the role away rather than by deactivating anything. The design draft shows
+ * active / inactive / pending; the first two collapse into the role and the
+ * third cannot exist at all, because `users.google_sub` is NOT NULL and a row
+ * only appears once that person has signed in.
+ */
 export interface AdminJudge {
   readonly userId: number;
   readonly name: string;
   readonly email: string;
-  readonly isActive: boolean;
+  /** Counted from `assignments`, not stored. */
+  readonly assigned: number;
+  readonly completed: number;
+}
+
+/**
+ * Mirrors the `assignments_status_check` vocabulary, verbatim.
+ *
+ * UNRATIFIED, like the judge pages' copy of it — V1's proposal, never signed
+ * off. If the vocabulary changes, this union changes with it.
+ */
+export type AdminAssignmentStatus = 'pending' | 'in_progress' | 'completed' | 'declined';
+
+export const ADMIN_ASSIGNMENT_STATUS_LABELS: Record<AdminAssignmentStatus, string> = {
+  pending: 'Not started',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  declined: 'Declined',
+};
+
+/** One `assignments` row, joined to the judge's name for display. */
+export interface AdminAssignment {
+  readonly id: number;
+  readonly teamId: number;
+  readonly judgeId: number;
+  readonly judgeName: string;
+  readonly status: AdminAssignmentStatus;
+  readonly assignedAt: Date;
+  readonly completedAt: Date | null;
+}
+
+/** A team with everyone assigned to review it. */
+export interface AdminAssignmentRow {
+  readonly teamId: number;
+  readonly teamName: string;
+  readonly trackLabel: string;
+  readonly teamStatus: TeamStatus;
+  /** Whether there is anything to review — no submission, nothing to assign. */
+  readonly hasSubmission: boolean;
+  readonly judges: readonly AdminAssignment[];
+  /** Short of `JUDGES_PER_TEAM` and worth chasing. */
+  readonly underAssigned: boolean;
+}
+
+/** How much each judge is carrying. Counted from `assignments`, never stored. */
+export interface JudgeWorkload {
+  readonly userId: number;
+  readonly name: string;
   readonly assigned: number;
   readonly completed: number;
 }
@@ -201,7 +259,6 @@ interface SeedTeam {
   readonly status: TeamStatus;
   readonly shortlisted: boolean;
   readonly submissionStatus: SubmissionStatus | null;
-  readonly reviewsCompleted: number;
 }
 
 /**
@@ -296,7 +353,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'complete',
     shortlisted: true,
     submissionStatus: 'submitted',
-    reviewsCompleted: 3,
   },
   {
     teamId: 101,
@@ -306,7 +362,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'complete',
     shortlisted: true,
     submissionStatus: 'submitted',
-    reviewsCompleted: 3,
   },
   {
     teamId: 202,
@@ -316,7 +371,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'complete',
     shortlisted: true,
     submissionStatus: 'submitted',
-    reviewsCompleted: 3,
   },
   {
     teamId: 203,
@@ -326,7 +380,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'complete',
     shortlisted: false,
     submissionStatus: 'submitted',
-    reviewsCompleted: 3,
   },
   // Submitted, judging still in flight.
   {
@@ -337,7 +390,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'complete',
     shortlisted: false,
     submissionStatus: 'submitted',
-    reviewsCompleted: 2,
   },
   {
     teamId: 204,
@@ -347,7 +399,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'complete',
     shortlisted: false,
     submissionStatus: 'submitted',
-    reviewsCompleted: 1,
   },
   {
     teamId: 205,
@@ -357,7 +408,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'complete',
     shortlisted: false,
     submissionStatus: 'submitted',
-    reviewsCompleted: 0,
   },
   {
     teamId: 206,
@@ -367,7 +417,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'complete',
     shortlisted: false,
     submissionStatus: 'submitted',
-    reviewsCompleted: 3,
   },
   // Still forming, draft started but never submitted.
   {
@@ -378,7 +427,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'forming',
     shortlisted: false,
     submissionStatus: 'draft',
-    reviewsCompleted: 0,
   },
   {
     teamId: 207,
@@ -388,7 +436,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'forming',
     shortlisted: false,
     submissionStatus: 'draft',
-    reviewsCompleted: 0,
   },
   // Withdrew after submitting — settled, so not chased.
   {
@@ -399,7 +446,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'withdrawn',
     shortlisted: false,
     submissionStatus: 'withdrawn',
-    reviewsCompleted: 0,
   },
   // Registered, never started anything.
   {
@@ -410,7 +456,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'forming',
     shortlisted: false,
     submissionStatus: null,
-    reviewsCompleted: 0,
   },
   // Everyone left. Retained on purpose — see the note above the seed.
   {
@@ -421,7 +466,6 @@ const SEED: readonly SeedTeam[] = [
     status: 'forming',
     shortlisted: false,
     submissionStatus: null,
-    reviewsCompleted: 0,
   },
   // Removed from the event by an organiser.
   {
@@ -432,59 +476,67 @@ const SEED: readonly SeedTeam[] = [
     status: 'disqualified',
     shortlisted: false,
     submissionStatus: 'disqualified',
-    reviewsCompleted: 0,
   },
 ];
 
 /** When the demo submissions came in, so the table has something to sort on. */
 const SUBMITTED_AT = new Date('2026-10-09T21:14:00+08:00');
 
-/**
- * The judging panel. `assigned` and `completed` are aggregates over
- * `assignments`; the rest are `users` columns for someone with role 'judge'.
- */
-const JUDGE_SEED: readonly AdminJudge[] = [
-  {
-    userId: 2,
-    name: 'Dr. Sofia Lindqvist',
-    email: 's.lindqvist@monash.edu',
-    isActive: true,
-    assigned: 5,
-    completed: 4,
-  },
-  {
-    userId: 12,
-    name: 'Prof. Arun Balakrishnan',
-    email: 'a.balakrishnan@monash.edu',
-    isActive: true,
-    assigned: 5,
-    completed: 5,
-  },
-  {
-    userId: 13,
-    name: 'Dr. Wei Ling Tan',
-    email: 'w.tan@monash.edu',
-    isActive: true,
-    assigned: 5,
-    completed: 3,
-  },
-  {
-    userId: 14,
-    name: 'Nadia Rahman',
-    email: 'n.rahman@monash.edu',
-    isActive: true,
-    assigned: 5,
-    completed: 4,
-  },
-  {
-    userId: 15,
-    name: 'Dr. Tomas Novak',
-    email: 't.novak@monash.edu',
-    isActive: false,
-    assigned: 4,
-    completed: 2,
-  },
+/** The panel: `users` rows with role 'judge'. Workload is counted, not stored. */
+interface SeedJudge {
+  readonly userId: number;
+  readonly name: string;
+  readonly email: string;
+}
+
+const JUDGE_SEED: readonly SeedJudge[] = [
+  { userId: 2, name: 'Dr. Sofia Lindqvist', email: 's.lindqvist@monash.edu' },
+  { userId: 12, name: 'Prof. Arun Balakrishnan', email: 'a.balakrishnan@monash.edu' },
+  { userId: 13, name: 'Dr. Wei Ling Tan', email: 'w.tan@monash.edu' },
+  { userId: 14, name: 'Nadia Rahman', email: 'n.rahman@monash.edu' },
+  { userId: 15, name: 'Dr. Tomas Novak', email: 't.novak@monash.edu' },
 ];
+
+/**
+ * Every `assignments` row in the event, as `[teamId, judgeId, status]`.
+ *
+ * This is the single source for three numbers that used to be seeded
+ * separately and could drift apart: a judge's workload, a judge's completed
+ * count, and a team's `reviewsCompleted`. All three are now counted from here.
+ *
+ * Only submitted teams are assigned — there is nothing to review otherwise —
+ * which is also why `reviewsExpected` keys off the submission rather than the
+ * team.
+ */
+const ASSIGNMENT_SEED: readonly (readonly [number, number, AdminAssignmentStatus])[] = [
+  [201, 2, 'completed'],
+  [201, 12, 'completed'],
+  [201, 13, 'completed'],
+  [101, 14, 'completed'],
+  [101, 15, 'completed'],
+  [101, 2, 'completed'],
+  [202, 12, 'completed'],
+  [202, 13, 'completed'],
+  [202, 14, 'completed'],
+  [203, 15, 'completed'],
+  [203, 2, 'completed'],
+  [203, 12, 'completed'],
+  [102, 13, 'completed'],
+  [102, 14, 'completed'],
+  [102, 15, 'in_progress'],
+  [204, 2, 'completed'],
+  [204, 12, 'in_progress'],
+  [204, 13, 'pending'],
+  [205, 14, 'pending'],
+  [205, 15, 'declined'],
+  [205, 2, 'pending'],
+  [206, 12, 'completed'],
+  [206, 13, 'completed'],
+  [206, 14, 'completed'],
+];
+
+const ASSIGNED_AT = new Date('2026-10-10T09:00:00+08:00');
+const REVIEW_COMPLETED_AT = new Date('2026-10-11T16:20:00+08:00');
 
 /**
  * Recent `audit_log` rows. The entries survive their actor being deleted — V2
@@ -562,8 +614,40 @@ export class AdminService {
   private readonly inFlight = signal(0);
   readonly pending = computed(() => this.inFlight() > 0);
 
-  readonly judges = signal<readonly AdminJudge[]>(JUDGE_SEED).asReadonly();
+  /** Mutable so the Assignments section's actions land somewhere. */
+  private readonly assignmentRows = signal<readonly AdminAssignment[]>(seedAssignments());
+
   readonly audit = signal<readonly AuditEntry[]>(AUDIT_SEED).asReadonly();
+
+  /**
+   * The judging panel, with each judge's workload counted off `assignments`
+   * rather than seeded beside it — assigning someone in the Assignments section
+   * moves these numbers on its own.
+   */
+  readonly judges = computed<readonly AdminJudge[]>(() => {
+    const all = this.assignmentRows();
+
+    return JUDGE_SEED.map((judge) => {
+      const mine = all.filter((row) => row.judgeId === judge.userId);
+      return {
+        userId: judge.userId,
+        name: judge.name,
+        email: judge.email,
+        assigned: mine.length,
+        completed: mine.filter((row) => row.status === 'completed').length,
+      };
+    });
+  });
+
+  /** How many reviews each team has back. Counted, so it cannot drift. */
+  private readonly reviewsByTeam = computed<ReadonlyMap<number, number>>(() => {
+    const counts = new Map<number, number>();
+    for (const row of this.assignmentRows()) {
+      if (row.status !== 'completed') continue;
+      counts.set(row.teamId, (counts.get(row.teamId) ?? 0) + 1);
+    }
+    return counts;
+  });
 
   /**
    * Every team in the event, newest concerns first.
@@ -576,6 +660,8 @@ export class AdminService {
     const { minTeamSize } = this.config.settings;
     const judgingOpen = this.phaseService.judgingOpen();
 
+    const reviews = this.reviewsByTeam();
+
     return this.rows().map((team) => {
       const reviewsExpected = team.submissionStatus === 'submitted' ? JUDGES_PER_TEAM : 0;
       // Demo links, derived rather than seeded so the seed stays readable.
@@ -583,6 +669,7 @@ export class AdminService {
       const hasSubmission = team.submissionStatus !== null;
 
       const memberCount = MEMBER_COUNTS.get(team.teamId) ?? 0;
+      const reviewsCompleted = reviews.get(team.teamId) ?? 0;
 
       return {
         teamId: team.teamId,
@@ -596,9 +683,14 @@ export class AdminService {
         githubUrl: hasSubmission ? `https://github.com/mum-hack-2026/${slug}` : '',
         deployedUrl: team.submissionStatus === 'submitted' ? `https://${slug}.vercel.app` : '',
         submittedAt: team.submissionStatus === 'submitted' ? SUBMITTED_AT : null,
-        reviewsCompleted: team.reviewsCompleted,
+        reviewsCompleted,
         reviewsExpected,
-        attention: attentionFor(team, memberCount, { minTeamSize, judgingOpen, reviewsExpected }),
+        attention: attentionFor(team, memberCount, {
+          minTeamSize,
+          judgingOpen,
+          reviewsExpected,
+          reviewsCompleted,
+        }),
       };
     });
   });
@@ -636,6 +728,51 @@ export class AdminService {
     );
   });
 
+  /**
+   * Every team that can be reviewed, with its panel.
+   *
+   * Only teams with a submission appear: `assignments` has no constraint
+   * stopping you assigning a judge to a team that submitted nothing, but there
+   * would be nothing for them to open.
+   */
+  readonly assignments = computed<readonly AdminAssignmentRow[]>(() => {
+    const byTeam = new Map<number, AdminAssignment[]>();
+    for (const row of this.assignmentRows()) {
+      const list = byTeam.get(row.teamId);
+      if (list) list.push(row);
+      else byTeam.set(row.teamId, [row]);
+    }
+
+    return this.teams()
+      .filter((team) => team.submissionStatus !== null)
+      .map((team) => {
+        const judges = byTeam.get(team.teamId) ?? [];
+        return {
+          teamId: team.teamId,
+          teamName: team.teamName,
+          trackLabel: team.trackLabel,
+          teamStatus: team.status,
+          hasSubmission: true,
+          judges,
+          // Settled teams are out of the running, so a short panel is expected.
+          underAssigned:
+            judges.length < JUDGES_PER_TEAM &&
+            team.status !== 'withdrawn' &&
+            team.status !== 'disqualified',
+        };
+      });
+  });
+
+  /** The panel's load, for the balance view. */
+  readonly workloads = computed<readonly JudgeWorkload[]>(() =>
+    this.judges().map((judge) => ({
+      userId: judge.userId,
+      name: judge.name,
+      assigned: judge.assigned,
+      completed: judge.completed,
+    })),
+  );
+
   /** The teams an organiser should follow up, most reasons first. */
   readonly needsAttention = computed<readonly AdminTeamRow[]>(() =>
     // Copied before sorting: the signal's value must not be reordered in place.
@@ -669,7 +806,7 @@ export class AdminService {
       activeTeams: rows.filter((row) => row.status === 'forming' || row.status === 'complete')
         .length,
       judges: judges.length,
-      activeJudges: judges.filter((judge) => judge.isActive).length,
+      unassignedTeams: this.assignments().filter((row) => row.judges.length === 0).length,
     };
   });
 
@@ -742,6 +879,65 @@ export class AdminService {
     });
   }
 
+  /**
+   * Puts a judge on a team's panel — one new `assignments` row.
+   *
+   * `assignments_team_id_judge_id_key` is UNIQUE, so a repeat is refused here
+   * the way the database would refuse it rather than being silently ignored
+   * (which is what the design draft does).
+   */
+  assignJudge(teamId: number, judgeId: number): Promise<AdminActionResult> {
+    return this.run(() => {
+      const team = this.assignments().find((row) => row.teamId === teamId);
+      if (!team) return { ok: false, error: 'That team has nothing to review.' };
+
+      const judge = this.judges().find((row) => row.userId === judgeId);
+      // assignments_judge_id_fkey points at `users`, which does not itself
+      // require role 'judge' — so the rule is ours to keep.
+      if (!judge) return { ok: false, error: 'That judge is not on the panel.' };
+
+      if (team.judges.some((row) => row.judgeId === judgeId)) {
+        return { ok: false, error: `${judge.name} is already reviewing ${team.teamName}.` };
+      }
+
+      this.assignmentRows.update((all) => [
+        ...all,
+        {
+          id: Math.max(0, ...all.map((row) => row.id)) + 1,
+          teamId,
+          judgeId,
+          judgeName: judge.name,
+          // assignments.status DEFAULT 'pending'.
+          status: 'pending',
+          assignedAt: new Date(),
+          completedAt: null,
+        },
+      ]);
+      return { ok: true };
+    });
+  }
+
+  /**
+   * Takes a judge off a panel, deleting the `assignments` row.
+   *
+   * **This destroys their scores.** `scores_assignment_id_fkey` is ON DELETE
+   * CASCADE, so removing the assignment removes every score hanging off it, and
+   * there is no undo — re-assigning creates a fresh row with nothing in it.
+   *
+   * The caller is expected to confirm first when the review has progressed. It
+   * has no score rows to count (those live on the judge's side), so the status
+   * is the proxy: anything past 'pending' means work would be lost.
+   */
+  unassignJudge(assignmentId: number): Promise<AdminActionResult> {
+    return this.run(() => {
+      const row = this.assignmentRows().find((a) => a.id === assignmentId);
+      if (!row) return { ok: false, error: 'That assignment is already gone.' };
+
+      this.assignmentRows.update((all) => all.filter((a) => a.id !== assignmentId));
+      return { ok: true };
+    });
+  }
+
   private patch(teamId: number, change: (team: SeedTeam) => Partial<SeedTeam>): void {
     this.rows.update((rows) =>
       rows.map((row) => (row.teamId === teamId ? { ...row, ...change(row) } : row)),
@@ -762,10 +958,28 @@ export class AdminService {
   }
 }
 
+/**
+ * Ids are assigned in seed order, standing in for the identity column. Judge
+ * names are copied in at seed time the way the API would join them.
+ */
+function seedAssignments(): AdminAssignment[] {
+  return ASSIGNMENT_SEED.map(([teamId, judgeId, status], i) => ({
+    id: i + 1,
+    teamId,
+    judgeId,
+    judgeName: JUDGE_SEED.find((judge) => judge.userId === judgeId)?.name ?? 'Unknown judge',
+    status,
+    assignedAt: ASSIGNED_AT,
+    // assignments_completed_at_check: a completed row must record when.
+    completedAt: status === 'completed' ? REVIEW_COMPLETED_AT : null,
+  }));
+}
+
 interface AttentionContext {
   readonly minTeamSize: number;
   readonly judgingOpen: boolean;
   readonly reviewsExpected: number;
+  readonly reviewsCompleted: number;
 }
 
 /**
@@ -791,7 +1005,7 @@ function attentionFor(
   else if (team.submissionStatus === 'draft') reasons.push('draft_only');
 
   // Nothing is outstanding until judging is actually open.
-  if (ctx.judgingOpen && team.reviewsCompleted < ctx.reviewsExpected) reasons.push('unjudged');
+  if (ctx.judgingOpen && ctx.reviewsCompleted < ctx.reviewsExpected) reasons.push('unjudged');
 
   return reasons;
 }
