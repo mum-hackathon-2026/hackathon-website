@@ -15,8 +15,16 @@ import { EVENT_CONFIG } from '../event/event-config';
  * mistakes it for storage.
  */
 
-/** V1's teams_status_check vocabulary, verbatim. */
-export type TeamStatus = 'forming' | 'complete' | 'submitted' | 'disqualified' | 'withdrawn';
+/**
+ * Mirrors the `teams_status_check` CHECK constraint on `teams.status`, verbatim.
+ * The two must stay in sync: nothing at build or test time compares them, so a
+ * migration that changes the vocabulary has to change this union in the same
+ * change, or the database will reject a value the type still permits.
+ *
+ * V2 removed `'submitted'` — submission state lives on `submissions.status`
+ * alone. To know whether a team submitted, read the submission, not the team.
+ */
+export type TeamStatus = 'forming' | 'complete' | 'disqualified' | 'withdrawn';
 
 export interface Team {
   readonly id: number;
