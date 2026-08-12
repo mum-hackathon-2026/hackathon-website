@@ -1,0 +1,148 @@
+<div class="page page--narrow">
+  <app-page-header [eyebrow]="eventName" title="Results" [subtitle]="subtitle()" />
+
+  @if (!published()) {
+    <app-state-locked
+      heading="Results are not published yet"
+      reason="Scores are still being compiled and verified. Everyone is notified at the same time."
+      [deadline]="
+        publishedAt ? 'Publishing ' + (publishedAt | date: 'd MMM y, h:mm a' : myt) + ' MYT' : ''
+      "
+    >
+      <p class="locked-preview">Rankings, awards and judge feedback appear here.</p>
+    </app-state-locked>
+  } @else {
+    <nav class="tabs" aria-label="Results views">
+      @for (item of tabs(); track item.id) {
+        <button
+          type="button"
+          class="tabs__tab"
+          [class.tabs__tab--active]="tab() === item.id"
+          [attr.aria-current]="tab() === item.id ? 'page' : null"
+          (click)="select(item.id)"
+        >
+          {{ item.label }}
+        </button>
+      }
+    </nav>
+
+    @switch (tab()) {
+      <!-- ── My result ──────────────────────────────────────────────────── -->
+
+      @case ('result') {
+        @if (myResult(); as mine) {
+          <div class="headline">
+            <div class="headline__rank">
+              <span class="headline__rank-value"> {{ mine.tied ? '=' : '' }}#{{ mine.rank }} </span>
+              <span class="headline__rank-label">of {{ totalTeams }} teams</span>
+            </div>
+            <div class="headline__meta">
+              <h2 class="headline__project">{{ mine.projectTitle }}</h2>
+              <p class="headline__team">{{ mine.teamName }} · {{ mine.trackLabel }}</p>
+              @if (mine.outcome; as outcome) {
+                <span class="headline__outcome">{{ outcomeLabels[outcome] }}</span>
+              }
+            </div>
+            <div class="headline__score">
+              <span class="headline__score-value">{{ mine.finalScore | number: '1.1-1' }}</span>
+              <span class="headline__score-label">final score</span>
+            </div>
+          </div>
+
+          <h3 class="section-title">Score breakdown</h3>
+          <ul class="criteria">
+            @for (criterion of criteria(); track criterion.title) {
+              <li class="criteria__row">
+                <div class="criteria__head">
+                  <span class="criteria__name">{{ criterion.title }}</span>
+                  <span class="criteria__weight">{{ criterion.weight }}% weight</span>
+                  <span class="criteria__score">
+                    {{ criterion.score | number: '1.1-1' }} / {{ criterion.maxScore }}
+                  </span>
+                </div>
+                <div class="criteria__bar">
+                  <span
+                    class="criteria__fill"
+                    [style.width.%]="percent(criterion.score, criterion.maxScore)"
+                  ></span>
+                </div>
+              </li>
+            }
+          </ul>
+
+          <p class="note">
+            Averaged across {{ mine.judgeCount }} judges. Each criterion's weight and maximum are
+            frozen at scoring time, so a published result never shifts underneath you.
+          </p>
+        }
+      }
+
+      <!-- ── Rankings ───────────────────────────────────────────────────── -->
+
+      @case ('rankings') {
+        <app-rankings-table [rows]="rankings()" />
+
+        <p class="note">Teams on the same score share a rank, shown with an equals sign.</p>
+      }
+
+      <!-- ── Awards ─────────────────────────────────────────────────────── -->
+
+      @case ('awards') {
+        <h3 class="section-title">Overall</h3>
+        <ul class="awards">
+          @for (award of overallAwards(); track award.id) {
+            <li class="awards__card" [class.awards__card--mine]="award.isMine">
+              <div class="awards__heading">
+                <h4 class="awards__title">{{ award.title }}</h4>
+                @if (award.isMine) {
+                  <span class="awards__you">Your team</span>
+                }
+              </div>
+              <p class="awards__team">{{ award.teamName }} — {{ award.projectTitle }}</p>
+              <p class="awards__description">{{ award.description }}</p>
+            </li>
+          }
+        </ul>
+
+        <h3 class="section-title">By track</h3>
+        <ul class="awards">
+          @for (award of trackAwards(); track award.id) {
+            <li class="awards__card" [class.awards__card--mine]="award.isMine">
+              <div class="awards__heading">
+                <h4 class="awards__title">{{ award.title }}</h4>
+                @if (award.isMine) {
+                  <span class="awards__you">Your team</span>
+                }
+              </div>
+              <p class="awards__team">{{ award.teamName }} — {{ award.projectTitle }}</p>
+              <p class="awards__description">{{ award.description }}</p>
+            </li>
+          }
+        </ul>
+
+        <p class="note">
+          Overall and track awards follow directly from the final scores. Special awards are a
+          committee decision and are announced at the ceremony.
+        </p>
+      }
+
+      <!-- ── Judge feedback ─────────────────────────────────────────────── -->
+
+      @case ('feedback') {
+        <app-judge-reviews [reviews]="reviews()" />
+
+        <p class="note">
+          Judges are shown anonymously. Feedback is written for your team only and is not published
+          alongside the rankings.
+        </p>
+      }
+    }
+
+    @if (!myResult()) {
+      <p class="note note--standalone">
+        Your team has no published result. If that looks wrong, check
+        <a routerLink="/participant/team">your team</a> is the one you expect.
+      </p>
+    }
+  }
+</div>

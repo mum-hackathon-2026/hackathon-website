@@ -1,0 +1,16 @@
+<ul class="reviews">
+  @for (review of reviews(); track review.assignmentId) {
+    <li class="reviews__card">
+      <h3 class="reviews__label">{{ review.label }}</h3>
+      <ul class="reviews__scores">
+        @for (score of review.scores; track score.title) {
+          <li class="reviews__score">
+            <span class="reviews__score-name">{{ score.title }}</span>
+            <span class="reviews__score-value">{{ score.score | number: '1.1-1' }}</span>
+          </li>
+        }
+      </ul>
+      <p class="reviews__text">{{ review.overallFeedback }}</p>
+    </li>
+  }
+</ul>

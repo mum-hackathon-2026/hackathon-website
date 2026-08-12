@@ -1,0 +1,83 @@
+/* ── Rankings table ────────────────────────────────────────────────────── */
+
+/* The table must scroll inside itself rather than widening the page. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.rankings {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.rankings th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--color-subtle);
+  white-space: nowrap;
+}
+
+.rankings td {
+  padding: 10px;
+  border-bottom: 1px solid var(--color-hairline);
+  vertical-align: top;
+}
+
+.rankings__rank-col,
+.rankings__score-col {
+  text-align: right;
+}
+
+.rankings__rank,
+.rankings__score {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rankings__rank {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.rankings__score {
+  font-weight: 600;
+  color: var(--color-body);
+}
+
+.rankings__team {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.rankings__project {
+  display: block;
+  font-size: 11.5px;
+  color: var(--color-subtle);
+}
+
+.rankings__track {
+  font-size: 12px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.rankings__you {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: var(--color-blue-tint);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-blue-ink);
+}
+
+.rankings__row--mine {
+  background: var(--color-blue-wash);
+}

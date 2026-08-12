@@ -34,7 +34,7 @@ const NAV_LINKS: readonly NavLink[] = [
   { path: '/participant/progress/team', label: 'Progress', roles: ['participant'] },
   // { path: '/judge/portal', label: 'Judge Portal', roles: ['judge'] },
   // { path: '/admin/dashboard', label: 'Dashboard', roles: ['admin'] },
-  // { path: '/results', label: 'Results', roles: ['participant', 'judge', 'admin'] },
+  { path: '/results', label: 'Results', roles: ['participant', 'judge', 'admin'] },
 ];
 
 @Component({

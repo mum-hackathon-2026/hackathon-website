@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
-import { participantGuard } from './core/auth/role-guard';
+import { participantGuard, signedInGuard } from './core/auth/role-guard';
 import { Home } from './pages/home/home';
 import { MySubmission } from './pages/my-submission/my-submission';
 import { MyTeam } from './pages/my-team/my-team';
 import { Organizers } from './pages/organizers/organizers';
 import { Progress } from './pages/progress/progress';
+import { Results } from './pages/results/results';
 import { SignIn } from './pages/sign-in/sign-in';
 import { Timeline } from './pages/timeline/timeline';
 
@@ -38,6 +39,13 @@ export const routes: Routes = [
     canActivate: [participantGuard],
     data: { tab: 'event' },
     title: 'Progress · Monash Hackathon 2026',
+  },
+  // Every signed-in role sees results, so this is gated on sign-in, not a role.
+  {
+    path: 'results',
+    component: Results,
+    canActivate: [signedInGuard],
+    title: 'Results · Monash Hackathon 2026',
   },
   { path: 'sign-in', component: SignIn, title: 'Sign in · Monash Hackathon 2026' },
 ];
