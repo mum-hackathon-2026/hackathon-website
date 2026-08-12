@@ -40,6 +40,11 @@
                 Decline
               </button>
             }
+            @if (actionLabel(row.status); as label) {
+              <a class="button assignments__open" [routerLink]="['/judge/reviews', row.id]">
+                {{ label }}
+              </a>
+            }
           </td>
         </tr>
       }

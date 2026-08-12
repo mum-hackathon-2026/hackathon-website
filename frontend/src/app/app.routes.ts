@@ -5,6 +5,7 @@ import { MySubmission } from './pages/my-submission/my-submission';
 import { MyTeam } from './pages/my-team/my-team';
 import { Organizers } from './pages/organizers/organizers';
 import { JudgePortal } from './pages/judge-portal/judge-portal';
+import { JudgeReview } from './pages/judge-review/judge-review';
 import { Progress } from './pages/progress/progress';
 import { Results } from './pages/results/results';
 import { SignIn } from './pages/sign-in/sign-in';
@@ -46,6 +47,12 @@ export const routes: Routes = [
     component: JudgePortal,
     canActivate: [judgeGuard],
     title: 'Judge portal · Monash Hackathon 2026',
+  },
+  {
+    path: 'judge/reviews/:assignmentId',
+    component: JudgeReview,
+    canActivate: [judgeGuard],
+    title: 'Review · Monash Hackathon 2026',
   },
   // Every signed-in role sees results, so this is gated on sign-in, not a role.
   {

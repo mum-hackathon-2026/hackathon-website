@@ -1,0 +1,166 @@
+<div class="page page--narrow">
+  <button type="button" class="back" (click)="leave()">← Back to judge portal</button>
+
+  @if (assignment(); as review) {
+    <header class="review__header">
+      <p class="review__eyebrow">Reviewing</p>
+      <h1 class="review__team">{{ review.teamName }}</h1>
+      <div class="review__meta">
+        <span class="review__project">{{ review.projectTitle }}</span>
+        <span class="review__track">{{ review.trackLabel }}</span>
+        <app-status-pill [status]="review.status" />
+      </div>
+    </header>
+
+    @if (error(); as message) {
+      <p class="review__error" role="alert">{{ message }}</p>
+    }
+
+    <!-- ── The submission ─────────────────────────────────────────────── -->
+
+    <section class="summary" aria-labelledby="summary-heading">
+      <h2 class="section-title" id="summary-heading">The submission</h2>
+      <p class="summary__text">{{ review.summary }}</p>
+      <dl class="summary__facts">
+        <div class="summary__fact">
+          <dt>Team size</dt>
+          <dd>{{ review.memberCount }} members</dd>
+        </div>
+        <div class="summary__fact">
+          <dt>Repository</dt>
+          <dd>
+            @if (review.githubUrl) {
+              <a [href]="review.githubUrl" target="_blank" rel="noopener noreferrer"> View code </a>
+            } @else {
+              <span class="summary__missing">Not provided</span>
+            }
+          </dd>
+        </div>
+        <div class="summary__fact">
+          <dt>Live demo</dt>
+          <dd>
+            @if (review.deployedUrl) {
+              <a [href]="review.deployedUrl" target="_blank" rel="noopener noreferrer">
+                Open demo
+              </a>
+            } @else {
+              <span class="summary__missing">Not provided</span>
+            }
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    @if (declined()) {
+      <p class="review__banner review__banner--declined">
+        You declined this assignment, so it is not yours to score. An organiser can reassign it.
+      </p>
+    } @else if (locked()) {
+      <p class="review__banner review__banner--locked">
+        @if (review.completedAt; as when) {
+          Submitted. Reviews are locked once sent, so this is a record only.
+        } @else {
+          Submitted and locked.
+        }
+        @if (!judgingOpen()) {
+          Judging has since closed.
+        }
+      </p>
+    } @else if (!judgingOpen()) {
+      <app-state-locked heading="Judging is closed" [reason]="closedReason()">
+        <p class="locked-preview">
+          The rubric and this team's submission stay visible, but nothing can be scored.
+        </p>
+      </app-state-locked>
+    }
+
+    <!-- ── Scoring ────────────────────────────────────────────────────── -->
+
+    @if (editable() || locked()) {
+      <h2 class="section-title">
+        Scoring
+        <span class="section-title__aside">
+          {{ review.criteriaCount }} criteria, weighted to 100
+        </span>
+      </h2>
+
+      <ul class="criteria">
+        @for (criterion of criteria(); track criterion.criteriaId) {
+          <li>
+            <app-criterion-card
+              [criterion]="criterion"
+              [readOnly]="locked()"
+              [disabled]="busy()"
+              (scoreChange)="updateScore(criterion.criteriaId, $event)"
+              (commentChange)="updateComment(criterion.criteriaId, $event)"
+            />
+          </li>
+        }
+      </ul>
+
+      <!-- ── Overall feedback ─────────────────────────────────────────── -->
+
+      <section class="feedback" aria-labelledby="feedback-heading">
+        <h2 class="section-title" id="feedback-heading">Overall feedback</h2>
+
+        @if (locked()) {
+          @if (review.overallFeedback) {
+            <p class="feedback__read">{{ review.overallFeedback }}</p>
+          } @else {
+            <p class="feedback__empty">No overall feedback was recorded.</p>
+          }
+        } @else {
+          <label class="field-label" for="overall-feedback">
+            Notes for the organising team <span class="feedback__optional">optional</span>
+          </label>
+          <textarea
+            id="overall-feedback"
+            class="input feedback__input"
+            name="overallFeedback"
+            rows="4"
+            placeholder="Not shared with the team"
+            [disabled]="busy()"
+            [ngModel]="form().overallFeedback"
+            (ngModelChange)="updateFeedback($event)"
+          ></textarea>
+        }
+      </section>
+    }
+
+    @if (editable()) {
+      <app-review-actions
+        [scoredCount]="scoredCount()"
+        [criteriaCount]="review.criteriaCount"
+        [weightedTotal]="liveTotal()"
+        [allScored]="allScored()"
+        [dirty]="dirty()"
+        [busy]="busy()"
+        [savedAt]="savedAt()"
+        (save)="save()"
+        (submit)="ask('submit')"
+      />
+    }
+  } @else {
+    <!-- ── Not found ──────────────────────────────────────────────────── -->
+
+    <div class="empty">
+      <p class="empty__heading">That assignment is not in your list</p>
+      <p class="empty__body">
+        It may have been reassigned, or the link may be wrong. Your portal has everything currently
+        assigned to you.
+      </p>
+    </div>
+  }
+
+  @if (confirmText(); as text) {
+    <app-confirm-dialog
+      [open]="true"
+      [heading]="text.heading"
+      [body]="text.body"
+      [confirmLabel]="text.confirmLabel"
+      [danger]="pendingAction()?.kind === 'leave'"
+      (confirmed)="pendingAction()?.kind === 'leave' ? confirmLeave() : confirmSubmit()"
+      (cancelled)="cancel()"
+    />
+  }
+</div>
