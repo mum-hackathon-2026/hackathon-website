@@ -1,0 +1,101 @@
+.rail {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 220px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.rail__head {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rail__event {
+  margin: 0 0 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.rail__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.rail__nav {
+  flex: 1;
+  padding: 10px 8px;
+}
+
+.rail__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 1px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--color-body);
+  text-decoration: none;
+}
+
+.rail__link:hover {
+  background: var(--color-hairline);
+}
+
+.rail__link--active {
+  background: var(--color-blue-tint);
+  color: var(--color-blue-ink);
+  font-weight: 600;
+}
+
+.rail__badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-amber-tint);
+  color: var(--color-amber-ink);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.scrim {
+  display: none;
+}
+
+/* Below tablet the rail slides in over the content. */
+@media (max-width: 860px) {
+  .rail {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.18s ease;
+  }
+
+  .rail--open {
+    transform: translateX(0);
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: rgb(0 0 0 / 35%);
+  }
+}

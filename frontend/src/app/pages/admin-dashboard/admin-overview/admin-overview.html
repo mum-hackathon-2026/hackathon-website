@@ -1,0 +1,97 @@
+<!-- ── Headline counts ────────────────────────────────────────────────────── -->
+
+<ul class="kpis">
+  @for (kpi of kpis(); track kpi.label) {
+    <li>
+      <a class="kpi" [class]="'kpi--' + kpi.tone" [routerLink]="['/admin/dashboard', kpi.section]">
+        <span class="kpi__stripe"></span>
+        <span class="kpi__body">
+          <span class="kpi__label">{{ kpi.label }}</span>
+          <span class="kpi__value">{{ kpi.value }}</span>
+          <span class="kpi__sub">{{ kpi.sub }}</span>
+        </span>
+      </a>
+    </li>
+  }
+</ul>
+
+<!-- ── Judging ────────────────────────────────────────────────────────────── -->
+
+@if (stats(); as s) {
+  <section class="bar" aria-label="Judging progress">
+    <div class="bar__head">
+      <span class="bar__label">Judging progress</span>
+      @if (judgingOpen()) {
+        <span class="bar__value"
+          >{{ s.reviewsCompleted }} of {{ s.reviewsExpected }} reviews in</span
+        >
+      } @else {
+        <span class="bar__value bar__value--muted">Closed</span>
+      }
+    </div>
+
+    @if (judgingOpen()) {
+      <div
+        class="bar__track"
+        role="progressbar"
+        [attr.aria-valuenow]="s.percentJudged"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-label="Reviews completed across the event"
+      >
+        <span class="bar__fill" [style.width.%]="s.percentJudged"></span>
+      </div>
+      <p class="bar__note">
+        {{ s.percentJudged }}% complete across {{ s.submitted }} submitted teams.
+      </p>
+    } @else {
+      <p class="bar__note">
+        {{ s.reviewsExpected }} reviews are lined up across {{ s.submitted }} submitted teams. They
+        start when an organiser opens judging.
+      </p>
+    }
+  </section>
+}
+
+<!-- ── Urgent ─────────────────────────────────────────────────────────────── -->
+
+@if (urgent().length > 0) {
+  <h2 class="section-title">Urgent actions</h2>
+  <ul class="urgent">
+    @for (item of urgent(); track item.text) {
+      <li>
+        <a
+          class="urgent__row"
+          [class]="'urgent__row--' + item.tone"
+          [routerLink]="['/admin/dashboard', item.section]"
+        >
+          <span class="urgent__dot"></span>
+          <span class="urgent__text">{{ item.text }}</span>
+          <span class="urgent__arrow" aria-hidden="true">→</span>
+        </a>
+      </li>
+    }
+  </ul>
+}
+
+<!-- ── Recent activity ────────────────────────────────────────────────────── -->
+
+<h2 class="section-title">Recent activity</h2>
+<ul class="feed">
+  @for (entry of recent(); track entry.id) {
+    <li class="feed__row">
+      <span class="feed__dot" [class]="'feed__dot--' + entry.kind"></span>
+      <span class="feed__text">
+        <span class="feed__action">{{ entry.action }}</span> — {{ entry.target }}
+      </span>
+      <span class="feed__meta">
+        {{ entry.actor }} · {{ entry.at | date: 'd MMM, HH:mm' : myt }}
+      </span>
+    </li>
+  }
+</ul>
+
+<p class="note">
+  Activity is read from the audit log, which keeps its entries even after the person who caused them
+  deletes their account — those read as "Deleted user".
+</p>

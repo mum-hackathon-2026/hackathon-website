@@ -1,0 +1,114 @@
+<p class="lede">{{ summary() }}</p>
+
+<div class="filters">
+  <label class="visually-hidden" for="sub-search">Search submissions</label>
+  <input
+    id="sub-search"
+    class="input filters__search"
+    type="search"
+    name="subSearch"
+    placeholder="Search team or project"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="sub-track">Filter by track</label>
+  <select
+    id="sub-track"
+    class="input"
+    name="subTrack"
+    [ngModel]="trackFilter()"
+    (ngModelChange)="trackFilter.set($event)"
+  >
+    <option value="all">All tracks</option>
+    @for (track of tracks; track track) {
+      <option [value]="track">{{ track }}</option>
+    }
+  </select>
+
+  <label class="visually-hidden" for="sub-status">Filter by status</label>
+  <select
+    id="sub-status"
+    class="input"
+    name="subStatus"
+    [ngModel]="statusFilter()"
+    (ngModelChange)="statusFilter.set($event)"
+  >
+    @for (option of statusFilters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+@if (rows().length === 0) {
+  <p class="empty">No submissions match that search.</p>
+} @else {
+  <div class="scroller">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th scope="col">Team</th>
+          <th scope="col">Project</th>
+          <th scope="col">Track</th>
+          <th scope="col">Status</th>
+          <th scope="col">Submitted</th>
+          <th scope="col">Links</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.teamId) {
+          <tr>
+            <td>
+              <span class="grid__team">{{ row.teamName }}</span>
+            </td>
+            <td>
+              @if (row.projectTitle) {
+                {{ row.projectTitle }}
+              } @else {
+                <span class="grid__none">Not started</span>
+              }
+            </td>
+            <td>
+              <span class="pill">{{ row.trackLabel }}</span>
+            </td>
+            <td>
+              @if (row.submissionStatus) {
+                <span class="dot" [class]="'dot--' + row.submissionStatus"></span>
+                {{ statusLabels[row.submissionStatus] }}
+              } @else {
+                <span class="grid__none">None</span>
+              }
+            </td>
+            <td>
+              @if (row.submittedAt) {
+                {{ row.submittedAt | date: 'd MMM, HH:mm' : myt }}
+              } @else {
+                <span class="grid__none">—</span>
+              }
+            </td>
+            <td class="grid__links">
+              @if (row.githubUrl) {
+                <a [href]="row.githubUrl" target="_blank" rel="noopener noreferrer">Code</a>
+              }
+              @if (row.deployedUrl) {
+                <a [href]="row.deployedUrl" target="_blank" rel="noopener noreferrer">Demo</a>
+              }
+              @if (!row.githubUrl && !row.deployedUrl) {
+                <span class="grid__none">—</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<p class="note">
+  Accepting or rejecting a submission is in the design draft but not built yet — there is no column
+  behind it, so it needs a schema decision before it can be more than a button that forgets.
+</p>

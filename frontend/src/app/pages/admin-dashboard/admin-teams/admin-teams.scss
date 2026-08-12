@@ -1,0 +1,31 @@
+@use '../admin-table';
+
+/* ── Inline rename ───────────────────────────────────────────────────────── */
+
+.rename {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.rename__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-body);
+}
+
+.rename__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rename__row .input {
+  flex: 1;
+  min-width: 180px;
+}

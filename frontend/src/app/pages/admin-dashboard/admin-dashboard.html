@@ -1,73 +1,76 @@
-<div class="page page--narrow">
-  <app-page-header eyebrow="Organiser" title="Dashboard" [subtitle]="subtitle()" />
+<div class="workspace">
+  <app-admin-sidebar
+    [eventName]="eventName"
+    [badges]="badges()"
+    [open]="drawerOpen()"
+    (dismissed)="closeDrawer()"
+  />
 
-  <app-event-stats [stats]="stats()" [judgingOpen]="judgingOpen()" />
+  <div class="workspace__main">
+    <!-- ── Section header ─────────────────────────────────────────────────── -->
 
-  <!-- ── Where the event is ───────────────────────────────────────────────── -->
+    <header class="head">
+      <button
+        type="button"
+        class="head__menu"
+        aria-label="Open dashboard sections"
+        (click)="toggleDrawer()"
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
 
-  <section class="pulse" aria-label="Event status">
-    <div class="pulse__item">
-      <span class="pulse__label">Phase</span>
-      <span class="pulse__value">{{ phaseLabel() }}</span>
-    </div>
+      <div class="head__text">
+        <p class="head__eyebrow">Organiser</p>
+        <h1 class="head__title">{{ sectionLabel() }}</h1>
+      </div>
 
-    <div class="pulse__item">
-      <span class="pulse__label">Judging</span>
-      <span class="pulse__value">
-        <span class="dot" [class.dot--on]="judgingOpen()"></span>
-        {{ judgingOpen() ? 'Open' : 'Closed' }}
-      </span>
-    </div>
-
-    <div class="pulse__item">
-      <span class="pulse__label">Next</span>
-      @if (milestone(); as next) {
-        <span class="pulse__value">
-          {{ next.label }}
-          @if (countdown(); as left) {
-            <span class="pulse__countdown">in {{ left }}</span>
-          }
-        </span>
-      } @else {
-        <span class="pulse__value pulse__value--muted">Nothing scheduled</span>
-      }
-    </div>
-  </section>
-
-  <!-- ── Follow-ups ───────────────────────────────────────────────────────── -->
-
-  <h2 class="section-title">Teams needing attention</h2>
-
-  @if (topAttention().length === 0) {
-    <p class="note note--standalone">
-      Every team has members and a submission, and nothing is outstanding. Nothing to chase.
-    </p>
-  } @else {
-    <ul class="attention">
-      @for (row of topAttention(); track row.teamId) {
-        <li class="attention__row">
-          <div class="attention__text">
-            <span class="attention__team">{{ row.teamName }}</span>
-            <span class="attention__meta">
-              {{ row.memberCount }}
-              {{ row.memberCount === 1 ? 'member' : 'members' }} · {{ row.trackLabel }}
-            </span>
+      <dl class="head__pulse">
+        <div class="head__item">
+          <dt>Phase</dt>
+          <dd>{{ phaseLabel() }}</dd>
+        </div>
+        <div class="head__item">
+          <dt>Judging</dt>
+          <dd>
+            <span class="head__dot" [class.head__dot--on]="judgingOpen()"></span>
+            {{ judgingOpen() ? 'Open' : 'Closed' }}
+          </dd>
+        </div>
+        @if (milestone(); as next) {
+          <div class="head__item">
+            <dt>Next</dt>
+            <dd>
+              {{ next.label }}
+              @if (countdown(); as left) {
+                <span class="head__countdown">in {{ left }}</span>
+              }
+            </dd>
           </div>
-          <span class="attention__reasons">{{ reasonText(row) }}</span>
-        </li>
+        }
+      </dl>
+    </header>
+
+    <!-- ── Section body ───────────────────────────────────────────────────── -->
+
+    @switch (section()) {
+      @case ('overview') {
+        <app-admin-overview />
       }
-    </ul>
-
-    @if (attentionOverflow() > 0) {
-      <p class="note">
-        {{ attentionOverflow() }} more team{{ attentionOverflow() === 1 ? '' : 's' }} need a look.
-        The full teams view lands next.
-      </p>
+      @case ('teams') {
+        <app-admin-teams />
+      }
+      @case ('submissions') {
+        <app-admin-submissions />
+      }
+      @default {
+        <div class="stub">
+          <p class="stub__heading">{{ sectionLabel() }} isn't built yet</p>
+          <p class="stub__body">
+            This section is in the design draft and has a place in the workspace, but nothing behind
+            it yet. Overview, Teams and Submissions are the ones that work today.
+          </p>
+        </div>
+      }
     }
-  }
-
-  <p class="note">
-    This dashboard reports on {{ eventName }}; it does not change anything yet. Editing event
-    settings and managing teams land as their own screens.
-  </p>
+  </div>
 </div>

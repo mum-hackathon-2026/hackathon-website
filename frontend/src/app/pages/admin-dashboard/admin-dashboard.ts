@@ -1,20 +1,34 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { ATTENTION_LABELS, AdminService, AdminTeamRow } from '../../core/admin/admin';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
+import { AdminService, SECTIONS, SectionId, isSectionId } from '../../core/admin/admin';
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { PhaseService } from '../../core/event/phase';
-import { PageHeader } from '../../layout/page-header/page-header';
-import { EventStats } from './event-stats/event-stats';
+import { AdminOverview } from './admin-overview/admin-overview';
+import { AdminSidebar } from './admin-sidebar/admin-sidebar';
+import { AdminSubmissions } from './admin-submissions/admin-submissions';
+import { AdminTeams } from './admin-teams/admin-teams';
 
 const MS_PER_MINUTE = 60 * 1000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 
-/** How many follow-ups the dashboard lists before deferring to a fuller view. */
-const ATTENTION_LIMIT = 6;
-
+/**
+ * The organiser workspace: a sidebar of sections, each its own URL.
+ *
+ * `admin/dashboard/:section` mirrors the design draft, so a section can be
+ * linked to directly rather than only reached by clicking. An unknown or
+ * missing section falls back to the overview instead of 404ing — the route
+ * matched, it is only the section name that is wrong.
+ *
+ * Four sections are built. The rest render a short placeholder rather than
+ * being hidden, so the shape of the finished workspace is visible and nobody
+ * wonders whether a section was forgotten.
+ */
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [EventStats, PageHeader],
+  imports: [AdminOverview, AdminSidebar, AdminSubmissions, AdminTeams],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,23 +37,43 @@ export class AdminDashboard {
   private readonly admin = inject(AdminService);
   private readonly phaseService = inject(PhaseService);
   private readonly config = inject(EVENT_CONFIG);
+  private readonly route = inject(ActivatedRoute);
 
-  protected readonly attentionLabels = ATTENTION_LABELS;
+  protected readonly sections = SECTIONS;
   protected readonly eventName = this.config.settings.eventName;
 
   protected readonly stats = this.admin.stats;
   protected readonly judgingOpen = this.phaseService.judgingOpen;
 
-  protected readonly attention = computed(() => this.admin.needsAttention());
+  /** Open on mobile, where the sidebar collapses into a drawer. */
+  protected readonly drawerOpen = signal(false);
 
-  protected readonly topAttention = computed<readonly AdminTeamRow[]>(() =>
-    this.attention().slice(0, ATTENTION_LIMIT),
+  private readonly sectionParam = toSignal(
+    this.route.paramMap.pipe(map((params) => params.get('section'))),
+    { initialValue: null },
   );
 
-  /** How many follow-ups the list is not showing. */
-  protected readonly attentionOverflow = computed(() =>
-    Math.max(0, this.attention().length - ATTENTION_LIMIT),
+  protected readonly section = computed<SectionId>(() => {
+    const param = this.sectionParam();
+    return isSectionId(param) ? param : 'overview';
+  });
+
+  protected readonly sectionLabel = computed(
+    () => SECTIONS.find((s) => s.id === this.section())?.label ?? 'Overview',
   );
+
+  /** Counts on the sidebar, so a section worth visiting says so. */
+  protected readonly badges = computed<Partial<Record<SectionId, number>>>(() => {
+    const s = this.stats();
+    return {
+      teams: s.needingAttention || undefined,
+      submissions: s.drafts || undefined,
+      judging:
+        this.judgingOpen() && s.reviewsExpected > s.reviewsCompleted
+          ? s.reviewsExpected - s.reviewsCompleted
+          : undefined,
+    };
+  });
 
   protected readonly phaseLabel = computed(() => {
     switch (this.phaseService.phase()) {
@@ -76,16 +110,11 @@ export class AdminDashboard {
     return `${minutes}m`;
   });
 
-  protected readonly subtitle = computed(() => {
-    const s = this.stats();
-    if (s.needingAttention === 0) {
-      return `${s.teams} teams, ${s.submitted} submitted. Nothing needs chasing.`;
-    }
-    return `${s.teams} teams, ${s.submitted} submitted. ${s.needingAttention} need a look.`;
-  });
+  protected closeDrawer(): void {
+    this.drawerOpen.set(false);
+  }
 
-  /** Reads "no members · no submission" beside a team. */
-  protected reasonText(row: AdminTeamRow): string {
-    return row.attention.map((reason) => ATTENTION_LABELS[reason]).join(' · ');
+  protected toggleDrawer(): void {
+    this.drawerOpen.update((open) => !open);
   }
 }

@@ -1,19 +1,28 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
+import { SECTIONS } from '../../core/admin/admin';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../../core/event/event-config';
 import { AdminDashboard } from './admin-dashboard';
 
 interface Options {
+  readonly section?: string | null;
   readonly judgingOpen?: boolean;
   readonly settings?: Partial<EventConfig['settings']>;
 }
 
 let fixture: ComponentFixture<AdminDashboard>;
+let params: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
 
-async function render({ judgingOpen = false, settings = {} }: Options = {}) {
+async function render({ section = null, judgingOpen = false, settings = {} }: Options = {}) {
+  params = new BehaviorSubject(convertToParamMap(section === null ? {} : { section }));
+
   TestBed.resetTestingModule();
   await TestBed.configureTestingModule({
     imports: [AdminDashboard],
     providers: [
+      provideRouter([]),
+      { provide: ActivatedRoute, useValue: { paramMap: params.asObservable() } },
       {
         provide: EVENT_CONFIG,
         useValue: {
@@ -29,139 +38,223 @@ async function render({ judgingOpen = false, settings = {} }: Options = {}) {
   return fixture.nativeElement as HTMLElement;
 }
 
-function text(host: HTMLElement, selector: string): string {
-  return host.querySelector(selector)?.textContent?.trim().replace(/\s+/g, ' ') ?? '';
+function host(): HTMLElement {
+  return fixture.nativeElement as HTMLElement;
 }
 
-function tileLabels(host: HTMLElement): string[] {
-  return Array.from(host.querySelectorAll('.tiles__label')).map(
+/** Switches section without a navigation, the way the router would. */
+async function goTo(section: string) {
+  params.next(convertToParamMap({ section }));
+  await fixture.whenStable();
+}
+
+function title(): string {
+  return host().querySelector('.head__title')?.textContent?.trim() ?? '';
+}
+
+function railLabels(): string[] {
+  return Array.from(host().querySelectorAll('.rail__label')).map(
     (el) => el.textContent?.trim() ?? '',
   );
 }
 
-function attentionTeams(host: HTMLElement): string[] {
-  return Array.from(host.querySelectorAll('.attention__team')).map(
+function teamNames(): string[] {
+  return Array.from(host().querySelectorAll('.grid__team')).map(
     (el) => el.textContent?.trim() ?? '',
   );
+}
+
+async function setInput(selector: string, value: string) {
+  const el = host().querySelector<HTMLInputElement | HTMLSelectElement>(selector)!;
+  el.value = value;
+  el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input'));
+  await fixture.whenStable();
 }
 
 describe('AdminDashboard', () => {
-  it('heads the page as the organiser view', async () => {
-    const host = await render();
+  describe('the workspace shell', () => {
+    it('lists every section in the sidebar', async () => {
+      await render();
 
-    expect(host.textContent).toContain('Dashboard');
-    expect(host.textContent).toContain('Organiser');
-  });
-
-  it('summarises the event in the subtitle', async () => {
-    const host = await render();
-
-    // 12 submitted-or-not teams are seeded; the exact count belongs to the service.
-    expect(text(host, 'app-page-header')).toMatch(/\d+ teams, \d+ submitted/);
-  });
-
-  it('shows the four headline counts', async () => {
-    const host = await render();
-
-    expect(tileLabels(host)).toEqual(['Teams', 'Participants', 'Submitted', 'Need attention']);
-  });
-
-  describe('event pulse', () => {
-    it('reports judging as closed when it is', async () => {
-      const host = await render({ judgingOpen: false });
-
-      expect(host.textContent).toContain('Closed');
-      expect(host.querySelector('.dot--on')).toBeNull();
+      expect(railLabels()).toEqual(SECTIONS.map((s) => s.label));
     });
 
-    it('reports judging as open when it is', async () => {
-      const host = await render({ judgingOpen: true });
+    it('opens on the overview when no section is named', async () => {
+      await render({ section: null });
 
-      expect(host.textContent).toContain('Open');
-      expect(host.querySelector('.dot--on')).not.toBeNull();
+      expect(title()).toBe('Overview');
     });
 
-    it('counts down to the next milestone', async () => {
-      // The default config keeps every date in the future, so one is always next.
-      const host = await render();
+    it('falls back to the overview for a section that does not exist', async () => {
+      // The route matched — only the section name is wrong, so this is not a 404.
+      await render({ section: 'not-a-section' });
 
-      expect(text(host, '.pulse__countdown')).toMatch(/^in \d+[dhm]/);
+      expect(title()).toBe('Overview');
     });
 
-    it('says nothing is scheduled once results are out', async () => {
-      const past = new Date('2020-01-01T00:00:00+08:00');
-      const host = await render({
-        settings: {
-          registrationOpensAt: past,
-          registrationClosesAt: past,
-          submissionDeadlineAt: past,
-          resultsPublishedAt: past,
-        },
-      });
+    it('renders the section named in the URL', async () => {
+      await render({ section: 'teams' });
 
-      expect(text(host, '.pulse')).toContain('Nothing scheduled');
-      expect(host.querySelector('.pulse__countdown')).toBeNull();
+      expect(title()).toBe('Teams');
+    });
+
+    it('follows the URL when the section changes', async () => {
+      await render({ section: 'overview' });
+      await goTo('submissions');
+
+      expect(title()).toBe('Submissions');
+    });
+
+    it('shows a placeholder for sections that are not built', async () => {
+      await render({ section: 'audit' });
+
+      expect(title()).toBe('Audit Log');
+      expect(host().textContent).toContain("isn't built yet");
+    });
+
+    it('reports the phase and whether judging is open', async () => {
+      await render({ judgingOpen: true });
+
+      expect(host().querySelector('.head__pulse')?.textContent).toContain('Open');
+      expect(host().querySelector('.head__dot--on')).not.toBeNull();
     });
   });
 
-  describe('judging progress', () => {
-    it('holds back the bar until judging opens', async () => {
-      const host = await render({ judgingOpen: false });
+  describe('overview', () => {
+    it('shows six headline counts, each linking to its section', async () => {
+      await render();
 
-      expect(host.querySelector('.bar__track')).toBeNull();
-      expect(text(host, '.bar__note')).toContain('Judging is closed');
+      const kpis = Array.from(host().querySelectorAll<HTMLAnchorElement>('.kpi'));
+      expect(kpis.length).toBe(6);
+      expect(kpis.every((a) => a.getAttribute('href')?.startsWith('/admin/dashboard/'))).toBe(true);
     });
 
-    it('shows progress once judging is open', async () => {
-      const host = await render({ judgingOpen: true });
+    it('lists urgent actions linked to the section that resolves them', async () => {
+      await render();
 
-      const bar = host.querySelector('.bar__track');
-      expect(bar).not.toBeNull();
-      expect(bar!.getAttribute('aria-valuenow')).toMatch(/^\d+$/);
-      expect(text(host, '.bar__note')).toMatch(/\d+ of \d+ reviews in/);
+      const rows = Array.from(host().querySelectorAll<HTMLAnchorElement>('.urgent__row'));
+      expect(rows.length).toBeGreaterThan(0);
+      expect(rows.some((a) => a.getAttribute('href') === '/admin/dashboard/teams')).toBe(true);
+    });
+
+    it('holds back the judging bar until judging opens', async () => {
+      await render({ judgingOpen: false });
+
+      expect(host().querySelector('.bar__track')).toBeNull();
+      expect(host().querySelector('.bar__note')?.textContent).toContain('lined up');
+    });
+
+    it('shows judging progress once it is open', async () => {
+      await render({ judgingOpen: true });
+
+      expect(host().querySelector('.bar__track')?.getAttribute('aria-valuenow')).toMatch(/^\d+$/);
+    });
+
+    it('shows recent activity, including entries whose actor is gone', async () => {
+      await render();
+
+      expect(host().querySelectorAll('.feed__row').length).toBeGreaterThan(0);
+      expect(host().textContent).toContain('Deleted user');
     });
   });
 
-  describe('teams needing attention', () => {
-    it('lists teams with their reasons', async () => {
-      const host = await render();
-      const teams = attentionTeams(host);
+  describe('teams', () => {
+    it('lists every team', async () => {
+      await render({ section: 'teams' });
 
-      expect(teams.length).toBeGreaterThan(0);
-      expect(teams).toContain('MapMind');
-      expect(host.textContent).toContain('No submission');
+      expect(teamNames().length).toBeGreaterThan(5);
+      expect(teamNames()).toContain('NeuralNest');
     });
 
-    it('names an empty team rather than dropping it', async () => {
-      const host = await render();
+    it('filters by search term', async () => {
+      await render({ section: 'teams' });
+      await setInput('#team-search', 'neural');
 
-      expect(attentionTeams(host)).toContain('Byte Me');
-      expect(host.textContent).toContain('No members left');
+      expect(teamNames()).toEqual(['NeuralNest']);
     });
 
-    it('leaves withdrawn and disqualified teams off the list', async () => {
-      const host = await render({ judgingOpen: true });
-      const teams = attentionTeams(host);
+    it('filters by status', async () => {
+      await render({ section: 'teams' });
+      await setInput('#team-status', 'withdrawn');
 
-      expect(teams).not.toContain('WaterWatch');
-      expect(teams).not.toContain('Ctrl Alt Elite');
+      expect(teamNames()).toEqual(['WaterWatch']);
     });
 
-    it('caps the list and says how many more there are', async () => {
-      // minTeamSize raises a reason on nearly every team, overflowing the cap.
-      const host = await render({ judgingOpen: true, settings: { minTeamSize: 4 } });
+    it('says so when nothing matches', async () => {
+      await render({ section: 'teams' });
+      await setInput('#team-search', 'zzzz');
 
-      expect(attentionTeams(host).length).toBe(6);
-      expect(host.textContent).toMatch(/\d+ more teams? need a look/);
+      expect(host().querySelector('.empty')?.textContent).toContain('No teams match');
     });
 
-    it('omits the overflow note when everything fits', async () => {
-      // Judging closed and no size floor keeps the reasons down to the few
-      // teams that genuinely have nothing submitted.
-      const host = await render({ judgingOpen: false, settings: { minTeamSize: 1 } });
+    it('offers no actions on a team that is already settled', async () => {
+      await render({ section: 'teams' });
+      await setInput('#team-status', 'withdrawn');
 
-      expect(attentionTeams(host).length).toBeLessThanOrEqual(6);
-      expect(host.textContent).not.toMatch(/more teams? need a look/);
+      expect(host().querySelector('.grid__settled')?.textContent).toBe('Withdrawn');
+      expect(host().querySelectorAll('.grid__actions .link-button').length).toBe(0);
+    });
+
+    it('withdraws a team once the confirmation is accepted', async () => {
+      await render({ section: 'teams' });
+      await setInput('#team-search', 'MapMind');
+
+      const withdraw = Array.from(
+        host().querySelectorAll<HTMLButtonElement>('.grid__actions .link-button'),
+      ).find((b) => b.textContent?.trim() === 'Withdraw');
+      withdraw!.click();
+      await fixture.whenStable();
+
+      const confirm = Array.from(
+        host().querySelectorAll<HTMLButtonElement>('.confirm__actions button'),
+      ).find((b) => b.textContent?.trim() === 'Withdraw team');
+      expect(confirm, 'the confirmation should offer a Withdraw team button').toBeTruthy();
+      confirm!.click();
+      await fixture.whenStable();
+
+      expect(host().querySelector('.banner--notice')?.textContent).toContain('withdrawn');
+    });
+
+    it('refuses a rename that collides with another team', async () => {
+      await render({ section: 'teams' });
+      await setInput('#team-search', 'MapMind');
+
+      const rename = Array.from(
+        host().querySelectorAll<HTMLButtonElement>('.grid__actions .link-button'),
+      ).find((b) => b.textContent?.trim() === 'Rename');
+      rename!.click();
+      await fixture.whenStable();
+
+      await setInput('#rename-input', 'NeuralNest');
+      const save = Array.from(
+        host().querySelectorAll<HTMLButtonElement>('.rename__row button'),
+      ).find((b) => b.textContent?.trim() === 'Save');
+      save!.click();
+      await fixture.whenStable();
+
+      expect(host().querySelector('.banner--error')?.textContent).toContain('already called');
+    });
+  });
+
+  describe('submissions', () => {
+    it('lists submissions with their links', async () => {
+      await render({ section: 'submissions' });
+
+      expect(teamNames().length).toBeGreaterThan(5);
+      expect(host().querySelector('.grid__links a')?.getAttribute('href')).toContain('github.com');
+    });
+
+    it('separates teams with no submission from drafts', async () => {
+      await render({ section: 'submissions' });
+      await setInput('#sub-status', 'none');
+      const none = teamNames();
+
+      await setInput('#sub-status', 'draft');
+      const drafts = teamNames();
+
+      expect(none).toContain('MapMind');
+      expect(drafts).toContain('Full House');
+      expect(none).not.toContain('Full House');
     });
   });
 });
