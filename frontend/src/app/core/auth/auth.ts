@@ -57,12 +57,12 @@ export const DEMO_USERS: Record<Role, AuthUser> = {
 };
 
 /**
- * Where each role lands after signing in. Every role now has a landing page of
- * its own, so this map is finally complete.
+ * Where each role lands after signing in, and where `NotFound` offers to send
+ * someone who mistyped a URL.
  *
- * Nothing reads it yet — `SignIn` uses the guard's `returnUrl` and falls back
- * to `/`. Wiring it in changes the landing page for all three roles at once,
- * which is a separate change from adding the pages themselves.
+ * `SignIn` prefers the `returnUrl` a guard stashed and falls back to this, so
+ * an interrupted visitor still resumes what they were doing. Repointing an
+ * entry here changes both landing places at once.
  */
 export const ROLE_HOME: Record<Role, string> = {
   participant: '/participant/team',

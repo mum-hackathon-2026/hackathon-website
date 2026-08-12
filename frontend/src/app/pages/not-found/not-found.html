@@ -1,0 +1,19 @@
+<div class="page page--narrow">
+  <div class="missing">
+    <p class="missing__code">404</p>
+    <h1 class="missing__heading">We can't find that page</h1>
+    <p class="missing__body">
+      The link may be out of date, or the address may have a typo in it. Nothing has gone wrong with
+      your account.
+    </p>
+
+    <div class="missing__actions">
+      <a class="missing__primary" [routerLink]="homeLink()">{{ homeLabel() }}</a>
+      @if (role()) {
+        <a class="missing__secondary" routerLink="/results">See the results</a>
+      } @else {
+        <a class="missing__secondary" routerLink="/timeline">See the timeline</a>
+      }
+    </div>
+  </div>
+</div>
