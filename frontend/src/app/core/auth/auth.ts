@@ -57,17 +57,17 @@ export const DEMO_USERS: Record<Role, AuthUser> = {
 };
 
 /**
- * Where each role lands after signing in. Repointed as each role's landing page
- * lands; admin still goes home because `/admin/dashboard` does not exist yet.
+ * Where each role lands after signing in. Every role now has a landing page of
+ * its own, so this map is finally complete.
  *
- * Nothing reads this yet — `SignIn` uses the guard's `returnUrl` and falls back
- * to `/`. Wiring it in changes the landing page for all three roles at once, so
- * it waits until the last of them has somewhere of its own to go.
+ * Nothing reads it yet — `SignIn` uses the guard's `returnUrl` and falls back
+ * to `/`. Wiring it in changes the landing page for all three roles at once,
+ * which is a separate change from adding the pages themselves.
  */
 export const ROLE_HOME: Record<Role, string> = {
   participant: '/participant/team',
   judge: '/judge/portal',
-  admin: '/',
+  admin: '/admin/dashboard',
 };
 
 const STORAGE_KEY = 'hackathon.demo-auth';
