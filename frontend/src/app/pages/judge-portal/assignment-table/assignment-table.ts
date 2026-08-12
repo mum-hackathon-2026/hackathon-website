@@ -1,16 +1,19 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { AssignmentView } from '../../../core/judge/judge';
+import { RouterLink } from '@angular/router';
+import { AssignmentStatus, AssignmentView } from '../../../core/judge/judge';
 import { StatusPill } from '../../../layout/status-pill/status-pill';
 
-/**
- * A judge's assignments as a table.
- *
- * Rows do not link anywhere yet: the review screen is a separate change, and a
- * routerLink to an unregistered path throws NG04002 on click.
- */
+/** What the action column offers, per status. */
+const ACTION_LABELS: Partial<Record<AssignmentStatus, string>> = {
+  pending: 'Start review',
+  in_progress: 'Continue',
+  completed: 'View',
+};
+
+/** A judge's assignments as a table, each row opening its review. */
 @Component({
   selector: 'app-assignment-table',
-  imports: [StatusPill],
+  imports: [RouterLink, StatusPill],
   templateUrl: './assignment-table.html',
   styleUrl: './assignment-table.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,4 +25,9 @@ export class AssignmentTable {
 
   /** Emits the assignment id the judge wants to step back from. */
   readonly declined = output<number>();
+
+  /** A declined assignment has no review to open. */
+  protected actionLabel(status: AssignmentStatus): string | null {
+    return ACTION_LABELS[status] ?? null;
+  }
 }

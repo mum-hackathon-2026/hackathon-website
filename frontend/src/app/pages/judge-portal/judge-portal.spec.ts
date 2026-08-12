@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AuthService, Role, SESSION_STORAGE } from '../../core/auth/auth';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG } from '../../core/event/event-config';
 import { JudgeService } from '../../core/judge/judge';
@@ -16,6 +17,8 @@ async function render({ role = 'judge' as Role, judgingOpen = true }: Options = 
   await TestBed.configureTestingModule({
     imports: [JudgePortal],
     providers: [
+      // The table's rows are routerLinks to the review screen.
+      provideRouter([]),
       { provide: SESSION_STORAGE, useValue: null },
       {
         provide: EVENT_CONFIG,
@@ -186,6 +189,36 @@ describe('JudgePortal', () => {
 
       expect(TestBed.inject(JudgeService).viewFor(3)?.status).toBe('declined');
       expect(host().querySelector('[role="status"]')?.textContent).toContain('EcoTrace');
+    });
+  });
+
+  describe('opening a review', () => {
+    it('links each row by assignment id, not team id', async () => {
+      await render();
+      await openTab('Assignments');
+
+      const hrefs = Array.from(
+        host().querySelectorAll<HTMLAnchorElement>('.assignments__open'),
+      ).map((a) => a.getAttribute('href'));
+
+      // Assignments 1–4; the declined one has no review to open. Team ids are
+      // 201–205, so a link carrying one of those would be the draft's bug.
+      expect(hrefs).toEqual([
+        '/judge/reviews/1',
+        '/judge/reviews/2',
+        '/judge/reviews/3',
+        '/judge/reviews/4',
+      ]);
+    });
+
+    it('labels the action by how far along the review is', async () => {
+      await render();
+      await openTab('Assignments');
+
+      const labels = Array.from(host().querySelectorAll('.assignments__open')).map((a) =>
+        a.textContent?.trim(),
+      );
+      expect(labels).toEqual(['View', 'Continue', 'Start review', 'Start review']);
     });
   });
 

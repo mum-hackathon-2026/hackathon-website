@@ -58,3 +58,17 @@
   text-align: right;
   white-space: nowrap;
 }
+
+.assignments__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Inline in a table cell, so it must not keep the shared button's flex-start. */
+.assignments__open {
+  align-self: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+}

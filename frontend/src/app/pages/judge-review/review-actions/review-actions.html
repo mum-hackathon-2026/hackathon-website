@@ -1,0 +1,33 @@
+<div class="actions">
+  <div class="actions__inner">
+    <div class="actions__totals">
+      <span class="actions__scored">
+        {{ scoredCount() }}/{{ criteriaCount() }} criteria scored
+      </span>
+      <span class="actions__total">
+        <strong>{{ weightedTotal() | number: '1.1-1' }}</strong>
+        <span class="actions__total-max">/100 weighted</span>
+      </span>
+      @if (dirty()) {
+        <span class="actions__dirty">Unsaved changes</span>
+      } @else if (savedAt(); as when) {
+        <span class="actions__saved">Saved</span>
+      }
+    </div>
+
+    <div class="actions__buttons">
+      <button type="button" class="button" [disabled]="busy()" (click)="save.emit()">
+        Save progress
+      </button>
+      <button
+        type="button"
+        class="button button--primary"
+        [disabled]="busy() || !allScored()"
+        [attr.title]="allScored() ? null : 'Score every criterion before submitting'"
+        (click)="submit.emit()"
+      >
+        Submit review
+      </button>
+    </div>
+  </div>
+</div>

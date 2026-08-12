@@ -1,0 +1,75 @@
+@if (criterion(); as c) {
+  <div class="criterion">
+    <div class="criterion__head">
+      <h3 class="criterion__title">{{ c.title }}</h3>
+      <span class="criterion__weight">{{ c.weight }}% of the total</span>
+    </div>
+
+    @if (readOnly()) {
+      <p class="criterion__mark">
+        @if (c.score === null) {
+          <span class="criterion__unscored">Not scored</span>
+        } @else {
+          <span class="criterion__mark-value">{{ c.score | number: '1.1-1' }}</span>
+          <span class="criterion__mark-max">/ {{ c.maxScore }}</span>
+        }
+      </p>
+    } @else {
+      <div class="criterion__field">
+        <label class="field-label" [attr.for]="'score-' + c.criteriaId">
+          Score out of {{ c.maxScore }}
+        </label>
+        <input
+          class="input criterion__input"
+          [id]="'score-' + c.criteriaId"
+          [name]="'score-' + c.criteriaId"
+          type="number"
+          min="0"
+          [max]="c.maxScore"
+          step="0.5"
+          inputmode="decimal"
+          placeholder="—"
+          [disabled]="disabled()"
+          [ngModel]="c.score"
+          (ngModelChange)="onScore($event === null ? '' : $event + '')"
+        />
+      </div>
+    }
+
+    <div class="criterion__bar" aria-hidden="true">
+      <span class="criterion__fill" [style.width.%]="percent()"></span>
+    </div>
+
+    <p class="criterion__contribution">
+      @if (c.contribution === null) {
+        Worth up to {{ c.weight }} points.
+      } @else {
+        Currently worth
+        <strong>{{ c.contribution | number: '1.1-1' }}</strong>
+        of {{ c.weight }} points.
+      }
+    </p>
+
+    @if (readOnly()) {
+      @if (c.comment) {
+        <p class="criterion__note criterion__note--read">{{ c.comment }}</p>
+      }
+    } @else {
+      <div class="criterion__field">
+        <label class="field-label" [attr.for]="'comment-' + c.criteriaId">
+          Private note <span class="criterion__optional">optional</span>
+        </label>
+        <textarea
+          class="input criterion__textarea"
+          [id]="'comment-' + c.criteriaId"
+          [name]="'comment-' + c.criteriaId"
+          rows="2"
+          placeholder="Not shared with the team"
+          [disabled]="disabled()"
+          [ngModel]="c.comment"
+          (ngModelChange)="commentChange.emit($event)"
+        ></textarea>
+      </div>
+    }
+  </div>
+}

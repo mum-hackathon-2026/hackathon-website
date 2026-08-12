@@ -1,0 +1,123 @@
+.criterion {
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.criterion__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.criterion__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.criterion__weight {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-subtle);
+}
+
+.criterion__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* Narrow: a mark out of ten never needs the full column width. */
+.criterion__input {
+  width: 110px;
+  font-variant-numeric: tabular-nums;
+}
+
+.criterion__textarea {
+  resize: vertical;
+}
+
+.criterion__optional {
+  font-weight: 400;
+  color: var(--color-subtle);
+}
+
+.criterion__mark {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0 0 12px;
+}
+
+.criterion__mark-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.criterion__mark-max {
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+
+.criterion__unscored {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--color-faint);
+}
+
+.criterion__bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-hairline);
+  overflow: hidden;
+}
+
+.criterion__fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-blue);
+  transition: width 0.15s;
+}
+
+.criterion__contribution {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--color-muted);
+
+  strong {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+  }
+}
+
+/* The note field follows the contribution line directly, which has no bottom margin. */
+.criterion__contribution + .criterion__field {
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+
+.criterion__note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-body);
+}
+
+.criterion__note--read {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-border);
+  border-radius: 0 4px 4px 0;
+  background: var(--color-surface-alt);
+}
