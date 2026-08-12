@@ -59,8 +59,15 @@ export const routes: Routes = [
   // initial bundle past its 500 kB budget, and organisers are the rarest role —
   // nobody else ever needs this code. The budget is close enough now that the
   // next page added will face the same choice.
+  // Bare path redirects so a section is always named in the URL, which keeps the
+  // sidebar's active state honest and makes every section linkable.
   {
     path: 'admin/dashboard',
+    pathMatch: 'full',
+    redirectTo: 'admin/dashboard/overview',
+  },
+  {
+    path: 'admin/dashboard/:section',
     loadComponent: () =>
       import('./pages/admin-dashboard/admin-dashboard').then((m) => m.AdminDashboard),
     canActivate: [adminGuard],

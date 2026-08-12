@@ -1,0 +1,27 @@
+@if (open()) {
+  <div class="scrim" (click)="dismissed.emit()"></div>
+}
+
+<aside class="rail" [class.rail--open]="open()">
+  <div class="rail__head">
+    <p class="rail__event">{{ eventName() }}</p>
+    <p class="rail__title">Admin Workspace</p>
+  </div>
+
+  <nav class="rail__nav" aria-label="Dashboard sections">
+    @for (item of sections; track item.id) {
+      <a
+        class="rail__link"
+        routerLinkActive="rail__link--active"
+        [routerLink]="['/admin/dashboard', item.id]"
+        [routerLinkActiveOptions]="{ exact: true }"
+        (click)="dismissed.emit()"
+      >
+        <span class="rail__label">{{ item.label }}</span>
+        @if (badges()[item.id]; as count) {
+          <span class="rail__badge">{{ count }}</span>
+        }
+      </a>
+    }
+  </nav>
+</aside>

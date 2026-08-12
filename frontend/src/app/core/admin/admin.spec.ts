@@ -158,5 +158,75 @@ describe('AdminService', () => {
 
       expect(admin.stats().needingAttention).toBe(admin.needsAttention().length);
     });
+
+    it('counts the judging panel separately from the teams', () => {
+      const admin = serviceWith();
+      const stats = admin.stats();
+
+      expect(stats.judges).toBe(admin.judges().length);
+      expect(stats.activeJudges).toBe(admin.judges().filter((j) => j.isActive).length);
+      expect(stats.activeJudges).toBeLessThan(stats.judges);
+    });
+  });
+
+  describe('renaming a team', () => {
+    it('renames it', async () => {
+      const admin = serviceWith();
+
+      await expect(admin.renameTeam(209, 'Cartographers')).resolves.toEqual({ ok: true });
+      expect(byName(admin.teams(), 'Cartographers').teamId).toBe(209);
+    });
+
+    it('refuses a name another team already holds', async () => {
+      // teams.name is UNIQUE, so the database would reject this too.
+      const admin = serviceWith();
+      const result = await admin.renameTeam(209, 'NeuralNest');
+
+      expect(result).toEqual({ ok: false, error: 'Another team is already called NeuralNest.' });
+    });
+
+    it('lets a team keep its own name', async () => {
+      const admin = serviceWith();
+
+      await expect(admin.renameTeam(209, 'MapMind')).resolves.toEqual({ ok: true });
+    });
+
+    it('refuses a blank name', async () => {
+      const admin = serviceWith();
+
+      expect(await admin.renameTeam(209, '   ')).toEqual({
+        ok: false,
+        error: 'A team needs a name.',
+      });
+    });
+  });
+
+  describe('settling a team', () => {
+    it('withdraws it, and stops chasing it afterwards', async () => {
+      const admin = serviceWith();
+      expect(byName(admin.teams(), 'MapMind').attention.length).toBeGreaterThan(0);
+
+      await admin.setTeamStatus(209, 'withdrawn');
+
+      const row = byName(admin.teams(), 'MapMind');
+      expect(row.status).toBe('withdrawn');
+      expect(row.attention).toEqual([]);
+    });
+
+    it('disqualifies it', async () => {
+      const admin = serviceWith();
+      await admin.setTeamStatus(209, 'disqualified');
+
+      expect(byName(admin.teams(), 'MapMind').status).toBe('disqualified');
+    });
+
+    it('refuses a team that is not there', async () => {
+      const admin = serviceWith();
+
+      expect(await admin.setTeamStatus(9999, 'withdrawn')).toEqual({
+        ok: false,
+        error: 'That team no longer exists.',
+      });
+    });
   });
 });

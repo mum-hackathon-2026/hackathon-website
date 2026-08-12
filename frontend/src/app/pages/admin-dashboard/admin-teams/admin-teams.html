@@ -1,0 +1,185 @@
+<p class="lede">{{ summary() }}</p>
+
+@if (error(); as message) {
+  <p class="banner banner--error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner--notice" role="status">{{ message }}</p>
+}
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="team-search">Search teams</label>
+  <input
+    id="team-search"
+    class="input filters__search"
+    type="search"
+    name="teamSearch"
+    placeholder="Search team or project"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="team-track">Filter by track</label>
+  <select
+    id="team-track"
+    class="input"
+    name="teamTrack"
+    [ngModel]="trackFilter()"
+    (ngModelChange)="trackFilter.set($event)"
+  >
+    <option value="all">All tracks</option>
+    @for (track of tracks; track track) {
+      <option [value]="track">{{ track }}</option>
+    }
+  </select>
+
+  <label class="visually-hidden" for="team-status">Filter by status</label>
+  <select
+    id="team-status"
+    class="input"
+    name="teamStatus"
+    [ngModel]="statusFilter()"
+    (ngModelChange)="statusFilter.set($event)"
+  >
+    @for (option of statusFilters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+
+@if (rows().length === 0) {
+  <p class="empty">No teams match that search.</p>
+} @else {
+  <div class="scroller">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th scope="col">Team</th>
+          <th scope="col" class="grid__num">Members</th>
+          <th scope="col">Track</th>
+          <th scope="col">Status</th>
+          <th scope="col">Submission</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.teamId) {
+          <tr>
+            <td>
+              <span class="grid__team">{{ row.teamName }}</span>
+              @if (row.attention.length > 0) {
+                <span class="grid__issue">
+                  @for (reason of row.attention; track reason) {
+                    <span>{{ attentionLabels[reason] }}</span>
+                  }
+                </span>
+              }
+            </td>
+            <td class="grid__num">{{ row.memberCount }}</td>
+            <td>
+              <span class="pill">{{ row.trackLabel }}</span>
+            </td>
+            <td>
+              <span class="dot" [class]="'dot--' + row.status"></span>
+              {{ statusLabels[row.status] }}
+            </td>
+            <td>
+              @if (row.submissionStatus) {
+                {{ submissionLabels[row.submissionStatus] }}
+              } @else {
+                <span class="grid__none">None</span>
+              }
+            </td>
+            <td class="grid__actions">
+              @if (row.status === 'withdrawn' || row.status === 'disqualified') {
+                <span class="grid__settled">{{ statusLabels[row.status] }}</span>
+              } @else {
+                <button
+                  type="button"
+                  class="link-button"
+                  [disabled]="pending()"
+                  (click)="startRename(row)"
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  class="link-button"
+                  [disabled]="pending()"
+                  (click)="ask(row, 'withdrawn')"
+                >
+                  Withdraw
+                </button>
+                <button
+                  type="button"
+                  class="link-button link-button--danger"
+                  [disabled]="pending()"
+                  (click)="ask(row, 'disqualified')"
+                >
+                  Disqualify
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<p class="note">
+  The design draft has a Lock action here. The database has no locked status —
+  <code>teams.status</code> allows only forming, complete, disqualified and withdrawn — so locking
+  would be rejected on write. Withdraw and Disqualify are the settled states that do exist. Adding a
+  real lock means a migration first.
+</p>
+
+<!-- ── Rename ─────────────────────────────────────────────────────────────── -->
+
+@if (renaming(); as team) {
+  <div class="rename">
+    <label class="rename__label" for="rename-input">New name for {{ team.teamName }}</label>
+    <div class="rename__row">
+      <input
+        id="rename-input"
+        class="input"
+        name="renameTeam"
+        [ngModel]="draftName()"
+        (ngModelChange)="draftName.set($event)"
+        (keydown.enter)="saveName()"
+      />
+      <button type="button" class="link-button" [disabled]="pending()" (click)="saveName()">
+        Save
+      </button>
+      <button type="button" class="link-button" (click)="renaming.set(null)">Cancel</button>
+    </div>
+  </div>
+}
+
+@if (confirming(); as change) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="
+      change.to === 'withdrawn'
+        ? 'Withdraw ' + change.team.teamName + '?'
+        : 'Disqualify ' + change.team.teamName + '?'
+    "
+    [body]="
+      change.to === 'withdrawn'
+        ? 'The team stops competing and drops out of the rankings. Their submission is kept.'
+        : 'The team is removed from the event for a rule breach. Their submission is kept but scores no longer count.'
+    "
+    [confirmLabel]="change.to === 'withdrawn' ? 'Withdraw team' : 'Disqualify team'"
+    [danger]="true"
+    (confirmed)="confirm()"
+    (cancelled)="confirming.set(null)"
+  />
+}

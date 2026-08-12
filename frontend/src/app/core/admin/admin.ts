@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { EVENT_CONFIG } from '../event/event-config';
 import { PhaseService } from '../event/phase';
 import { SubmissionStatus } from '../submission/submission';
@@ -14,9 +14,13 @@ import { TeamStatus } from '../team/team';
  *
  * There is no endpoint behind any of it. The reads below stand in for a join
  * across `teams`, `team_members`, `submissions` and `assignments` that the
- * backend has entities and repositories for but no controller. State is
- * read-only here — the dashboard reports, it does not yet edit — so unlike the
- * other stand-ins there are no async mutations to mirror.
+ * backend has entities and repositories for but no controller.
+ *
+ * Mutations are deliberately `async` and return `Promise<{ok} | {ok:false,error}>`
+ * even though nothing awaits I/O, matching the other stand-ins: the async
+ * boundary is the part callers must cope with when a real endpoint replaces
+ * this, so it exists from the start. They validate against the same constraints
+ * the database would apply, so the UI never accepts what the API would reject.
  *
  * Team ids, names and projects match the ResultsService and JudgeService seeds
  * on purpose, so the three stand-ins do not describe different universes. They
@@ -52,6 +56,11 @@ export interface AdminTeamRow {
   readonly reviewsExpected: number;
   /** Empty when nothing needs chasing. */
   readonly attention: readonly AttentionReason[];
+  /** '' when the team has no submission. `submissions_*_url_check` wants https. */
+  readonly githubUrl: string;
+  readonly deployedUrl: string;
+  /** Null unless `submissions.status` is 'submitted' — the column's own rule. */
+  readonly submittedAt: Date | null;
 }
 
 export interface AdminStats {
@@ -65,7 +74,74 @@ export interface AdminStats {
   /** Completed reviews as a percentage of those expected. */
   readonly percentJudged: number;
   readonly needingAttention: number;
+  readonly activeTeams: number;
+  readonly judges: number;
+  readonly activeJudges: number;
 }
+
+/** Mirrors the `judging_criteria`-adjacent view of a judge the sections list. */
+export interface AdminJudge {
+  readonly userId: number;
+  readonly name: string;
+  readonly email: string;
+  readonly isActive: boolean;
+  readonly assigned: number;
+  readonly completed: number;
+}
+
+/** One `audit_log` row, flattened for display. */
+export interface AuditEntry {
+  readonly id: number;
+  /** Drives the colour dot; mirrors the entity kind the entry is about. */
+  readonly kind: 'team' | 'participant' | 'judge' | 'submission' | 'result' | 'settings';
+  readonly action: string;
+  readonly target: string;
+  readonly actor: string;
+  readonly at: Date;
+}
+
+/** A follow-up worth surfacing above the fold, with the section that resolves it. */
+export interface UrgentAction {
+  readonly text: string;
+  readonly section: SectionId;
+  readonly tone: 'amber' | 'red' | 'blue';
+}
+
+/**
+ * The dashboard's sections. Each is its own URL under `admin/dashboard/:section`
+ * so an organiser can link a colleague straight to one.
+ */
+export type SectionId =
+  | 'overview'
+  | 'teams'
+  | 'participants'
+  | 'submissions'
+  | 'judges'
+  | 'assignments'
+  | 'judging'
+  | 'results'
+  | 'settings'
+  | 'audit';
+
+export const SECTIONS: readonly { readonly id: SectionId; readonly label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'teams', label: 'Teams' },
+  { id: 'participants', label: 'Participants' },
+  { id: 'submissions', label: 'Submissions' },
+  { id: 'judges', label: 'Judges' },
+  { id: 'assignments', label: 'Assignments' },
+  { id: 'judging', label: 'Judging Progress' },
+  { id: 'results', label: 'Results & Publication' },
+  { id: 'settings', label: 'Event Settings' },
+  { id: 'audit', label: 'Audit Log' },
+];
+
+export function isSectionId(value: string | null | undefined): value is SectionId {
+  return SECTIONS.some((section) => section.id === value);
+}
+
+/** Async like the other stand-ins, so callers already cope with a real endpoint. */
+export type AdminActionResult = { ok: true } | { ok: false; error: string };
 
 /**
  * How many judges each submitted team is assigned. A real deployment reads this
@@ -264,10 +340,134 @@ const SEED: readonly SeedTeam[] = [
   },
 ];
 
+/** When the demo submissions came in, so the table has something to sort on. */
+const SUBMITTED_AT = new Date('2026-10-09T21:14:00+08:00');
+
+/**
+ * The judging panel. `assigned` and `completed` are aggregates over
+ * `assignments`; the rest are `users` columns for someone with role 'judge'.
+ */
+const JUDGE_SEED: readonly AdminJudge[] = [
+  {
+    userId: 2,
+    name: 'Dr. Sofia Lindqvist',
+    email: 's.lindqvist@monash.edu',
+    isActive: true,
+    assigned: 5,
+    completed: 4,
+  },
+  {
+    userId: 12,
+    name: 'Prof. Arun Balakrishnan',
+    email: 'a.balakrishnan@monash.edu',
+    isActive: true,
+    assigned: 5,
+    completed: 5,
+  },
+  {
+    userId: 13,
+    name: 'Dr. Wei Ling Tan',
+    email: 'w.tan@monash.edu',
+    isActive: true,
+    assigned: 5,
+    completed: 3,
+  },
+  {
+    userId: 14,
+    name: 'Nadia Rahman',
+    email: 'n.rahman@monash.edu',
+    isActive: true,
+    assigned: 5,
+    completed: 4,
+  },
+  {
+    userId: 15,
+    name: 'Dr. Tomas Novak',
+    email: 't.novak@monash.edu',
+    isActive: false,
+    assigned: 4,
+    completed: 2,
+  },
+];
+
+/**
+ * Recent `audit_log` rows. The entries survive their actor being deleted — V2
+ * nulls `actor_user_id` rather than removing the row — so `actor` is free text
+ * here and reads 'Deleted user' when the account has gone.
+ */
+const AUDIT_SEED: readonly AuditEntry[] = [
+  {
+    id: 41,
+    kind: 'submission',
+    action: 'Submission received',
+    target: 'CipherCraft — KeyKeeper',
+    actor: 'System',
+    at: new Date('2026-10-09T21:14:00+08:00'),
+  },
+  {
+    id: 40,
+    kind: 'judge',
+    action: 'Judge deactivated',
+    target: 'Dr. Tomas Novak',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-09T18:02:00+08:00'),
+  },
+  {
+    id: 39,
+    kind: 'team',
+    action: 'Team disqualified',
+    target: 'Ctrl Alt Elite',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-09T16:40:00+08:00'),
+  },
+  {
+    id: 38,
+    kind: 'settings',
+    action: 'Judging opened',
+    target: 'Event settings',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-09T09:00:00+08:00'),
+  },
+  {
+    id: 37,
+    kind: 'team',
+    action: 'Team withdrew',
+    target: 'WaterWatch',
+    actor: 'Deleted user',
+    at: new Date('2026-10-08T22:15:00+08:00'),
+  },
+  {
+    id: 36,
+    kind: 'submission',
+    action: 'Submission received',
+    target: 'SolarSync — GridShift',
+    actor: 'System',
+    at: new Date('2026-10-08T20:51:00+08:00'),
+  },
+  {
+    id: 35,
+    kind: 'participant',
+    action: 'Member left team',
+    target: 'Byte Me',
+    actor: 'Deleted user',
+    at: new Date('2026-10-08T14:03:00+08:00'),
+  },
+];
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly config = inject(EVENT_CONFIG);
   private readonly phaseService = inject(PhaseService);
+
+  /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
+  private readonly rows = signal<readonly SeedTeam[]>(SEED);
+
+  /** Counted, not a flag, so overlapping calls don't clear each other's state. */
+  private readonly inFlight = signal(0);
+  readonly pending = computed(() => this.inFlight() > 0);
+
+  readonly judges = signal<readonly AdminJudge[]>(JUDGE_SEED).asReadonly();
+  readonly audit = signal<readonly AuditEntry[]>(AUDIT_SEED).asReadonly();
 
   /**
    * Every team in the event, newest concerns first.
@@ -280,8 +480,11 @@ export class AdminService {
     const { minTeamSize } = this.config.settings;
     const judgingOpen = this.phaseService.judgingOpen();
 
-    return SEED.map((team) => {
+    return this.rows().map((team) => {
       const reviewsExpected = team.submissionStatus === 'submitted' ? JUDGES_PER_TEAM : 0;
+      // Demo links, derived rather than seeded so the seed stays readable.
+      const slug = team.teamName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const hasSubmission = team.submissionStatus !== null;
 
       return {
         teamId: team.teamId,
@@ -292,6 +495,9 @@ export class AdminService {
         submissionStatus: team.submissionStatus,
         projectTitle: team.projectTitle,
         trackLabel: tracks[team.track] ?? tracks[0],
+        githubUrl: hasSubmission ? `https://github.com/mum-hack-2026/${slug}` : '',
+        deployedUrl: team.submissionStatus === 'submitted' ? `https://${slug}.vercel.app` : '',
+        submittedAt: team.submissionStatus === 'submitted' ? SUBMITTED_AT : null,
         reviewsCompleted: team.reviewsCompleted,
         reviewsExpected,
         attention: attentionFor(team, { minTeamSize, judgingOpen, reviewsExpected }),
@@ -315,6 +521,7 @@ export class AdminService {
 
     const reviewsCompleted = rows.reduce((sum, row) => sum + row.reviewsCompleted, 0);
     const reviewsExpected = rows.reduce((sum, row) => sum + row.reviewsExpected, 0);
+    const judges = this.judges();
 
     return {
       teams: rows.length,
@@ -327,8 +534,101 @@ export class AdminService {
       percentJudged:
         reviewsExpected > 0 ? Math.round((reviewsCompleted / reviewsExpected) * 100) : 0,
       needingAttention: rows.filter((row) => row.attention.length > 0).length,
+      // 'Active' in the organiser's sense: still in the running.
+      activeTeams: rows.filter((row) => row.status === 'forming' || row.status === 'complete')
+        .length,
+      judges: judges.length,
+      activeJudges: judges.filter((judge) => judge.isActive).length,
     };
   });
+
+  /** The two or three things worth pulling above the fold, each linked to its section. */
+  readonly urgent = computed<readonly UrgentAction[]>(() => {
+    const s = this.stats();
+    const out: UrgentAction[] = [];
+
+    if (s.needingAttention > 0) {
+      out.push({
+        text: `${s.needingAttention} teams need a look`,
+        section: 'teams',
+        tone: 'red',
+      });
+    }
+    if (s.drafts > 0) {
+      out.push({
+        text: `${s.drafts} submissions are still drafts`,
+        section: 'submissions',
+        tone: 'amber',
+      });
+    }
+    if (this.phaseService.judgingOpen() && s.reviewsCompleted < s.reviewsExpected) {
+      out.push({
+        text: `${s.reviewsExpected - s.reviewsCompleted} reviews still outstanding`,
+        section: 'judging',
+        tone: 'blue',
+      });
+    }
+    return out;
+  });
+
+  // ── Mutations ───────────────────────────────────────────────────────────
+
+  /**
+   * `teams.name` is UNIQUE, so this refuses a clash the way the database would
+   * rather than letting the call fail at the API.
+   */
+  renameTeam(teamId: number, name: string): Promise<AdminActionResult> {
+    return this.run(() => {
+      const trimmed = name.trim();
+      if (!trimmed) return { ok: false, error: 'A team needs a name.' };
+      if (trimmed.length > 120) return { ok: false, error: 'Team names cap at 120 characters.' };
+
+      const clash = this.rows().some(
+        (row) => row.teamId !== teamId && row.teamName.toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (clash) return { ok: false, error: `Another team is already called ${trimmed}.` };
+
+      this.patch(teamId, () => ({ teamName: trimmed }));
+      return { ok: true };
+    });
+  }
+
+  /**
+   * Both settled states an organiser can move a team into.
+   *
+   * There is no 'locked' status: the design draft has one, but `teams_status_check`
+   * does not, so locking would be a value the database rejects. See the note in
+   * the dashboard component.
+   */
+  setTeamStatus(teamId: number, status: TeamStatus): Promise<AdminActionResult> {
+    return this.run(() => {
+      const team = this.rows().find((row) => row.teamId === teamId);
+      if (!team) return { ok: false, error: 'That team no longer exists.' };
+      if (team.status === status) return { ok: true };
+
+      this.patch(teamId, () => ({ status }));
+      return { ok: true };
+    });
+  }
+
+  private patch(teamId: number, change: (team: SeedTeam) => Partial<SeedTeam>): void {
+    this.rows.update((rows) =>
+      rows.map((row) => (row.teamId === teamId ? { ...row, ...change(row) } : row)),
+    );
+  }
+
+  /**
+   * Async boundary with no I/O behind it yet — the part callers must cope with
+   * when a real endpoint replaces this, so it exists from the start.
+   */
+  private async run(action: () => AdminActionResult): Promise<AdminActionResult> {
+    this.inFlight.update((n) => n + 1);
+    try {
+      return action();
+    } finally {
+      this.inFlight.update((n) => n - 1);
+    }
+  }
 }
 
 interface AttentionContext {
