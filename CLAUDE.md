@@ -36,7 +36,12 @@ The container's `postgres` superuser password is chosen per-machine and is delib
 
 `docs/databaseSchema.pdf` defines the relational schema, and `V1__baseline_schema.sql` matches it column for column. It is **structural only** — it fixes tables, columns, primary keys, foreign keys and unique constraints, but specifies no data types, no `ON DELETE` behaviour, no CHECK vocabularies, and no team-size limits.
 
-Most of that second list is still an unratified proposal. Don't treat the remaining enum-like CHECK values (`users.role`, `submissions.status`, `assignments.status`, `team_results.outcome`, `notifications_log.type`, `notifications_log.status`) as settled — the frontend hardcodes those literal strings, and the team has not signed off on them. `docs/README.md` tracks what is decided versus open, but it predates V2 and still lists `users.status` and `teams.status` as open; V2 settled both.
+Most of that second list is still an unratified proposal. Don't treat the remaining enum-like CHECK values as settled — the frontend hardcodes those literal strings, and the team has not signed off on them. They divide by how much scrutiny they have had:
+
+- `users.role`, `submissions.status`, `team_results.outcome` — used verbatim by the frontend, so at least read and exercised, but never formally approved.
+- `assignments.status`, `notifications_log.type`, `notifications_log.status` — **never reviewed at all.** No judge or admin page exists, so nothing consumes them and nothing has pushed back. Treat them as a first draft.
+
+`docs/README.md` tracks decided versus open in full, and is current as of V2.
 
 V1's own conventions, held throughout: `bigint generated always as identity` (never `bigserial`), `timestamptz` everywhere, `text` + `CHECK` over `varchar(n)`, **no Postgres ENUM types**, `numeric` for scored values (never float), and every FK column index-backed.
 
@@ -115,7 +120,9 @@ Routing lives in `app.routes.ts`. Note `/participant/progress/team` and `/partic
 
 **The frontend is written against the database's column names and CHECK literals verbatim.** `Role`, `TeamStatus`, `SubmissionStatus`, `ResultOutcome`, `EventSettings` and the `Team`/`TeamMember`/`Submission` interfaces each mirror a table field for field, so swapping the demo services for HTTP calls is a change of data source rather than a reshape. The flip side: changing a CHECK vocabulary in a migration breaks these types, and only the comments connect the two.
 
-**That has already happened once and is not yet fixed.** `TeamStatus` in `core/team/team.ts:19` still lists `'submitted'`, which V2 removed from `teams.status`. Nothing catches it — the literal is declared in the union but never used as a value, so the build and the specs both stay green while the type permits a status the database will reject.
+**That has already happened once, and it is worth knowing how quietly it went.** V2 removed `'submitted'` from `teams.status`; `TeamStatus` in `core/team/team.ts` went on declaring it, so the type permitted a value the database would reject. Nothing caught it. The literal was declared in the union but never constructed as a value, so there was no type error to raise and no assertion to fail — the build and all 169 specs stayed green throughout. It was found by reading the migration against the type, not by tooling, and fixed in `338a982`.
+
+Expect the next one to be equally silent, and note that the usual safety nets do not apply here. A stale literal only becomes an error when something sends it to Postgres, and today nothing does — there is no HTTP layer. The union comments naming their constraints are the whole of the enforcement. **When a migration changes a CHECK vocabulary, grep the frontend for the old literals in the same change.**
 
 ### Core services
 
@@ -221,11 +228,17 @@ There is no lint script and no ESLint config — nothing lints this code. Pretti
 
 ## Workflow
 
-`main` is protected: branch as `feature/<short-description>` or `fix/<short-description>`, open a PR against `main` (link the issue with `Closes #123`), get 1 approval with CI green, then squash-merge and delete the branch. Commit messages are prefixed by area — `frontend:`, `backend:`, `db:`. See `CONTRIBUTING.md`.
+`main` is protected: branch as `feature/<short-description>` or `fix/<short-description>`, open a PR against `main` (link the issue with `Closes #123`), get 1 approval with CI green, then squash-merge and delete the branch. Commit messages are prefixed by area — `CONTRIBUTING.md` lists the prefixes in use.
 
-## Stale documents
+## Supporting documents
 
-Two files in and around the repo have fallen behind the code. Trust this file and the source over them:
+Both of these were stale and have been brought current — they no longer need to be read against a correction:
 
-- `docs/README.md` still lists `users.status` and `teams.status` among the unratified CHECK vocabularies. V2 settled both — `users.status` no longer exists.
-- `../BACKEND-STATUS.md` (outside the git root) is a point-in-time report pinned to commit `89f06ba` and says `src/main/java` contains exactly one file with no entities or repositories. That has not been true since the entity work landed.
+- `docs/README.md` — the record of which schema decisions are ratified and which are still proposals. Current as of V2.
+- `docs/BACKEND-STATUS.md` — the backend handover report, rewritten against `a8499ad`. It covers the entity conventions, the test traps and the security default in more depth than this file does.
+
+**These go stale the same way everything else here does.** This file, `docs/README.md` and `docs/BACKEND-STATUS.md` all describe the same schema from different angles, and nothing checks them against each other or against the database. A migration that changes a CHECK vocabulary, a DEFAULT or an `ON DELETE` rule has to update all three, plus the frontend union that mirrors it. When in doubt, read the live constraint rather than any of these:
+
+```powershell
+docker exec hackathon-pg16 psql -U postgres -d hackathon_db -c "\d+ teams"
+```

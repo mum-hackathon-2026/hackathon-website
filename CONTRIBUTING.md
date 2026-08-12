@@ -21,6 +21,8 @@ Keep them short and descriptive. Prefix with the area if useful:
 frontend: add team registration form
 backend: fix off-by-one in inventory check
 db: add index on submissions.team_id
+ci: run the frontend specs on every PR
+docs: bring the schema notes current
 ```
 
 ## Code review expectations
