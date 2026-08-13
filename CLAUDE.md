@@ -10,8 +10,8 @@ The git repository root is `hackathon-website/` (one level below the usual worki
 
 **The two halves are connected at exactly one seam: sign-in.** `POST /api/auth/google` and `GET /api/auth/me` are the only endpoints that exist, and `AuthService.signInWithGoogle()` is the only network call the frontend makes. Everything else on both sides is unchanged: no controller serves teams, submissions or judging, and every page still reads in-memory stand-ins. Read "there is an API now" as true of authentication and nothing else.
 
-- **Backend** — Flyway migrations V1 + V2, Postgres roles, CI service container, and **all 11 tables mapped**: `User`, `EventSettings`, `Team`, `TeamMember`, `Submission`, `JudgingCriteria`, `Assignment`, `Score`, `TeamResult`, `NotificationLog`, `AuditLog`. Each has a Spring Data repository and a JPA-slice test. Above that layer sits one feature package — `auth/` — and nothing else: no services, DTOs or controllers for any other feature.
-- **Frontend** — twelve page components behind thirteen routes covering all three roles (home, timeline, organisers, my team, my submission, progress ×2, judge portal, judge review, admin dashboard, results, sign-in, 404), a shared layout kit, and in-memory stand-ins for everything except sign-in. Zoneless Angular 21, standalone components, signals throughout. `app.config.ts` now provides `provideHttpClient()`, and `core/auth/auth.ts` is the only file that injects `HttpClient`.
+- **Backend** — Flyway migrations V1 + V2 + V3, Postgres roles, CI service container, and **all 11 tables mapped**: `User`, `EventSettings`, `Team`, `TeamMember`, `Submission`, `JudgingCriteria`, `Assignment`, `Score`, `TeamResult`, `NotificationLog`, `AuditLog`. Each has a Spring Data repository and a JPA-slice test. Nothing above that layer exists.
+- **Frontend** — twelve page components behind thirteen routes covering all three roles (home, timeline, organisers, my team, my submission, progress ×2, judge portal, judge review, admin dashboard, results, sign-in, 404), a shared layout kit, and in-memory stand-ins for the API. Zoneless Angular 21, standalone components, signals throughout.
 
 Both halves lean on **placeholder data that is marked as such in the source** — `DEMO_USERS` and `DEFAULT_EVENT_CONFIG` dates in the frontend, the seeds in `TeamService`, `SubmissionService` and `ResultsService`. Read the file header before treating any of it as a decision the team made. `DEMO_USERS` in particular now sits **beside** a working Google sign-in rather than instead of it — see *Authentication*.
 
@@ -41,7 +41,7 @@ Most of that second list is still an unratified proposal. Don't treat the remain
 - `users.role`, `submissions.status`, `team_results.outcome` — used verbatim by the frontend, so at least read and exercised, but never formally approved.
 - `assignments.status`, `notifications_log.type`, `notifications_log.status` — **never formally reviewed.** `assignments.status` is now consumed by the judge portal, which took V1's proposal verbatim rather than ratifying it; the two `notifications_log` vocabularies still have no consumer at all. Treat all three as a first draft.
 
-`docs/README.md` tracks decided versus open in full, and is current as of V2.
+`docs/README.md` tracks decided versus open in full, and is current as of V3.
 
 V1's own conventions, held throughout: `bigint generated always as identity` (never `bigserial`), `timestamptz` everywhere, `text` + `CHECK` over `varchar(n)`, **no Postgres ENUM types**, `numeric` for scored values (never float), and every FK column index-backed.
 
@@ -50,6 +50,13 @@ V1's own conventions, held throughout: `bigint generated always as identity` (ne
 - **`users.status` is gone.** Deletion is a **hard delete**, not a soft delete — a deleted user is removed from `users`, not flagged. There is no `'active' / 'suspended' / 'deleted'` column to filter on, and no `status` field on the `User` entity.
 - **`teams.status` no longer has `'submitted'`** — the vocabulary is `forming`, `complete`, `disqualified`, `withdrawn`. Submission state lives **only** on `submissions.status`, which keeps its full vocabulary (`draft`, `submitted`, `withdrawn`, `disqualified`). V1 recorded the same fact in both places with nothing keeping them in step. When you need to know whether a team submitted, join `submissions` — don't look at `teams.status`.
 - **`assignments.judge_id` is `ON DELETE CASCADE`** (V1 had `RESTRICT`). Under hard delete, `RESTRICT` would stop a judge deleting their own account for as long as they held any assignment. `scores.assignment_id` already cascades, so deleting a judge removes their assignments and their scores with them.
+
+**V3 moved registration off the site and onto a Google Form**, which changes who creates a user row and when:
+
+- **Registration is form-based.** A Google Form collects **one row per team** — a leader plus up to three more members, 1–4 total — with a name, email, phone, Google Drive resume link and LinkedIn URL per person. `tools/FormRegistrationImporter` imports the exported CSV. Nobody registers through the site.
+- **`users.google_sub` is nullable, and a NULL means "registered but has never signed in".** Only a real OAuth sign-in yields a subject claim, so the form cannot produce one; `AuthController` fills it in on first sign-in by matching on email. **`users` is therefore the sign-in allowlist** — the row exists before the person ever authenticates, and its existence is what permits them to. The UNIQUE constraint survives untouched because Postgres does not collide NULLs in a unique index.
+- **`users` gained `phone`, `resume_url` and `linkedin_url`, all nullable.** The form requires all three of every participant, but `users` is the accounts table, not the participants table: judges and admins are rows in it too and have no resume or LinkedIn. **Enforcement belongs to the form and the importer, not the database** — do not make these NOT NULL, and do not add a CHECK to the URL columns. V3 argues the case in a comment; read it before touching them.
+- **V3 changed nothing else.** No `submitted` flag on `teams`, nothing on `submissions`, nothing on `teams.status`.
 
 **The `ON DELETE` rules are now live behaviour, not a theoretical annotation.** While users were soft-deleted nothing exercised them; now that a delete really removes the row, each rule fires for real. Deleting a user cascades away their `team_members` row and (as a judge) their `assignments` and `scores`, and nulls out `teams.created_by`, `event_settings.updated_by`, `notifications_log.user_id` and `audit_log.actor_user_id`. That last one means **deleting a user anonymises their audit trail rather than deleting it** — the entries survive with a null actor.
 
@@ -73,9 +80,7 @@ copy src\main\resources\application-example.properties src\main\resources\applic
 
 ## Backend code
 
-Packages are by feature, not by layer, under `my.monash.hackathon.hackathon_website_backend`: `user/`, `team/` (`Team` + `TeamMember`), `event/`, `submission/`, `judging/` (`JudgingCriteria`, `Assignment`, `Score`), `result/`, `notification/`, `audit/`, and `auth/`. Keep that shape.
-
-`auth/` is the odd one out and is meant to be: it owns no table and no entity, and holds the whole HTTP surface the project currently has. Every other package stops at its repository.
+Packages are by feature, not by layer, under `my.monash.hackathon.hackathon_website_backend`: `user/`, `team/` (`Team` + `TeamMember`), `event/`, `submission/`, `judging/` (`JudgingCriteria`, `Assignment`, `Score`), `result/`, `notification/`, `audit/`. Keep that shape. `auth/` holds the Google sign-in slice; `tools/` holds standalone operator programs — currently the form-registration importer — which are plain `main` classes on raw JDBC and are the one place in the backend that is not Spring-managed.
 
 Repositories are deliberately thin — `JpaRepository` plus a handful of derived query methods (`findByEmail`, `findByJoinCode`, `findByJudgeId`, `findByIsActiveTrueOrderByDisplayOrder`, …). **There is no `@Query` anywhere in the codebase**; keep it that way until a query genuinely cannot be expressed derivationally.
 
@@ -174,9 +179,26 @@ Windows/PowerShell needs `.\mvnw.cmd` and quoted `-D` args; Mac/Linux uses `./mv
 .\mvnw.cmd -B clean verify                                      # what CI runs
 ```
 
+### Importing Google Form registrations
+
+`tools/FormRegistrationImporter` reads a CSV exported from the registration form's Google Sheet into `users`, `teams` and `team_members`. It is a plain `main` on raw JDBC — not a Spring bean — so it neither boots the context nor needs the Google client id, and it controls its own transactions. `exec-maven-plugin` is declared in `pom.xml` with the main class preconfigured; it has no `<executions>`, so it never runs as part of a build.
+
+```powershell
+.\mvnw.cmd compile exec:java "-Dexec.args=--file=../scripts/sample-form-registration.csv --dry-run"
+.\mvnw.cmd compile exec:java "-Dexec.args=--file=../scripts/registrations.csv"
+```
+
+Headers are matched case- and punctuation-insensitively (`Team Name`, `Member 1 Name`, `Member 1 Email`, `Member 1 Phone`, `Member 1 Resume`, `Member 1 LinkedIn`, and the same five for members 2–4); unknown columns such as Google's `Timestamp` are ignored. The tool prints the column mapping it derived and **refuses to run if the leader's block did not map**, because silently importing null resumes is the worst failure available to it.
+
+**It is idempotent** — the form keeps collecting, so it gets re-run. A team already present with exactly the CSV's members is skipped; a team whose name is taken but whose members differ is rejected rather than merged. **Each team is one transaction**, so nothing is ever half-written. `--dry-run` performs the real inserts and rolls back, so the constraints genuinely fire rather than being approximated.
+
+Rejections (duplicate email, a person on two teams, duplicate team name, size outside 1–4, malformed email, non-URL resume/LinkedIn) are reported per row with a readable reason and do **not** fail the command — a human reads the report and chases them. The final line is machine-readable with stable keys — `RESULT mode=live rows=8 imported=2 skipped=0 rejected=6` — so an unattended caller can detect rejects by parsing `rejected=` rather than the exit status; `mode` is included so a dry run can never be mistaken for a live one. Connection defaults are the local container as `hackathon_app`; override with `IMPORT_DB_URL` / `IMPORT_DB_USER` / `IMPORT_DB_PASSWORD` in preference to `--password`.
+
+`scripts/sample-form-registration.csv` is a worked example covering one valid 4-member team, a valid solo team, and one of each rejection.
+
 **Tests require a running Postgres.** H2 has been removed from `pom.xml` entirely — the baseline schema uses Postgres-specific DDL (`timestamptz`, `jsonb`, identity columns, cross-column CHECKs) that no substitute engine can execute. If a test fails with a connection error, the container is not running.
 
-`FlywayBaselineMigrationTests` cleans `hackathon_db_test`, re-applies every migration, and asserts that two migrations ran to target version `2`, that `flyway_schema_history` records V1 and V2 as successful, and that the expected tables exist. Because `flyway.clean()` drops everything and `DB_TEST_URL` is overridable, it **refuses to run** unless the live JDBC connection metadata shows a database ending in `/hackathon_db_test` — read from the connection, not from a property, so it cannot be fooled by config. It proves the migrations work **from empty**; it does not prove V2 applies on top of an existing V1 database, which is how teammates will meet it — start the app against the local database for that.
+`FlywayBaselineMigrationTests` cleans `hackathon_db_test`, re-applies every migration, and asserts that three migrations ran to target version `3`, that `flyway_schema_history` records V1, V2 and V3 as successful, and that the expected tables exist. **Adding a migration means updating this test** — the executed count and target version are asserted exactly. Because `flyway.clean()` drops everything and `DB_TEST_URL` is overridable, it **refuses to run** unless the live JDBC connection metadata shows a database ending in `/hackathon_db_test` — read from the connection, not from a property, so it cannot be fooled by config. It proves the migrations work **from empty**; it does not prove a new migration applies on top of a database at the previous version, which is how teammates will meet it — start the app against the local database for that.
 
 Test connection settings are environment-overridable so CI can supply its own: `DB_TEST_URL`, `DB_TEST_USER`, `DB_TEST_PASSWORD`, each defaulting to the local 5433 container.
 
@@ -264,7 +286,7 @@ There is no lint script and no ESLint config — nothing lints this code. Pretti
 
 Both of these were stale and have been brought current — they no longer need to be read against a correction:
 
-- `docs/README.md` — the record of which schema decisions are ratified and which are still proposals. Current as of V2.
+- `docs/README.md` — the record of which schema decisions are ratified and which are still proposals, plus how to run the form-registration importer and the column names it expects. Current as of V3.
 - `docs/PROJECT-STATUS.md` — the progress tracker: what is built across both halves, what is not, and what comes next, with a per-PR delivery log. It replaced the backend-only handover report. It defers to this file for conventions rather than repeating them.
 
 **These go stale the same way everything else here does.** This file, `docs/README.md` and `docs/PROJECT-STATUS.md` all describe the same system from different angles, and nothing checks them against each other or against the database. A migration that changes a CHECK vocabulary, a DEFAULT or an `ON DELETE` rule has to update all three, plus the frontend union that mirrors it. When in doubt, read the live constraint rather than any of these:

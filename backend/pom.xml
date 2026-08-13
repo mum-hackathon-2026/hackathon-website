@@ -140,6 +140,22 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<!-- Runs the standalone CSV importer against the project classpath, so it
+			     picks up the PostgreSQL driver without anyone assembling one by hand.
+			     See FormRegistrationImporter's javadoc for the command line.
+
+			     There is deliberately no executions block, so this never runs as part of
+			     the build; it only fires when exec:java is invoked explicitly. The version
+			     is pinned because spring-boot-starter-parent does not manage this plugin. -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<configuration>
+					<mainClass>my.monash.hackathon.hackathon_website_backend.tools.FormRegistrationImporter</mainClass>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
