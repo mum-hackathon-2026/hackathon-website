@@ -22,9 +22,14 @@ import org.hibernate.generator.EventType;
  * every query has to remember to filter out.
  *
  * <p>V3 made {@code google_sub} nullable and added {@code phone}, {@code resume_url} and
- * {@code linkedin_url}. Registration happens through a Google Form, so a participant's row
- * exists — and is what permits them to sign in — before they have ever authenticated with
- * Google. A null {@code googleSub} means exactly that: registered, never signed in.
+ * {@code linkedin_url}; V4 added {@code github_url}. Registration happens through a Google
+ * Form, so a participant's row exists — and is what permits them to sign in — before they
+ * have ever authenticated with Google. A null {@code googleSub} means exactly that:
+ * registered, never signed in.
+ *
+ * <p><strong>{@code githubUrl} here is the person, not a project.</strong> {@code Submission}
+ * has a {@code githubUrl} too and it is the team's hackathon repository. The two are
+ * unrelated despite sharing a column name.
  */
 @Entity
 @Table(name = "users")
@@ -72,12 +77,13 @@ public class User {
     @Column(name = "last_login_at")
     private OffsetDateTime lastLoginAt;
 
-    // The three fields below are collected per participant by the registration form and
-    // written by the CSV importer. All three are nullable in V3 on purpose: judges and
-    // admins are rows in this table too, are created by hand rather than by the form, and
-    // have no resume or LinkedIn profile to record. The form and the importer enforce the
-    // requirement for participants; the database deliberately does not. See V3 for the
-    // full reasoning before making any of them non-null.
+    // The four fields below are collected per participant by the registration form and
+    // written by the CSV importer. All four are nullable on purpose (V3 for the first
+    // three, V4 for githubUrl): judges and admins are rows in this table too, are created
+    // by hand rather than by the form, and have no resume, LinkedIn or GitHub profile to
+    // record. The form and the importer enforce the requirement for participants; the
+    // database deliberately does not. See V3 and V4 for the full reasoning before making
+    // any of them non-null.
 
     @Column(name = "phone")
     private String phone;
@@ -88,6 +94,18 @@ public class User {
 
     @Column(name = "linkedin_url")
     private String linkedinUrl;
+
+    /**
+     * The participant's own GitHub profile, collected at registration so admins can screen
+     * applicants. Added by V4.
+     *
+     * <p><strong>Not the same column as {@code Submission.githubUrl}</strong>, which is the
+     * repository for a team's hackathon project. This one is a person; that one is an
+     * artefact. Both are called {@code github_url} in their own table, so a query joining
+     * the two can pick up a profile URL where it wanted a repo with nothing to catch it.
+     */
+    @Column(name = "github_url")
+    private String githubUrl;
 
     /**
      * Owned by the database, which fills it from DEFAULT now(). It is left out of both
@@ -181,6 +199,14 @@ public class User {
 
     public void setLinkedinUrl(String linkedinUrl) {
         this.linkedinUrl = linkedinUrl;
+    }
+
+    public String getGithubUrl() {
+        return githubUrl;
+    }
+
+    public void setGithubUrl(String githubUrl) {
+        this.githubUrl = githubUrl;
     }
 
     public OffsetDateTime getCreatedAt() {
