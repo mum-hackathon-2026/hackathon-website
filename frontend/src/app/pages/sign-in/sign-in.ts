@@ -77,8 +77,7 @@ export class SignIn implements AfterViewInit {
       return;
     }
 
-    // Replace with your Google OAuth Client ID or placeholder
-    const clientId = 'YOUR_GOOGLE_CLIENT_ID';
+    const clientId = '501736662413-eld3psa4vnmuf4ktebbde62s06cflc3r.apps.googleusercontent.com';
 
     try {
       window.google.accounts.id.initialize({
