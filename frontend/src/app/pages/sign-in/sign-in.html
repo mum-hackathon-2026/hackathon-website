@@ -1,25 +1,73 @@
 <section class="sign-in">
-  <p class="section-eyebrow section-eyebrow--center">Sign in</p>
-  <h1 class="section-heading section-heading--center">Pick a demo account.</h1>
+  <p class="section-eyebrow section-eyebrow--center">Authentication</p>
+  <h1 class="section-heading section-heading--center">Sign in to Monash Hackathon</h1>
   <p class="sign-in__blurb">
-    Real sign-in arrives with Google authentication. Until then, choose an account to explore what
-    each role sees.
+    Only registered participants, judges, and administrators in the database are allowed to sign in.
   </p>
 
-  <ul class="sign-in__accounts">
-    @for (role of roles; track role) {
-      <li>
-        <button type="button" class="sign-in__account role--{{ role }}" (click)="signIn(role)">
-          <span class="sign-in__avatar" aria-hidden="true">{{ accounts[role].initials }}</span>
-          <span class="sign-in__details">
-            <span class="sign-in__name">{{ accounts[role].name }}</span>
-            <span class="sign-in__email">{{ accounts[role].email }}</span>
-          </span>
-          <span class="sign-in__role-tag role--{{ role }}">{{ roleLabels[role] }}</span>
-        </button>
-      </li>
+  @if (errorMessage()) {
+    <div class="sign-in__error-alert" role="alert">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <div class="sign-in__google-section">
+    <div #googleBtnContainer class="sign-in__google-btn"></div>
+
+    @if (isLoading()) {
+      <p class="sign-in__loading">Authenticating with server...</p>
     }
-  </ul>
+  </div>
+
+  <div class="sign-in__divider">
+    <span>OR</span>
+  </div>
+
+  <div class="sign-in__manual-section">
+    <button type="button" class="sign-in__toggle-btn" (click)="toggleManualInput()">
+      {{ showManualInput() ? 'Hide ID Token Input' : 'Paste Google ID Token directly' }}
+    </button>
+
+    @if (showManualInput()) {
+      <form (submit)="$event.preventDefault(); submitManualToken()" class="sign-in__manual-form">
+        <textarea
+          class="sign-in__manual-textarea"
+          [(ngModel)]="manualToken"
+          name="manualToken"
+          placeholder="Paste raw Google ID token (JWT) here to test POST /api/auth/google..."
+          rows="3"
+        ></textarea>
+        <button type="submit" class="sign-in__submit-token-btn" [disabled]="!manualToken().trim() || isLoading()">
+          Verify & Sign In
+        </button>
+      </form>
+    }
+  </div>
+
+  <div class="sign-in__demo-section">
+    <h2 class="sign-in__subheading">Demo / Testing Accounts</h2>
+    <p class="sign-in__subblurb">Use demo accounts below for UI testing when offline.</p>
+
+    <ul class="sign-in__accounts">
+      @for (role of roles; track role) {
+        <li>
+          <button type="button" class="sign-in__account role--{{ role }}" (click)="signIn(role)">
+            <span class="sign-in__avatar" aria-hidden="true">{{ accounts[role].initials }}</span>
+            <span class="sign-in__details">
+              <span class="sign-in__name">{{ accounts[role].name }}</span>
+              <span class="sign-in__email">{{ accounts[role].email }}</span>
+            </span>
+            <span class="sign-in__role-tag role--{{ role }}">{{ roleLabels[role] }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  </div>
 
   <p class="sign-in__footnote">
     <a class="sign-in__back" routerLink="/">Back to the homepage</a>
