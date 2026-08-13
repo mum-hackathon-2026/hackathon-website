@@ -8,11 +8,26 @@ It is **structural only**. It defines the tables, their columns, the primary key
 
 It does **not** specify data types, `ON DELETE` behaviour, CHECK vocabularies, or team size limits. Those were left to be decided separately, and the sections below track how far that has got.
 
-**The PDF is no longer the whole schema.** `V2__hard_delete_and_status_cleanup.sql` and `V3__form_registration.sql` changed things the diagram still shows the old way — read V1, V2 *and* V3, or read the live database, before trusting a slide.
+**The PDF is no longer the whole schema.** `V2__hard_delete_and_status_cleanup.sql`, `V3__form_registration.sql` and `V4__add_user_github_url.sql` changed things the diagram still shows the old way — read V1 through V4, or read the live database, before trusting a slide.
 
 ## Ratified — settled, do not reopen
 
-**V2 and V3 closed these.** The migration files carry the full reasoning for each; this is the summary.
+**V2, V3 and V4 closed these.** The migration files carry the full reasoning for each; this is the summary.
+
+### V4 — `users.github_url`, and the two columns that share its name
+
+The registration form collects **three links per person** so an admin can screen applicants before accepting them: a resume (Google Drive), a **GitHub account**, and a LinkedIn profile. V3 added two of the three and missed GitHub; V4 adds it.
+
+- **`users.github_url` is `text` and NULLABLE**, for exactly the reason the V3 columns are: judges and admins are rows in `users` too, are created by hand rather than by the form, and have no GitHub profile. `NOT NULL` would make adding a judge impossible without inventing a value. **Enforcement belongs to the form and the importer.** No CHECK constraint either, for the same reason V3 gives.
+
+> **⚠ There are now two columns called `github_url`, and they are different things.**
+>
+> | Column | What it is | Written by |
+> | ------ | ---------- | ---------- |
+> | `users.github_url` | **The person.** Their own GitHub account, collected at registration for screening. | The form importer, once |
+> | `submissions.github_url` | **The project.** The repository for what the team built during the hackathon. | The team, while they work |
+>
+> One is an identity, the other an artefact. A query joining `users` to `submissions` can select both and get a profile URL where it wanted a repo, with nothing to catch it — **always qualify which one you mean.** Both carry a `COMMENT ON COLUMN` saying so, readable with `\d+ users` / `\d+ submissions`. V4 only *comments* `submissions.github_url`; its V1 `submissions_github_url_check` is untouched.
 
 ### V3 — registration moved to a Google Form
 
@@ -51,9 +66,12 @@ Expected columns, matched **case- and punctuation-insensitively**, with unrecogn
 
 ```
 Team Name
-Member 1 Name, Member 1 Email, Member 1 Phone, Member 1 Resume, Member 1 LinkedIn
-... and the same five for Member 2, Member 3 and Member 4.
+Member 1 Name, Member 1 Email, Member 1 Phone, Member 1 Resume, Member 1 LinkedIn,
+Member 1 GitHub
+... and the same six for Member 2, Member 3 and Member 4.
 ```
+
+`Member N GitHub` feeds `users.github_url` — **the person's own account**. The importer matches `github`, `github url`, `github link`, `github profile`, `github account` and `github username`, and deliberately matches nothing containing "project" or "repo", so a form question about a project repository cannot silently land in a participant's profile column.
 
 The importer prints which CSV column fed which field before it touches the database, and **refuses to run if the leader's block did not map** — importing everyone with a silently-null resume is the worst thing it could do.
 
@@ -61,7 +79,7 @@ The importer prints which CSV column fed which field before it touches the datab
 
 `--dry-run` does the identical work and then rolls back instead of committing, so every CHECK, UNIQUE index and foreign key really does fire rather than being approximated.
 
-Rejections are reported per row and never crash the run — duplicate email, a person listed on two teams, a duplicate team name, a team outside 1–4, a malformed email, and a resume or LinkedIn value that is not a URL. Rejects do **not** fail the command; a human reads the report and chases them.
+Rejections are reported per row and never crash the run — duplicate email, a person listed on two teams, a duplicate team name, a team outside 1–4, a malformed email, and a resume, LinkedIn or GitHub value that is not a URL. Rejects do **not** fail the command; a human reads the report and chases them.
 
 The **last line is machine-readable** and its keys are stable, for the day this runs unattended:
 
