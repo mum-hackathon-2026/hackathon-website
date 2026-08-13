@@ -58,7 +58,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 - [x] **`JwtService`** — HS256, claims `sub`/`email`/`role`/`name`, expiry from `app.jwt.expiration-ms`
 - [x] **Config validated at startup** — `app.jwt.secret` (≥32 chars) and `app.google.client-id` are `@NotBlank`, so a missing value fails the boot rather than a request
 
-> **Zero tests.** The `auth/` package has no test class, and the frontend specs cover the demo path only. CI compiles this code and never executes it — it is the least-verified code in the repo. See [§4](#4-what-is-not-done).
+> **Zero tests on the backend side.** The `auth/` package has no test class: CI compiles it and never executes it, making it the least-verified code in the repo. The frontend has one wiring test (the client id comes from the token) and otherwise covers the demo path only. See [§4](#4-what-is-not-done).
 
 ### Tests
 
@@ -103,7 +103,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 ### Core services (`src/app/core/`)
 
-- [x] `auth/` — `AuthService` with **two sign-in paths**: `signInWithGoogle()` (real, POSTs to the backend, stores the JWT under `hackathon.jwt-token`) and `signIn(role)` (the original demo path, no network, still what the specs and role buttons use). Both feed one `currentUser` signal, so nothing downstream can tell them apart. Plus the `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`), `SESSION_STORAGE` and `API_BASE_URL` tokens
+- [x] `auth/` — `AuthService` with **two sign-in paths**: `signInWithGoogle()` (real, POSTs to the backend, stores the JWT under `hackathon.jwt-token`) and `signIn(role)` (the original demo path, no network, still what the specs and role buttons use). Both feed one `currentUser` signal, so nothing downstream can tell them apart. Plus the `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`) and three injection tokens — `SESSION_STORAGE`, `API_BASE_URL`, `GOOGLE_CLIENT_ID`
 - [x] `event/` — `EVENT_CONFIG` token, `PhaseService`, `MilestoneService`, static site copy
 - [x] `team/`, `submission/`, `results/` — participant-scoped stand-ins
 - [x] `judge/` — assignments, scores, criteria; validation repeats the tables' CHECK constraints so the UI never accepts what the API would reject
@@ -141,7 +141,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Tests
 
-- [x] **27 spec files / 324 tests**, colocated, no database or dev server needed
+- [x] **27 spec files / 325 tests**, colocated, no database or dev server needed
 - [x] Zoneless Angular 21 throughout — signals for state, `await fixture.whenStable()` in tests, vitest under jsdom (not Karma)
 
 ---
@@ -159,8 +159,8 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Smaller gaps
 
-- [ ] **The initial bundle is over budget.** 517.20 kB against a 500 kB warning threshold (it was 490.74 kB before the HTTP layer). `npm run build` warns and still exits 0, so **CI does not catch this** — only the 1 MB error threshold fails a build.
-- [ ] **The Google client ID is hardcoded** in `sign-in.ts` rather than behind a token like `API_BASE_URL`. Public by design, so not a leaked secret — but it is a deployment value sitting in a component.
+- [ ] **The initial bundle is over budget.** 517.29 kB against a 500 kB warning threshold (it was 490.74 kB before the HTTP layer). `npm run build` warns and still exits 0, so **CI does not catch this** — only the 1 MB error threshold fails a build.
+- [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
 - [ ] **No linting.** No ESLint config and no lint script; Prettier is the only tool configured and it only formats. CI marks where the step goes.
 - [ ] **Uneven test coverage.** Every routed page has a spec, but `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts` have none, and most presentational pieces are untested — `page-header`, `profile-menu`, `state-locked`, `event-timeline`, `status-pill`, and the section components under `progress/`, `results/`, `judge-portal/`, `judge-review/`, `admin-dashboard/` and parts of `home/`.
 - [ ] **Six CHECK vocabularies remain unratified** — see [docs/README.md](README.md). Three are at least exercised by the frontend; three (`assignments.status`, `notifications_log.type`, `notifications_log.status`) had never been reviewed until the judge pages started consuming the first of them.
@@ -225,14 +225,14 @@ Running alongside, and not waiting on any of the above: **the five remaining wor
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npx ng test --watch=false` | **27 files, 324 tests passed** | `523911f`, 2026-08-13 |
-| Frontend | `npm run build` | **517.20 kB initial — ⚠️ budget warning, exit 0** | `523911f`, 2026-08-13 |
+| Frontend | `npx ng test --watch=false` | **27 files, 325 tests passed** | this branch, 2026-08-13 |
+| Frontend | `npm run build` | **517.29 kB initial — ⚠️ budget warning, exit 0** | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
 **The backend suite was not re-run for this pass** — no Postgres was reachable, so only compilation was verified. The 44-test figure is carried forward from `98e50df` and predates the `auth/` package; since `auth/` has no tests of its own, the count is expected to be unchanged, but nobody has confirmed the context still loads against a real database with the new validated properties in play. Run `./mvnw -B clean verify` with the container up before relying on it.
 
-The spec count has not moved since #29 either: neither the Assignments section nor the auth work added a spec. The initial bundle did move — 490.74 kB → 517.20 kB — and is now past the **warning** threshold. The admin route is still the only lazy one (its chunk holds 75.02 kB), so everything else lands in the initial bundle. The hard error is 1 MB, which is why CI is still green.
+The spec count barely moved: neither the Assignments section nor the auth work added a spec, and the one new test here (325, up from 324) is the client-id wiring. The initial bundle did move — 490.74 kB → 517.29 kB — and is now past the **warning** threshold. The admin route is still the only lazy one (its chunk holds 75.02 kB), so everything else lands in the initial bundle. The hard error is 1 MB, which is why CI is still green.
 
 The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
 

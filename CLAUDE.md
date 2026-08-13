@@ -119,7 +119,7 @@ The one place the two halves meet. Eight classes in `backend/.../auth/` plus `co
 - **The demo path is still live.** `signIn(role)` picks a `DEMO_USERS` entry with no network call and no token, and the sign-in page still renders one button per role. Guards do not distinguish the two, so a demo session passes every `canActivate` in the app — they gate navigation, and only the backend chain gates data.
 - **No test covers any of it.** The backend `auth/` package has no test class, and the frontend specs exercise the demo path only. CI compiles this code but never runs it.
 
-`sign-in.ts` hardcodes the Google client id as a literal in `initGoogleButton()`. A client id is public by design so this is not a leaked secret, but it is a deployment value living in a component while the sibling `API_BASE_URL` is an `InjectionToken` — move it to a token when this page is next touched.
+**The client id exists twice and the two copies must agree.** `GOOGLE_CLIENT_ID` in `core/auth/auth.ts` (a token, defaulting to the configured id) is what the browser sends to Google; `app.google.client-id` is what `GoogleTokenVerifier` sets as the expected audience. A mismatch fails audience verification, so login answers 401 while both halves look correctly configured in isolation. Change them together.
 
 ## Frontend code
 
@@ -213,9 +213,9 @@ npx prettier --write .                       # only formatting tool configured
 
 Production budgets are 500 kB warning / 1 MB error on the initial bundle and 4 kB / 8 kB per component stylesheet. Specs are colocated (`team.ts` → `team.spec.ts`) and need no database or dev server.
 
-**The initial bundle is currently over the warning threshold — 517.20 kB against a 500 kB budget.** It was 490.74 kB before the auth work; `provideHttpClient()` and the `rxjs` behind it are eager, and the admin dashboard is the only lazy route, so the +26 kB landed in the initial chunk. `npm run build` prints a `WARNING` and still exits 0, so **CI stays green while the budget is breached** — only the 1 MB error threshold fails a build. Lazy-loading another route is the way back under.
+**The initial bundle is currently over the warning threshold — 517.29 kB against a 500 kB budget.** It was 490.74 kB before the auth work; `provideHttpClient()` and the `rxjs` behind it are eager, and the admin dashboard is the only lazy route, so the +26 kB landed in the initial chunk. `npm run build` prints a `WARNING` and still exits 0, so **CI stays green while the budget is breached** — only the 1 MB error threshold fails a build. Lazy-loading another route is the way back under.
 
-Coverage is uneven and thinner than it looks. Every routed page has a spec, but four `core/` files have none — `results/results.ts`, `event/milestones.ts`, `event/event-content.ts`, `event/event-config.ts` — and most presentational pieces are untested (`page-header`, `state-locked`, `profile-menu`, `event-timeline`, `stage-list`, `rankings-table`, `judge-reviews`, and several `home/` sections). `auth.spec.ts` and `sign-in.spec.ts` predate the Google flow and cover the demo path only: `signInWithGoogle`, the GIS script loading and the 401/403 error branches have no test on either side of the wire.
+Coverage is uneven and thinner than it looks. Every routed page has a spec, but four `core/` files have none — `results/results.ts`, `event/milestones.ts`, `event/event-content.ts`, `event/event-config.ts` — and most presentational pieces are untested (`page-header`, `state-locked`, `profile-menu`, `event-timeline`, `stage-list`, `rankings-table`, `judge-reviews`, and several `home/` sections). `auth.spec.ts` and `sign-in.spec.ts` cover the demo path plus one GIS test (that the client id comes from `GOOGLE_CLIENT_ID`); `signInWithGoogle` itself, the script loading and the 401/403 error branches are untested, as is the whole backend `auth/` package.
 
 There is no lint script and no ESLint config — nothing lints this code. Prettier is the only tool configured, and it only formats. CI no longer has a lint step at all; the workflow marks where one goes once ESLint is configured.
 
