@@ -80,9 +80,13 @@ public final class FormRegistrationImporter {
     // Google identity yet, so the column takes its NULL. V3 dropped NOT NULL precisely so
     // this insert is possible. role and email_verified are stated rather than left to the
     // column DEFAULT so the tool's intent is legible in the SQL itself.
+    // github_url below is users.github_url - the PERSON's own account, collected for
+    // screening. It is not submissions.github_url, which is a team's project repository;
+    // this tool never touches submissions at all.
     private static final String INSERT_USER = """
-            insert into users (email, full_name, role, email_verified, phone, resume_url, linkedin_url)
-            values (?, ?, 'participant', false, ?, ?, ?)
+            insert into users (email, full_name, role, email_verified, phone, resume_url,
+                               linkedin_url, github_url)
+            values (?, ?, 'participant', false, ?, ?, ?, ?)
             """;
 
     // status and shortlisted take their column DEFAULTs ('forming', false). Submission
@@ -393,6 +397,7 @@ public final class FormRegistrationImporter {
             setNullable(statement, 3, member.phone());
             setNullable(statement, 4, member.resumeUrl());
             setNullable(statement, 5, member.linkedinUrl());
+            setNullable(statement, 6, member.githubUrl());
             statement.executeUpdate();
             try (ResultSet keys = statement.getGeneratedKeys()) {
                 if (!keys.next()) {
@@ -593,7 +598,7 @@ public final class FormRegistrationImporter {
                     + "present. Importing without them would silently store nulls.");
             System.out.println("Rename the sheet's header row to the canonical names, e.g. "
                     + "'Member 1 Name', 'Member 1 Email', 'Member 1 Phone', 'Member 1 Resume', "
-                    + "'Member 1 LinkedIn'.");
+                    + "'Member 1 LinkedIn', 'Member 1 GitHub'.");
             return false;
         }
         return true;
@@ -710,8 +715,12 @@ public final class FormRegistrationImporter {
 
                   Team Name
                   Member 1 Name, Member 1 Email, Member 1 Phone, Member 1 Resume,
-                  Member 1 LinkedIn
-                  ... and the same five for Member 2, Member 3 and Member 4.
+                  Member 1 LinkedIn, Member 1 GitHub
+                  ... and the same six for Member 2, Member 3 and Member 4.
+
+                Member N GitHub is the PERSON's GitHub account, collected so admins can
+                screen applicants. It is not a project repository - this tool never
+                writes submissions.github_url.
 
                 Re-running is safe. A team already in the database with exactly the members
                 the CSV lists is reported and left alone; each team is one transaction, so

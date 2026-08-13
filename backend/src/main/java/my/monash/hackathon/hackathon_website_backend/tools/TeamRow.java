@@ -53,8 +53,12 @@ final class TeamRow {
 
     private static final List<String> TEAM_NAME_HEADERS = List.of("teamname", "team");
 
+    /**
+     * {@code githubUrl} is the person's own GitHub account, collected for screening. It is
+     * unrelated to {@code submissions.github_url}, which is a team's project repository.
+     */
     record Member(int block, String fullName, String email, String phone, String resumeUrl,
-                  String linkedinUrl) {}
+                  String linkedinUrl, String githubUrl) {}
 
     /** A row that could not be interpreted; {@code reason} is written for a human. */
     static final class InvalidRowException extends RuntimeException {
@@ -100,13 +104,18 @@ final class TeamRow {
         return warnings;
     }
 
-    /** The five values collected per person, with the header spellings each will match. */
+    /** The six values collected per person, with the header spellings each will match. */
     enum Field {
         NAME("Name", "name", "fullname"),
         EMAIL("Email", "email", "emailaddress"),
         PHONE("Phone", "phone", "phonenumber", "contactnumber", "mobile"),
         RESUME("Resume", "resume", "resumeurl", "resumelink", "cv", "cvlink"),
-        LINKEDIN("LinkedIn", "linkedin", "linkedinurl", "linkedinlink", "linkedinprofile");
+        LINKEDIN("LinkedIn", "linkedin", "linkedinurl", "linkedinlink", "linkedinprofile"),
+        // The person's own account. Nothing here matches a "project"/"repo" spelling on
+        // purpose — submissions.github_url is a different column with a different meaning,
+        // and a header called "Project GitHub" must not silently land in users.github_url.
+        GITHUB("GitHub", "github", "githuburl", "githublink", "githubprofile",
+                "githubaccount", "githubusername");
 
         private final String label;
         private final List<String> suffixes;
@@ -255,8 +264,10 @@ final class TeamRow {
         String resumeUrl = validateUrl(values.get(Field.RESUME), "resume", who, fullName, warnings);
         String linkedinUrl =
                 validateUrl(values.get(Field.LINKEDIN), "LinkedIn", who, fullName, warnings);
+        String githubUrl =
+                validateUrl(values.get(Field.GITHUB), "GitHub", who, fullName, warnings);
 
-        return new Member(block, fullName, email, phone, resumeUrl, linkedinUrl);
+        return new Member(block, fullName, email, phone, resumeUrl, linkedinUrl, githubUrl);
     }
 
     /**
