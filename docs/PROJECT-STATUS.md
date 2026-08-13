@@ -12,7 +12,7 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 
 | Area | State | One line |
 | ---- | ----- | -------- |
-| **Database** | 🟢 Done | 11 tables across V1 + V2, live and migrating cleanly |
+| **Database** | 🟢 Done | 11 tables across V1 + V2 + V3, live and migrating cleanly |
 | **Backend persistence** | 🟢 Done | All 11 tables mapped, 11 repositories, 44 tests passing |
 | **Backend API** | 🔴 Not started | Zero controllers, services, DTOs — no HTTP endpoint exists |
 | **Backend security** | 🔴 Not started | Starter on the classpath, no `SecurityFilterChain` written |
@@ -33,6 +33,7 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 
 - [x] **V1 `V1__baseline_schema.sql`** — creates all 11 tables, seeds the `event_settings` singleton inert (registration windows null, judging closed, nothing published)
 - [x] **V2 `V2__hard_delete_and_status_cleanup.sql`** — ratifies hard delete, the `teams.status` cleanup, and the judge cascade
+- [x] **V3 `V3__form_registration.sql`** — registration moves to a Google Form: `users.google_sub` becomes nullable (NULL = registered, never signed in), and `phone` / `resume_url` / `linkedin_url` are added, all nullable because judges and admins are rows in `users` too
 - [x] Conventions held throughout V1: `bigint generated always as identity`, `timestamptz`, `text` + `CHECK` over `varchar(n)`, no Postgres `ENUM` types, `numeric` for scored values, every FK index-backed
 - [x] **Two Postgres roles with a privilege split** (`scripts/bootstrap.sql`) — `hackathon_migrator` owns the schema and runs Flyway; `hackathon_app` is DML-only with no DDL
 - [x] Local Postgres 16 in Docker (`hackathon-pg16`) on **5433**
@@ -117,7 +118,9 @@ The 11 tables: `users`, `event_settings`, `teams`, `team_members`, `submissions`
 - **Teams** — no `locked` status in `teams_status_check`, so no Lock action; Withdraw and Disqualify are the settled states that do exist.
 - **Assignments** — supported as drawn. Two departures are constraints rather than choices: a repeat assignment is refused (`assignments_team_id_judge_id_key` is UNIQUE, where the draft ignores it silently), and removing a judge who has started asks first, because `scores.assignment_id` is `ON DELETE CASCADE` and their scores go with the row.
 
-> **`AdminJudge.isActive` is gone.** It was documented as a `users` column and there has never been one — V1's `users.status` was dropped by V2 and nothing replaced it. Being a judge is holding `users.role = 'judge'`; there is no separate active flag, and the draft's `pending` state cannot exist at all while `users.google_sub` is NOT NULL, since a row only appears once that person has signed in. The Overview's "Active judges" tile is now a plain judge count.
+> **`AdminJudge.isActive` is gone.** It was documented as a `users` column and there has never been one — V1's `users.status` was dropped by V2 and nothing replaced it. Being a judge is holding `users.role = 'judge'`; there is no separate active flag, so the Overview's "Active judges" tile is now a plain judge count.
+>
+> **The draft's `pending` state, however, is now representable — V3 changed this.** While `users.google_sub` was NOT NULL a row could only appear once that person had signed in, so "invited but not yet joined" had nowhere to live. V3 dropped that NOT NULL: **a row with a NULL `google_sub` is exactly a person who is registered but has never signed in**, which is what the form importer creates for every participant. The same shape would represent a judge who has been added to the allowlist but has not yet logged in. Nothing in the admin UI reads it yet — this is a state the schema can now hold, not a feature that exists.
 
 All seven mirror their tables field for field, and the three team-facing ones share seed data on purpose so they do not describe different universes.
 
