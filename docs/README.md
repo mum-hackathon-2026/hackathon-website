@@ -85,7 +85,7 @@ The frontend codes against these strings verbatim, so they have at least been re
 
 | Column | Current values |
 | ------ | -------------- |
-| `users.role` | `participant`, `judge`, `admin` |
+| `users.role` | `participant`, `judge`, `admin` — now also written verbatim in `SecurityConfig` (`hasAuthority("admin")`, `hasAuthority("judge")`) and issued as a JWT claim, so a change here moves who can reach `/api/admin/**` as well as breaking a TypeScript union |
 | `submissions.status` | `draft`, `submitted`, `withdrawn`, `disqualified` |
 | `team_results.outcome` | `winner`, `runner_up`, `finalist`, `participant`, `disqualified` |
 
