@@ -71,10 +71,11 @@ export class AdminOverview {
         tone: 'amber',
       },
       {
-        label: 'Active judges',
-        value: s.activeJudges,
-        sub: `${s.judges} on the panel`,
-        section: 'judges',
+        label: 'Judges',
+        value: s.judges,
+        sub:
+          s.unassignedTeams > 0 ? `${s.unassignedTeams} teams unassigned` : 'every team assigned',
+        section: 'assignments',
         tone: 'sky',
       },
       {

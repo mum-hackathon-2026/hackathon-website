@@ -1,0 +1,61 @@
+/* Panel chrome is repeated rather than shared: `_admin-table.scss` compiles
+   into every component that uses it, and this one needs none of the rest. */
+
+.panel {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.panel__title {
+  margin: 0 0 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.loads {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.load {
+  display: grid;
+  gap: 3px;
+  font-size: 11.5px;
+}
+
+.load__name {
+  font-weight: 600;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.load__track {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-hairline);
+  overflow: hidden;
+}
+
+.load__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-blue);
+}
+
+.load__count {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}

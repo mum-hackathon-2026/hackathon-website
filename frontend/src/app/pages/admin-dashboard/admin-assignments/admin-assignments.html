@@ -1,0 +1,169 @@
+<p class="lede">{{ summary() }}</p>
+
+@if (error(); as message) {
+  <p class="banner banner--error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner--notice" role="status">{{ message }}</p>
+}
+
+<!-- ── New assignment ─────────────────────────────────────────────────────── -->
+
+<section class="panel" aria-labelledby="assign-heading">
+  <h2 class="panel__title" id="assign-heading">New assignment</h2>
+
+  <div class="assign">
+    <div class="assign__field">
+      <label class="assign__label" for="assign-team">Team</label>
+      <select
+        id="assign-team"
+        class="input"
+        name="assignTeam"
+        [ngModel]="draftTeam()"
+        (ngModelChange)="draftTeam.set($event)"
+      >
+        <option value="">Select a team…</option>
+        @for (team of assignableTeams(); track team.teamId) {
+          <option [value]="team.teamId">
+            {{ team.teamName }} — {{ team.judges.length }} assigned
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="assign__field">
+      <label class="assign__label" for="assign-judge">Judge</label>
+      <select
+        id="assign-judge"
+        class="input"
+        name="assignJudge"
+        [ngModel]="draftJudge()"
+        (ngModelChange)="draftJudge.set($event)"
+      >
+        <option value="">Select a judge…</option>
+        @for (judge of judgeOptions(); track judge.userId) {
+          <option [value]="judge.userId">{{ judge.name }} — {{ judge.assigned }} assigned</option>
+        }
+      </select>
+    </div>
+
+    <button type="button" class="button button--primary" [disabled]="pending()" (click)="assign()">
+      Assign
+    </button>
+  </div>
+</section>
+
+<app-judge-workload [judges]="judgeOptions()" />
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="assignment-search">Search teams</label>
+  <input
+    id="assignment-search"
+    class="input filters__search"
+    type="search"
+    name="assignmentSearch"
+    placeholder="Search team"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="assignment-coverage">Filter by coverage</label>
+  <select
+    id="assignment-coverage"
+    class="input"
+    name="assignmentCoverage"
+    [ngModel]="coverage()"
+    (ngModelChange)="coverage.set($event)"
+  >
+    @for (option of coverageFilters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+
+@if (rows().length === 0) {
+  <p class="empty">No teams match that search.</p>
+} @else {
+  <div class="scroller">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th scope="col">Team</th>
+          <th scope="col">Track</th>
+          <th scope="col">Assigned judges</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.teamId) {
+          <tr>
+            <td>
+              <span class="grid__team">{{ row.teamName }}</span>
+              @if (row.underAssigned) {
+                <span class="grid__issue">
+                  <span>Short of a full panel</span>
+                </span>
+              }
+            </td>
+            <td>
+              <span class="pill">{{ row.trackLabel }}</span>
+            </td>
+            <td>
+              @if (row.judges.length === 0) {
+                <span class="grid__none">Unassigned</span>
+              } @else {
+                <span class="chips">
+                  @for (judge of row.judges; track judge.id) {
+                    <span class="chip" [class]="'chip--' + judge.status">
+                      <span class="chip__name">{{ judge.judgeName }}</span>
+                      <span class="chip__status">{{ statusLabels[judge.status] }}</span>
+                      <button
+                        type="button"
+                        class="chip__remove"
+                        [disabled]="pending()"
+                        [attr.aria-label]="'Remove ' + judge.judgeName + ' from ' + row.teamName"
+                        (click)="remove(row, judge)"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  }
+                </span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<p class="note">
+  Removing a judge deletes the <code>assignments</code> row, and
+  <code>scores.assignment_id</code> is <code>ON DELETE CASCADE</code> — so any scores they had
+  already given go with it, and re-assigning starts them from nothing. A judge who has not opened
+  the review yet loses nothing, so only the others ask first.
+</p>
+
+@if (removing(); as target) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="'Remove ' + target.assignment.judgeName + ' from ' + target.row.teamName + '?'"
+    [body]="
+      target.assignment.status === 'completed'
+        ? 'They have submitted this review. Removing the assignment deletes their scores along with it, and that cannot be undone.'
+        : 'They have started this review. Removing the assignment deletes the scores they have given so far, and that cannot be undone.'
+    "
+    confirmLabel="Remove judge"
+    [danger]="true"
+    (confirmed)="confirmRemoval()"
+    (cancelled)="removing.set(null)"
+  />
+}
