@@ -20,9 +20,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * service container when DB_TEST_URL is set. There is no in-memory fallback on purpose:
  * V1 uses Postgres-specific DDL that a substitute engine could not execute.
  *
- * <p>This proves the migrations work from empty. It does not prove V2 applies on top of an
- * existing V1 database, which is how every teammate will actually encounter it — that path
- * is exercised by starting the app against the long-lived local database.
+ * <p>This proves the migrations work from empty. It does not prove a new migration applies
+ * on top of an existing database at the previous version, which is how every teammate will
+ * actually encounter it — that path is exercised by starting the app against the long-lived
+ * local database.
  */
 @SpringBootTest
 class FlywayBaselineMigrationTests {
@@ -64,8 +65,8 @@ class FlywayBaselineMigrationTests {
 
         MigrateResult result = flyway.migrate();
 
-        assertThat(result.migrationsExecuted).isEqualTo(2);
-        assertThat(result.targetSchemaVersion).isEqualTo("2");
+        assertThat(result.migrationsExecuted).isEqualTo(3);
+        assertThat(result.targetSchemaVersion).isEqualTo("3");
 
         Map<String, Object> baselineRow = jdbcTemplate.queryForMap(
                 "select version, description, success from flyway_schema_history where version = ?",
@@ -84,6 +85,15 @@ class FlywayBaselineMigrationTests {
                 .as("V2 must be recorded as successfully applied")
                 .isEqualTo(Boolean.TRUE);
         assertThat(hardDeleteRow.get("description")).isEqualTo("hard delete and status cleanup");
+
+        Map<String, Object> formRegistrationRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "3");
+
+        assertThat(formRegistrationRow.get("success"))
+                .as("V3 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(formRegistrationRow.get("description")).isEqualTo("form registration");
 
         List<String> actualTables = jdbcTemplate.queryForList(
                 """

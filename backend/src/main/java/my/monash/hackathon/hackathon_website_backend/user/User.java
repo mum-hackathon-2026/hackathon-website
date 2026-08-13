@@ -20,6 +20,11 @@ import org.hibernate.generator.EventType;
  * <p>There is no {@code status} field: V2 dropped {@code users.status} because deletion is
  * a hard delete. A user who is deleted is gone from the table, rather than being a row
  * every query has to remember to filter out.
+ *
+ * <p>V3 made {@code google_sub} nullable and added {@code phone}, {@code resume_url} and
+ * {@code linkedin_url}. Registration happens through a Google Form, so a participant's row
+ * exists — and is what permits them to sign in — before they have ever authenticated with
+ * Google. A null {@code googleSub} means exactly that: registered, never signed in.
  */
 @Entity
 @Table(name = "users")
@@ -33,7 +38,12 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "google_sub", nullable = false)
+    /**
+     * Nullable since V3: only a real OAuth sign-in yields a subject claim, and a
+     * form-registered participant has not signed in yet. Still UNIQUE — Postgres does not
+     * collide NULLs in a unique index, so any number of pending users may hold null here.
+     */
+    @Column(name = "google_sub")
     private String googleSub;
 
     /** V1 enforces {@code email = lower(email)}, so callers must store it lowercased. */
@@ -61,6 +71,23 @@ public class User {
 
     @Column(name = "last_login_at")
     private OffsetDateTime lastLoginAt;
+
+    // The three fields below are collected per participant by the registration form and
+    // written by the CSV importer. All three are nullable in V3 on purpose: judges and
+    // admins are rows in this table too, are created by hand rather than by the form, and
+    // have no resume or LinkedIn profile to record. The form and the importer enforce the
+    // requirement for participants; the database deliberately does not. See V3 for the
+    // full reasoning before making any of them non-null.
+
+    @Column(name = "phone")
+    private String phone;
+
+    /** Google Drive link to the participant's resume. Validated by the importer, not the DB. */
+    @Column(name = "resume_url")
+    private String resumeUrl;
+
+    @Column(name = "linkedin_url")
+    private String linkedinUrl;
 
     /**
      * Owned by the database, which fills it from DEFAULT now(). It is left out of both
@@ -130,6 +157,30 @@ public class User {
 
     public void setLastLoginAt(OffsetDateTime lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getResumeUrl() {
+        return resumeUrl;
+    }
+
+    public void setResumeUrl(String resumeUrl) {
+        this.resumeUrl = resumeUrl;
+    }
+
+    public String getLinkedinUrl() {
+        return linkedinUrl;
+    }
+
+    public void setLinkedinUrl(String linkedinUrl) {
+        this.linkedinUrl = linkedinUrl;
     }
 
     public OffsetDateTime getCreatedAt() {
