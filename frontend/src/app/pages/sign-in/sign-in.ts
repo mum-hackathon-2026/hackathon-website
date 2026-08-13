@@ -9,14 +9,25 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AuthService, DEMO_USERS, ROLES, ROLE_HOME, ROLE_LABELS, Role } from '../../core/auth/auth';
+import {
+  AuthService,
+  DEMO_USERS,
+  GOOGLE_CLIENT_ID,
+  ROLES,
+  ROLE_HOME,
+  ROLE_LABELS,
+  Role,
+} from '../../core/auth/auth';
 
 declare global {
   interface Window {
     google?: {
       accounts?: {
         id?: {
-          initialize(config: { client_id: string; callback: (response: { credential: string }) => void }): void;
+          initialize(config: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+          }): void;
           renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
         };
       };
@@ -35,6 +46,7 @@ export class SignIn implements AfterViewInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly googleClientId = inject(GOOGLE_CLIENT_ID);
 
   @ViewChild('googleBtnContainer') private googleBtnContainer?: ElementRef<HTMLDivElement>;
 
@@ -77,11 +89,9 @@ export class SignIn implements AfterViewInit {
       return;
     }
 
-    const clientId = '501736662413-eld3psa4vnmuf4ktebbde62s06cflc3r.apps.googleusercontent.com';
-
     try {
       window.google.accounts.id.initialize({
-        client_id: clientId,
+        client_id: this.googleClientId,
         callback: (res: { credential: string }) => this.handleGoogleCredential(res.credential),
       });
 
@@ -106,7 +116,8 @@ export class SignIn implements AfterViewInit {
     this.isLoading.set(false);
 
     if (result.ok) {
-      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? ROLE_HOME[result.role];
+      const returnUrl =
+        this.route.snapshot.queryParamMap.get('returnUrl') ?? ROLE_HOME[result.role];
       void this.router.navigateByUrl(returnUrl);
     } else {
       this.errorMessage.set(result.error);

@@ -60,6 +60,23 @@ export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL', {
   factory: () => 'http://localhost:8080',
 });
 
+/**
+ * The Google Cloud OAuth2 client id, passed to Google Identity Services on the
+ * sign-in page. A client id is public by design — this is a deployment value,
+ * not a secret — but it changes per environment, so it lives behind a token
+ * rather than in the component.
+ *
+ * The backend verifies ID tokens against its own `app.google.client-id`
+ * (`GoogleAuthProperties`), which is a separate copy of the same value. **The two
+ * must match**: a token minted for one client id fails audience verification
+ * against the other, and the login answers 401 with nothing obviously wrong on
+ * either side.
+ */
+export const GOOGLE_CLIENT_ID = new InjectionToken<string>('GOOGLE_CLIENT_ID', {
+  providedIn: 'root',
+  factory: () => '501736662413-eld3psa4vnmuf4ktebbde62s06cflc3r.apps.googleusercontent.com',
+});
+
 export const SESSION_STORAGE = new InjectionToken<Storage | null>('SESSION_STORAGE', {
   providedIn: 'root',
   factory: () => {
@@ -143,10 +160,12 @@ export class AuthService {
     this.currentUser.set(DEMO_USERS[account]);
   }
 
-  async signInWithGoogle(idToken: string): Promise<{ ok: true; role: Role } | { ok: false; error: string }> {
+  async signInWithGoogle(
+    idToken: string,
+  ): Promise<{ ok: true; role: Role } | { ok: false; error: string }> {
     try {
       const response = await firstValueFrom(
-        this.http.post<BackendAuthResponse>(`${this.apiBaseUrl}/api/auth/google`, { idToken })
+        this.http.post<BackendAuthResponse>(`${this.apiBaseUrl}/api/auth/google`, { idToken }),
       );
 
       const userRole = isRole(response.user.role) ? response.user.role : 'participant';
@@ -165,11 +184,13 @@ export class AuthService {
       let message = 'Access denied: Unable to sign in with Google.';
       if (err instanceof HttpErrorResponse) {
         if (err.status === 403) {
-          message = err.error?.error || 'Access denied: Your email is not registered in the database.';
+          message =
+            err.error?.error || 'Access denied: Your email is not registered in the database.';
         } else if (err.status === 401) {
           message = err.error?.error || 'Invalid or expired Google token.';
         } else if (err.status === 0) {
-          message = 'Cannot connect to backend server. Make sure Spring Boot is running on localhost:8080.';
+          message =
+            'Cannot connect to backend server. Make sure Spring Boot is running on localhost:8080.';
         }
       }
       return { ok: false, error: message };
