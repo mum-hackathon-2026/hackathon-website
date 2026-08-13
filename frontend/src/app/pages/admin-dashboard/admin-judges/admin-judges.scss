@@ -1,0 +1,90 @@
+@use '../admin-table';
+
+/* ── Add panel ───────────────────────────────────────────────────────────── */
+
+/* Same chrome as the Assignments section's panels — `_admin-table.scss` carries
+   the table furniture, not this, and the two are close enough to read as one
+   workspace without being worth a shared partial of their own. */
+.panel {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.panel__title {
+  margin: 0 0 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.assign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.assign__field {
+  flex: 1 1 260px;
+}
+
+.assign__field .input {
+  width: 100%;
+}
+
+.assign__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-body);
+}
+
+.assign__hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.assign__hint code {
+  color: var(--color-body);
+}
+
+/* ── Table bits ──────────────────────────────────────────────────────────── */
+
+.grid__email {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+/* Completed reviews against the busiest judge's load, so the bars compare
+   people with each other rather than with a target nothing stores. */
+.meter {
+  display: block;
+  width: 120px;
+  height: 6px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: var(--color-hairline);
+  overflow: hidden;
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-green);
+}
+
+.meter__count {
+  color: var(--color-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}

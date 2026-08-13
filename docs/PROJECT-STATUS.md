@@ -1,8 +1,8 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `2749e91` (= `origin/main`) plus the Assignments section on `feature/admin-assignments`, 2026-08-13.
-**Verified:** the frontend suite and a production build were run against the branch; the backend figures are carried forward from `98e50df` — see [§7](#7-verification). Everything else here is read from the source tree.
+**As of:** `595c6cb` (= `origin/main`) plus the Judges section on `feature/admin-judges`, 2026-08-13.
+**Verified:** the frontend suite and a production build were run against the branch; the backend figures are carried forward from `98e50df` and **predate the auth layer merged in #32** — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
 
@@ -14,16 +14,16 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 | ---- | ----- | -------- |
 | **Database** | 🟢 Done | 11 tables across V1 + V2, live and migrating cleanly |
 | **Backend persistence** | 🟢 Done | All 11 tables mapped, 11 repositories, 44 tests passing |
-| **Backend API** | 🔴 Not started | Zero controllers, services, DTOs — no HTTP endpoint exists |
-| **Backend security** | 🔴 Not started | Starter on the classpath, no `SecurityFilterChain` written |
+| **Backend API** | 🟡 Auth only | `AuthController` — `POST /api/auth/google`, `GET /api/auth/me`. No other endpoint exists |
+| **Backend security** | 🟢 Done | `SecurityConfig` + JWT filter; `/api/admin/**` and `/api/judge/**` gated by authority |
 | **Frontend pages** | 🟢 Done | 12 components behind 13 routes, all three roles covered |
-| **Admin workspace** | 🟡 5 of 10 | Overview, Teams, Participants, Submissions, Assignments built; five still stubs |
+| **Admin workspace** | 🟡 6 of 10 | Overview, Teams, Participants, Submissions, Judges, Assignments built; four still stubs |
 | **Frontend data** | 🟡 Stand-ins | 7 in-memory services shaped like the API that will replace them |
 | **Integration** | 🔴 Not started | The two halves have never spoken; no HTTP client is even provided |
 | **CI** | 🟢 Done | Two jobs, both gating; a failing spec cannot reach `main` |
-| **Docs** | 🟢 Current | This file, CLAUDE.md and docs/README.md all current as of `98e50df` |
+| **Docs** | 🟡 Mostly | This file is current; CLAUDE.md still describes the backend as having no controllers |
 
-**The single most important line:** the persistence layer is finished and the UI is finished, and **nothing connects them**. Every page runs on in-memory data that resets on reload. Wiring them together is the whole of the remaining work, and it starts with [§6](#6-what-comes-next).
+**The single most important line:** the persistence layer is finished, the UI is finished, and **the only thing joining them is the auth endpoint that landed in #32 — which the frontend does not call yet.** Every page still runs on in-memory data that resets on reload. Wiring them together is the whole of the remaining work, and it starts with [§6](#6-what-comes-next).
 
 ---
 
@@ -100,7 +100,7 @@ The 11 tables: `users`, `event_settings`, `teams`, `team_members`, `submissions`
 
 ### The admin workspace
 
-`admin/dashboard/:section` is ten sections, each its own URL. **Five are built:**
+`admin/dashboard/:section` is ten sections, each its own URL. **Six are built:**
 
 | Section | State | Note |
 | ------- | ----- | ---- |
@@ -108,14 +108,16 @@ The 11 tables: `users`, `event_settings`, `teams`, `team_members`, `submissions`
 | Teams | ✅ Built | Filterable; rename, withdraw, disqualify |
 | Participants | ✅ Built | Roster with derived eligibility; read-only |
 | Submissions | ✅ Built | Filterable, with links |
+| Judges | ✅ Built | The panel with counted workloads; add and remove by `users.role` |
 | Assignments | ✅ Built | Assign/unassign judges, panel workload, coverage filters |
-| Judges, Judging Progress, Results & Publication, Event Settings, Audit Log | ⬜ Stub | Placeholder rather than hidden, so the shape is visible |
+| Judging Progress, Results & Publication, Event Settings, Audit Log | ⬜ Stub | Placeholder rather than hidden, so the shape is visible |
 
-**None of the five remaining is blocked on the schema.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
+**None of the four remaining is blocked on the schema.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
 
 - **Participants** — no student ID column and no eligibility column, so no Verify/Flag action. Eligibility is derived from the address and `users.email_verified` instead, screened against `site.studentEmailDomain`. `event_settings.screening_enabled` is surfaced but gates nothing.
 - **Teams** — no `locked` status in `teams_status_check`, so no Lock action; Withdraw and Disqualify are the settled states that do exist.
 - **Assignments** — supported as drawn. Two departures are constraints rather than choices: a repeat assignment is refused (`assignments_team_id_judge_id_key` is UNIQUE, where the draft ignores it silently), and removing a judge who has started asks first, because `scores.assignment_id` is `ON DELETE CASCADE` and their scores go with the row.
+- **Judges** — no active / inactive / pending judge, because there is no column for one: being a judge *is* holding `users.role = 'judge'`, so adding and removing is that one write. The draft's email invitation cannot exist either — `users.google_sub` is NOT NULL and there is no invitations table, so nobody has a row to promote until they have signed in themselves. Removing is refused while the judge still holds assignments: a role change is not a delete, so `assignments.judge_id`'s cascade never fires and their rows would outlive their access.
 
 > **`AdminJudge.isActive` is gone.** It was documented as a `users` column and there has never been one — V1's `users.status` was dropped by V2 and nothing replaced it. Being a judge is holding `users.role = 'judge'`; there is no separate active flag, and the draft's `pending` state cannot exist at all while `users.google_sub` is NOT NULL, since a row only appears once that person has signed in. The Overview's "Active judges" tile is now a plain judge count.
 
@@ -137,11 +139,10 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### The gap between the halves
 
-- [ ] **No controllers, services or DTOs.** Grepping for `@RestController`, `@Service` or `@Controller` returns zero hits. There is no HTTP endpoint of any kind.
-- [ ] **No security configuration.** No `SecurityFilterChain`, no JWT wiring, no OAuth2 login flow.
-- [ ] **No frontend HTTP client.** `app.config.ts` provides only `provideBrowserGlobalErrorListeners()` and `provideRouter(routes)` — no `provideHttpClient`, and nothing imports `HttpClient` or calls `fetch`.
+- [ ] **No controllers beyond auth.** `AuthController` is the only one; nothing serves teams, submissions, assignments, scores or results.
+- [ ] **No frontend HTTP client.** `app.config.ts` provides only `provideBrowserGlobalErrorListeners()` and `provideRouter(routes)` — no `provideHttpClient`, and nothing imports `HttpClient` or calls `fetch`. **This is now the binding constraint**: the auth endpoint exists and has no caller.
 - [ ] **Nothing persists.** Every page runs on in-memory stand-ins that reset on reload, by design.
-- [ ] **Authentication is a demo, not a security boundary.** `signIn(role)` picks one of three hardcoded users and stores a role key in `localStorage`. The guards gate *navigation only* — there is no server enforcing anything behind them.
+- [ ] **Frontend authentication is still a demo.** The backend has real Google OAuth2 and JWT as of #32, but `core/auth/auth.ts` has not been pointed at it: `signIn(role)` still picks one of three hardcoded users and stores a role key in `localStorage`. The guards gate *navigation only* — the server enforcement now exists, but nothing in the browser talks to it.
 
 ### Smaller gaps
 
@@ -180,23 +181,24 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #29 | 08-12 | **Admin dashboard rebuilt** as the ten-section workspace — sidebar, Overview, Teams, Submissions |
 | #30 | 08-13 | This file added; `docs/BACKEND-STATUS.md` retired |
 | #31 | 08-13 | **Participants section** — roster with derived eligibility; `memberCount` now counted from it |
+| #32 | 08-13 | **Google OAuth2 + JWT on the backend** — `SecurityConfig`, `JwtAuthenticationFilter`, `AuthController`, email-whitelist enforcement. The first HTTP endpoints in the repo |
+| #33 | 08-13 | **Assignments section** — the assignment read model behind it, and the removal of `AdminJudge.isActive` |
 
-**In flight:** `feature/admin-assignments` — the Assignments section, the assignment read model behind it, and the removal of `AdminJudge.isActive`.
+**In flight:** `feature/admin-judges` — the Judges section, and `users.role` as a write rather than only a read.
 
 ---
 
 ## 6. What comes next
 
-In order. The first item is not optional and is not first by preference.
+In order. The first two items were items 1 and 2 until #32 landed; the list has moved up.
 
-1. **Write the `SecurityFilterChain` before or alongside the first controller.** `spring-boot-starter-security` is on the classpath with no configuration class, so Boot's default chain applies: every endpoint is behind HTTP Basic with user `user` and a random password logged at startup. **Your first controller will answer 401 and look broken.** This is the single most likely thing to cost an afternoon.
-2. **First controller + DTOs**, following the packages-by-feature shape the entities already use.
-3. **Wire the frontend** — add `provideHttpClient`, then replace one stand-in at a time. The stand-ins already return `Promise<{ok} | {ok:false, error}>`, so callers should not need reshaping; this is meant to be a change of data source.
-4. **Real authentication** — Google OAuth2 client id/secret and `app.jwt.secret` already have slots in `application-example.properties`, but no code reads `app.jwt.*` and there is no Redis starter behind the `spring.data.redis.*` entries. Those properties are inert placeholders today.
-5. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them.
-6. **Add ESLint**, and fill the coverage gaps listed in [§4](#4-what-is-not-done).
+1. **Give the frontend an HTTP client and point sign-in at `/api/auth/google`.** `provideHttpClient` is still missing, so the endpoint that #32 built has no caller. Replacing `signIn(role)` is the first real integration and proves the JWT round trip before any data endpoint depends on it.
+2. **Controllers + DTOs for the rest**, following the packages-by-feature shape the entities already use. `SecurityConfig` already reserves `/api/admin/**` and `/api/judge/**` by authority, so a new endpoint under either is gated the moment it exists.
+3. **Replace the stand-ins one at a time.** They already return `Promise<{ok} | {ok:false, error}>`, so callers should not need reshaping; this is meant to be a change of data source.
+4. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them.
+5. **Add ESLint**, and fill the coverage gaps listed in [§4](#4-what-is-not-done).
 
-Running alongside, and not waiting on any of the above: **the five remaining workspace sections**. None is blocked on the schema — Judging Progress and Audit Log map onto their tables as designed, and Judges, Results and Event Settings ship reduced the way Participants, Teams and Assignments already do.
+Running alongside, and not waiting on any of the above: **the four remaining workspace sections**. None is blocked on the schema — Judging Progress and Audit Log map onto their tables as designed, and Results and Event Settings ship reduced the way Participants, Teams, Judges and Assignments already do.
 
 ---
 
@@ -204,11 +206,11 @@ Running alongside, and not waiting on any of the above: **the five remaining wor
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npx ng test --watch=false` | **27 files, 324 tests passed** | `feature/admin-assignments`, 2026-08-13 |
-| Frontend | `npm run build` | **490.74 kB initial, no budget warning** | `feature/admin-assignments`, 2026-08-13 |
-| Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
+| Frontend | `npx ng test --watch=false` | **27 files, 342 tests passed** | `feature/admin-judges`, 2026-08-13 |
+| Frontend | `npm run build` | **490.74 kB initial, no budget warning** | `feature/admin-judges`, 2026-08-13 |
+| Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 — **before #32**, so the auth layer is unmeasured here |
 
-The initial bundle has not moved since #29: the admin route is lazy, so both new sections went into the `admin-dashboard` chunk (75.02 kB) rather than the initial one. Every other route is still eager, and the 500 kB figure is the **warning** threshold — the hard error is 1 MB.
+The initial bundle has not moved since #29: the admin route is lazy, so every new section goes into the `admin-dashboard` chunk (89.02 kB) rather than the initial one. Every other route is still eager, and the 500 kB figure is the **warning** threshold — the hard error is 1 MB.
 
 The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
 
