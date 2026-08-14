@@ -1,0 +1,166 @@
+<p class="lede">{{ summary() }}</p>
+
+@if (error(); as message) {
+  <p class="banner banner--error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner--notice" role="status">{{ message }}</p>
+}
+
+<!-- ── Add to the panel ───────────────────────────────────────────────────── -->
+
+<section class="panel" aria-labelledby="add-judge-heading">
+  <h2 class="panel__title" id="add-judge-heading">Add a judge</h2>
+
+  <div class="assign">
+    <div class="assign__field">
+      <label class="assign__label" for="judge-add">Registered account</label>
+      <select
+        id="judge-add"
+        class="input"
+        name="judgeAdd"
+        [ngModel]="draftPerson()"
+        (ngModelChange)="draftPerson.set($event)"
+      >
+        <option value="">Select somebody…</option>
+        @for (person of addable(); track person.userId) {
+          <option [value]="person.userId">
+            {{ person.fullName }} — {{ person.teamName || 'no team' }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <button type="button" class="button button--primary" [disabled]="pending()" (click)="add()">
+      Add to panel
+    </button>
+  </div>
+
+  <p class="assign__hint">
+    Only people who already hold a <code>users</code> row can be added, because that row
+    <em>is</em> the permission — sign-in looks the address up and refuses an account it cannot find.
+    Registration puts it there, so somebody can be put on the panel before they have ever signed in;
+    V3 made <code>users.google_sub</code> nullable for exactly that case, and it fills in on their
+    first Google sign-in. There is no way to add an address from here.
+  </p>
+</section>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="judge-search">Search judges</label>
+  <input
+    id="judge-search"
+    class="input filters__search"
+    type="search"
+    name="judgeSearch"
+    placeholder="Search name or email"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="judge-load">Filter by workload</label>
+  <select
+    id="judge-load"
+    class="input"
+    name="judgeLoad"
+    [ngModel]="load()"
+    (ngModelChange)="load.set($event)"
+  >
+    @for (option of loadFilters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+
+@if (rows().length === 0) {
+  <p class="empty">No judges match that search.</p>
+} @else {
+  <div class="scroller">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th scope="col">Judge</th>
+          <th scope="col">Assigned</th>
+          <th scope="col">Progress</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (judge of rows(); track judge.userId) {
+          <tr>
+            <td>
+              <span class="grid__team">{{ judge.name }}</span>
+              <span class="grid__email">{{ judge.email }}</span>
+              @if (judge.competingTeam) {
+                <span class="grid__issue">
+                  <span>Also competing with {{ judge.competingTeam }}</span>
+                </span>
+              }
+            </td>
+            <td class="grid__num">
+              @if (judge.assigned === 0) {
+                <span class="grid__none">Nothing yet</span>
+              } @else {
+                {{ judge.assigned }}
+              }
+            </td>
+            <td>
+              <span
+                class="meter"
+                role="progressbar"
+                [attr.aria-valuenow]="judge.completed"
+                [attr.aria-valuemin]="0"
+                [attr.aria-valuemax]="peak()"
+                [attr.aria-label]="judge.name + ' reviews completed'"
+              >
+                <span class="meter__fill" [style.width.%]="(judge.completed / peak()) * 100"></span>
+              </span>
+              <span class="meter__count">{{ judge.completed }} of {{ judge.assigned }} done</span>
+            </td>
+            <td class="grid__actions">
+              <button
+                type="button"
+                class="link-button"
+                [disabled]="pending()"
+                (click)="remove(judge)"
+              >
+                Remove
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<p class="note">
+  There is no active or inactive judge: <code>users</code> has no status column — V1 had one and V2
+  dropped it for hard delete — so being a judge is holding <code>users.role = 'judge'</code>, and
+  Remove sets that back to <code>'participant'</code>. It does not touch their assignments. Only
+  deleting the account does that, because <code>assignments.judge_id</code> is
+  <code>ON DELETE CASCADE</code> and a role change is not a delete — so a judge still holding teams
+  has to be reassigned in Assignments first, and until they are, Remove is refused.
+</p>
+
+@if (confirming(); as person) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="'Let ' + person.fullName + ' judge while competing?'"
+    [body]="
+      'They are on ' +
+      person.teamName +
+      ', so they would be judging the event they are entered in. Nothing in the schema stops it — users.role and team_members are independent — so this is a call for an organiser, not a rule.'
+    "
+    confirmLabel="Add anyway"
+    (confirmed)="confirmAdd()"
+    (cancelled)="confirming.set(null)"
+  />
+}

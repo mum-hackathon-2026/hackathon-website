@@ -330,6 +330,139 @@ describe('AdminService', () => {
     });
   });
 
+  describe('the judging panel', () => {
+    /** Nicholas Yap registered and joined nothing — the uncomplicated case. */
+    function unteamed(admin: AdminService) {
+      const person = admin.participants().find((p) => p.teamId === null);
+      expect(person, 'somebody should have registered without joining a team').toBeTruthy();
+      return person!;
+    }
+
+    it('counts each judge workload off the assignments, not a seeded figure', () => {
+      const admin = serviceWith();
+      const rows = admin.assignments().flatMap((row) => row.judges);
+
+      for (const judge of admin.judges()) {
+        const theirs = rows.filter((row) => row.judgeId === judge.userId);
+        expect(theirs.length, `${judge.name} assigned`).toBe(judge.assigned);
+        expect(theirs.filter((row) => row.status === 'completed').length).toBe(judge.completed);
+      }
+    });
+
+    it('keeps a new judge on the registration roster they came from', async () => {
+      const admin = serviceWith();
+      const person = unteamed(admin);
+
+      expect(await admin.grantJudgeRole(person.userId)).toEqual({ ok: true });
+
+      // A role change writes users.role and nothing else — their users row and
+      // any team_members row are untouched, so they stay registered.
+      expect(admin.judges().some((j) => j.userId === person.userId)).toBe(true);
+      expect(admin.participants().some((p) => p.userId === person.userId)).toBe(true);
+    });
+
+    it('leaves the team member counts alone when a competitor is promoted', async () => {
+      // The roster is the one source for both; a promotion must not make the
+      // Participants and Teams sections disagree about who is on a team.
+      const admin = serviceWith();
+      const competitor = admin.participants().find((p) => p.teamId !== null)!;
+
+      await admin.grantJudgeRole(competitor.userId);
+
+      for (const team of admin.teams()) {
+        const onTeam = admin.participants().filter((p) => p.teamId === team.teamId).length;
+        expect(onTeam, `${team.teamName} member count`).toBe(team.memberCount);
+      }
+    });
+
+    it('starts a new judge with nothing assigned', async () => {
+      const admin = serviceWith();
+      const person = unteamed(admin);
+      await admin.grantJudgeRole(person.userId);
+
+      const judge = admin.judges().find((j) => j.userId === person.userId)!;
+      expect(judge.assigned).toBe(0);
+      expect(judge.completed).toBe(0);
+    });
+
+    it('flags a judge who is also competing, because nothing else will', async () => {
+      const admin = serviceWith();
+      const competitor = admin.participants().find((p) => p.teamId !== null)!;
+
+      await admin.grantJudgeRole(competitor.userId);
+
+      const judge = admin.judges().find((j) => j.userId === competitor.userId)!;
+      expect(judge.competingTeam).toBe(competitor.teamName);
+    });
+
+    it('refuses somebody who is already judging', async () => {
+      const admin = serviceWith();
+      const existing = admin.judges()[0];
+
+      expect(await admin.grantJudgeRole(existing.userId)).toEqual({
+        ok: false,
+        error: 'They are already on the panel.',
+      });
+    });
+
+    it('lets a new judge be assigned like any other', async () => {
+      const admin = serviceWith();
+      const person = unteamed(admin);
+      await admin.grantJudgeRole(person.userId);
+
+      expect(await admin.assignJudge(205, person.userId)).toEqual({ ok: true });
+      expect(admin.judges().find((j) => j.userId === person.userId)!.assigned).toBe(1);
+    });
+
+    it('refuses to take a judge off the panel while they hold assignments', async () => {
+      // A role change is not a delete, so their assignments would survive it
+      // while judgeGuard shut them out of the portal.
+      const admin = serviceWith();
+      const busy = admin.judges().find((j) => j.assigned > 0)!;
+
+      const result = await admin.revokeJudgeRole(busy.userId);
+
+      expect(result.ok).toBe(false);
+      expect(result).toHaveProperty('error', expect.stringContaining('Reassign those'));
+      expect(admin.judges().some((j) => j.userId === busy.userId)).toBe(true);
+    });
+
+    it('takes an idle judge off the panel, leaving them registered', async () => {
+      const admin = serviceWith();
+      const person = unteamed(admin);
+      await admin.grantJudgeRole(person.userId);
+
+      expect(await admin.revokeJudgeRole(person.userId)).toEqual({ ok: true });
+
+      expect(admin.judges().some((j) => j.userId === person.userId)).toBe(false);
+      expect(admin.participants().some((p) => p.userId === person.userId)).toBe(true);
+    });
+
+    it('keeps a revoked seed judge registered rather than deleting them', async () => {
+      // Off the panel is not off the event — the users row stays either way.
+      const admin = serviceWith();
+      const idle = admin.judges()[0];
+      for (const row of admin.assignments().flatMap((r) => r.judges)) {
+        if (row.judgeId === idle.userId) await admin.unassignJudge(row.id);
+      }
+
+      await admin.revokeJudgeRole(idle.userId);
+
+      const asParticipant = admin.participants().find((p) => p.userId === idle.userId);
+      expect(asParticipant?.fullName).toBe(idle.name);
+      expect(asParticipant?.teamId).toBeNull();
+    });
+
+    it('refuses to take somebody off a panel they are not on', async () => {
+      const admin = serviceWith();
+
+      expect(await admin.revokeJudgeRole(9999)).toEqual({
+        ok: false,
+        error: 'They are not on the panel.',
+      });
+    });
+  });
+
   describe('stats', () => {
     it('counts teams, people and submission states', () => {
       const admin = serviceWith();

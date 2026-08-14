@@ -65,6 +65,9 @@
       @case ('submissions') {
         <app-admin-submissions />
       }
+      @case ('judges') {
+        <app-admin-judges />
+      }
       @case ('assignments') {
         <app-admin-assignments />
       }
@@ -73,8 +76,8 @@
           <p class="stub__heading">{{ sectionLabel() }} isn't built yet</p>
           <p class="stub__body">
             This section is in the design draft and has a place in the workspace, but nothing behind
-            it yet. Overview, Teams, Participants, Submissions and Assignments are the ones that
-            work today.
+            it yet. Overview, Teams, Participants, Submissions, Judges and Assignments are the ones
+            that work today.
           </p>
         </div>
       }

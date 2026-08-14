@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Role } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
 import { PhaseService } from '../event/phase';
 import { SubmissionStatus } from '../submission/submission';
@@ -137,6 +138,14 @@ export interface AdminJudge {
   /** Counted from `assignments`, not stored. */
   readonly assigned: number;
   readonly completed: number;
+  /**
+   * The team this judge is also competing on, or '' for the usual case.
+   *
+   * `users.role` and `team_members` are independent — nothing in the schema
+   * stops a competitor holding the judge role — so a conflict of interest is
+   * ours to surface rather than something the database refuses.
+   */
+  readonly competingTeam: string;
 }
 
 /**
@@ -620,19 +629,47 @@ export class AdminService {
   readonly audit = signal<readonly AuditEntry[]>(AUDIT_SEED).asReadonly();
 
   /**
+   * `users.role` changes an organiser has made, keyed by `users.id`.
+   *
+   * Being a judge *is* holding the role — there is no active flag and never was
+   * a column for one — so the Judges section adds and removes people by writing
+   * this one column, and both lists below are derived from it. Anyone absent
+   * here keeps the role their seed gave them.
+   */
+  private readonly roleOverrides = signal<ReadonlyMap<number, Role>>(new Map());
+
+  /**
    * The judging panel, with each judge's workload counted off `assignments`
    * rather than seeded beside it — assigning someone in the Assignments section
    * moves these numbers on its own.
+   *
+   * Membership is `users.role = 'judge'` and nothing else: the seeded panel,
+   * less anyone whose role has been taken away, plus anyone promoted to it.
    */
   readonly judges = computed<readonly AdminJudge[]>(() => {
     const all = this.assignmentRows();
+    const overrides = this.roleOverrides();
 
-    return JUDGE_SEED.map((judge) => {
+    const panel: readonly { userId: number; name: string; email: string; competingTeam: string }[] =
+      [
+        ...JUDGE_SEED.filter((judge) => overrides.get(judge.userId) !== 'participant').map(
+          (judge) => ({ ...judge, competingTeam: '' }),
+        ),
+        // Promoted from the floor, so they may well still be on a team.
+        ...this.registered()
+          .filter((row) => overrides.get(row.userId) === 'judge')
+          .map((row) => ({
+            userId: row.userId,
+            name: row.fullName,
+            email: row.email,
+            competingTeam: row.teamName,
+          })),
+      ];
+
+    return panel.map((judge) => {
       const mine = all.filter((row) => row.judgeId === judge.userId);
       return {
-        userId: judge.userId,
-        name: judge.name,
-        email: judge.email,
+        ...judge,
         assigned: mine.length,
         completed: mine.filter((row) => row.status === 'completed').length,
       };
@@ -696,7 +733,7 @@ export class AdminService {
   });
 
   /**
-   * Everyone registered, teamed or not.
+   * Everyone who registered, teamed or not, whatever role they hold now.
    *
    * Stands in for `users` left-joined to `team_members` and `teams`. The team
    * name is read back off `rows()` rather than copied into the roster, so
@@ -705,7 +742,7 @@ export class AdminService {
    * Addresses are built against the configured student domain, so a test that
    * changes the domain changes who screens as a student.
    */
-  readonly participants = computed<readonly AdminParticipantRow[]>(() => {
+  private readonly registered = computed<readonly AdminParticipantRow[]>(() => {
     const domain = this.config.site.studentEmailDomain;
     const teamNames = new Map(this.rows().map((team) => [team.teamId, team.teamName]));
     let nextId = FIRST_PARTICIPANT_ID;
@@ -726,6 +763,39 @@ export class AdminService {
         };
       }),
     );
+  });
+
+  /**
+   * The registration roster: one row per `users` row, whatever role it holds.
+   *
+   * Promoting somebody to the panel does **not** take them out of here. A role
+   * change writes `users.role` and touches nothing else — their `team_members`
+   * row survives it — so a promoted competitor is still on their team, and
+   * removing them from this list would put it out of step with the member
+   * counts the Teams section reads off the same roster. The overlap is the
+   * conflict of interest itself, and the Judges section flags it there.
+   */
+  readonly participants = computed<readonly AdminParticipantRow[]>(() => {
+    const overrides = this.roleOverrides();
+    const domain = this.config.site.studentEmailDomain;
+
+    return [
+      ...this.registered(),
+      // Off the panel is not off the event: the `users` row stays, back on
+      // 'participant', with no team because they were never on one.
+      ...JUDGE_SEED.filter((judge) => overrides.get(judge.userId) === 'participant').map(
+        (judge) => ({
+          userId: judge.userId,
+          fullName: judge.name,
+          email: judge.email,
+          teamId: null,
+          teamName: '',
+          // They hold a `users` row at all, which means they have signed in.
+          emailVerified: true,
+          eligibility: eligibilityOf(judge.email.endsWith(`@${domain}`), true),
+        }),
+      ),
+    ];
   });
 
   /**
@@ -936,6 +1006,65 @@ export class AdminService {
       this.assignmentRows.update((all) => all.filter((a) => a.id !== assignmentId));
       return { ok: true };
     });
+  }
+
+  /**
+   * Puts someone on the judging panel — a write to `users.role`, nothing more.
+   *
+   * The design draft invites a judge by email address. That cannot work here:
+   * `users.google_sub` is NOT NULL, so a row only exists once that person has
+   * signed in with Google, and there is no invitations table to hold one who
+   * has not. Promoting somebody who is already registered is the whole of what
+   * the schema supports.
+   *
+   * A competitor may be promoted — `users.role` and `team_members` are
+   * independent and nothing rejects the combination — so the caller is expected
+   * to confirm when the person is on a team.
+   */
+  grantJudgeRole(userId: number): Promise<AdminActionResult> {
+    return this.run(() => {
+      if (this.judges().some((row) => row.userId === userId)) {
+        return { ok: false, error: 'They are already on the panel.' };
+      }
+
+      const person = this.participants().find((row) => row.userId === userId);
+      if (!person) return { ok: false, error: 'Nobody is registered under that account.' };
+
+      this.setRole(userId, 'judge');
+      return { ok: true };
+    });
+  }
+
+  /**
+   * Takes someone off the panel, setting `users.role` back to 'participant'.
+   *
+   * **Refused while they hold any assignment.** Only *deleting* a user touches
+   * `assignments` — `assignments_judge_id_fkey` is ON DELETE CASCADE — and a
+   * role change is not a delete, so their rows would survive intact while
+   * `judgeGuard` stopped them opening the portal, stranding those reviews with
+   * nothing to say so. Reassigning first is the fix, and it is a step the
+   * Assignments section already offers.
+   */
+  revokeJudgeRole(userId: number): Promise<AdminActionResult> {
+    return this.run(() => {
+      const judge = this.judges().find((row) => row.userId === userId);
+      if (!judge) return { ok: false, error: 'They are not on the panel.' };
+
+      if (judge.assigned > 0) {
+        const plural = judge.assigned === 1 ? 'team' : 'teams';
+        return {
+          ok: false,
+          error: `${judge.name} is still reviewing ${judge.assigned} ${plural}. Reassign those in Assignments first.`,
+        };
+      }
+
+      this.setRole(userId, 'participant');
+      return { ok: true };
+    });
+  }
+
+  private setRole(userId: number, role: Role): void {
+    this.roleOverrides.update((current) => new Map(current).set(userId, role));
   }
 
   private patch(teamId: number, change: (team: SeedTeam) => Partial<SeedTeam>): void {

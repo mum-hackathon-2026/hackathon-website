@@ -1,8 +1,8 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `523911f` (= `origin/main`), 2026-08-13 — through PR #34.
-**Verified:** the frontend suite and a production build were run against this commit, and the backend sources compile (`mvnw clean test-compile`); the backend *test* figures are carried forward from `98e50df` because no Postgres was available for this pass — see [§7](#7-verification). Everything else here is read from the source tree.
+**As of:** `ad72282` (= `origin/main`, through PR #36) plus the Judges section on `feature/admin-judges`, 2026-08-13.
+**Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
 
@@ -17,11 +17,11 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 | **Backend API** | 🟡 Auth only | 2 endpoints (`/api/auth/google`, `/api/auth/me`); nothing for teams, submissions or judging |
 | **Backend security** | 🟢 Built | `SecurityConfig` + JWT filter + Google ID-token verification — **but zero tests** |
 | **Frontend pages** | 🟢 Done | 12 components behind 13 routes, all three roles covered |
-| **Admin workspace** | 🟡 5 of 10 | Overview, Teams, Participants, Submissions, Assignments built; five still stubs |
+| **Admin workspace** | 🟡 6 of 10 | Overview, Teams, Participants, Submissions, Judges, Assignments built; four still stubs |
 | **Frontend data** | 🟡 Stand-ins | 7 in-memory services shaped like the API that will replace them |
 | **Integration** | 🟡 One seam | Sign-in talks to the backend; every other page is still in-memory |
 | **CI** | 🟢 Done | Two jobs, both gating; a failing spec cannot reach `main` |
-| **Docs** | 🟢 Current | This file, CLAUDE.md and docs/README.md all current as of `523911f` |
+| **Docs** | 🟢 Current | This file, CLAUDE.md and docs/README.md all current as of `ad72282` |
 
 **The single most important line:** the two halves now speak, but only about **who you are**. Login is real — Google ID token in, JWT out, email checked against the `users` table — and every other page still runs on in-memory data that resets on reload. The pattern for connecting the rest exists; it just has one instance. [§6](#6-what-comes-next) is the order to do it in.
 
@@ -114,7 +114,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 ### The admin workspace
 
-`admin/dashboard/:section` is ten sections, each its own URL. **Five are built:**
+`admin/dashboard/:section` is ten sections, each its own URL. **Six are built:**
 
 | Section | State | Note |
 | ------- | ----- | ---- |
@@ -122,14 +122,16 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 | Teams | ✅ Built | Filterable; rename, withdraw, disqualify |
 | Participants | ✅ Built | Roster with derived eligibility; read-only |
 | Submissions | ✅ Built | Filterable, with links |
+| Judges | ✅ Built | The panel with counted workloads; add and remove by `users.role` |
 | Assignments | ✅ Built | Assign/unassign judges, panel workload, coverage filters |
-| Judges, Judging Progress, Results & Publication, Event Settings, Audit Log | ⬜ Stub | Placeholder rather than hidden, so the shape is visible |
+| Judging Progress, Results & Publication, Event Settings, Audit Log | ⬜ Stub | Placeholder rather than hidden, so the shape is visible |
 
-**None of the five remaining is blocked on the schema.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
+**None of the four remaining is blocked on the schema.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
 
 - **Participants** — no student ID column and no eligibility column, so no Verify/Flag action. Eligibility is derived from the address and `users.email_verified` instead, screened against `site.studentEmailDomain`. `event_settings.screening_enabled` is surfaced but gates nothing.
 - **Teams** — no `locked` status in `teams_status_check`, so no Lock action; Withdraw and Disqualify are the settled states that do exist.
 - **Assignments** — supported as drawn. Two departures are constraints rather than choices: a repeat assignment is refused (`assignments_team_id_judge_id_key` is UNIQUE, where the draft ignores it silently), and removing a judge who has started asks first, because `scores.assignment_id` is `ON DELETE CASCADE` and their scores go with the row.
+- **Judges** — no active or inactive judge, because there is no column for one: being a judge *is* holding `users.role = 'judge'`, so adding and removing is that one write. The draft's email invitation has nowhere to live either — there is no invitations table, and sign-in admits an address only if `users` already holds it — so an organiser promotes somebody already registered instead. Removing is refused while the judge still holds assignments: a role change is not a delete, so `assignments.judge_id`'s cascade never fires and their rows would outlive their access. **The draft's third state, `pending`, the section does not show** — V3 made it representable (see the note below), but `AdminService` does not carry `google_sub` yet.
 
 > **`AdminJudge.isActive` is gone.** It was documented as a `users` column and there has never been one — V1's `users.status` was dropped by V2 and nothing replaced it. Being a judge is holding `users.role = 'judge'`; there is no separate active flag, so the Overview's "Active judges" tile is now a plain judge count.
 >
@@ -202,8 +204,10 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #32 | 08-13 | **Backend Google auth** — `auth/` package, `SecurityConfig`, JWT issue/verify, email-whitelist enforcement |
 | #33 | 08-13 | **Assignments section** — assign/unassign judges, panel workload, coverage filters; `AdminJudge.isActive` removed |
 | #34 | 08-13 | **Sign-in wired to the backend** — GIS button, `signInWithGoogle()`, `provideHttpClient()`, 401/403 error copy |
+| #35 | 08-13 | CLAUDE.md brought back in line with the code |
+| #36 | 08-13 | **V3 migration** — form registration: `users.google_sub` nullable, `phone` / `resume_url` / `linkedin_url` added, CSV importer |
 
-**In flight:** nothing. `origin/main` is at `523911f`.
+**In flight:** `feature/admin-judges` (PR #37) — the Judges section, and `users.role` as a write rather than only a read.
 
 ---
 
@@ -220,7 +224,7 @@ In order. The first item is not first by preference.
 7. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them, and note that `SecurityConfig`'s `hasAuthority("admin"/"judge")` is a third copy of the `users.role` literals.
 8. **Add ESLint**, and fill the coverage gaps listed in [§4](#4-what-is-not-done).
 
-Running alongside, and not waiting on any of the above: **the five remaining workspace sections**. None is blocked on the schema — Judging Progress and Audit Log map onto their tables as designed, and Judges, Results and Event Settings ship reduced the way Participants, Teams and Assignments already do.
+Running alongside, and not waiting on any of the above: **the four remaining workspace sections**. None is blocked on the schema — Judging Progress and Audit Log map onto their tables as designed, and Results and Event Settings ship reduced the way Participants, Teams, Judges and Assignments already do.
 
 ---
 
@@ -228,14 +232,16 @@ Running alongside, and not waiting on any of the above: **the five remaining wor
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npx ng test --watch=false` | **27 files, 325 tests passed** | this branch, 2026-08-13 |
-| Frontend | `npm run build` | **517.29 kB initial — ⚠️ budget warning, exit 0** | `523911f`, 2026-08-13 |
+| Frontend | `npx ng test --watch=false` | **27 files, 343 tests passed** | `feature/admin-judges`, 2026-08-13 |
+| Frontend | `npm run build` | **517.29 kB initial — ⚠️ budget warning, exit 0** | `feature/admin-judges`, 2026-08-13 |
 | Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
 **The backend suite was not re-run for this pass** — no Postgres was reachable, so only compilation was verified. The 44-test figure is carried forward from `98e50df` and predates the `auth/` package; since `auth/` has no tests of its own, the count is expected to be unchanged, but nobody has confirmed the context still loads against a real database with the new validated properties in play. Run `./mvnw -B clean verify` with the container up before relying on it.
 
-The spec count barely moved: neither the Assignments section nor the auth work added a spec, and the one new test here (325, up from 324) is the client-id wiring. The initial bundle did move — 490.74 kB → 517.29 kB — and is now past the **warning** threshold. The admin route is still the only lazy one (its chunk holds 75.02 kB), so everything else lands in the initial bundle. The hard error is 1 MB, which is why CI is still green.
+**The bundle warning is not this branch's.** It arrived with the HTTP layer in #34 (490.74 kB → 517.29 kB) and the figure has not moved since: the admin route is the only lazy one, so the Judges section went into its chunk (75.02 kB → 89.32 kB) and left the initial total alone. Everything else is eager, which is where the 17.29 kB overrun lives. The hard error is 1 MB, which is why CI is still green — see [§4](#4-what-is-not-done).
+
+The spec count is 343, up from 325: the Judges section added 18 (10 on `AdminService`, 8 on the dashboard). Before it, neither the Assignments section nor the auth work had added a spec.
 
 The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
 

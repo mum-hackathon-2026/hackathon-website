@@ -299,6 +299,92 @@ describe('AdminDashboard', () => {
     });
   });
 
+  describe('judges', () => {
+    /** The option's value is a generated user id, so it is looked up by name. */
+    function optionValue(select: string, startsWith: string): string {
+      const option = Array.from(
+        host().querySelectorAll<HTMLOptionElement>(`${select} option`),
+      ).find((o) => o.textContent!.trim().startsWith(startsWith));
+      expect(option, `${startsWith} should be offered in ${select}`).toBeTruthy();
+      return option!.value;
+    }
+
+    function click(selector: string, label: string) {
+      const button = Array.from(host().querySelectorAll<HTMLButtonElement>(selector)).find(
+        (b) => b.textContent?.trim() === label,
+      );
+      expect(button, `a ${label} button should be rendered`).toBeTruthy();
+      button!.click();
+      return fixture.whenStable();
+    }
+
+    it('lists the panel with each judge progress', async () => {
+      await render({ section: 'judges' });
+
+      expect(teamNames()).toContain('Dr. Sofia Lindqvist');
+      expect(host().querySelectorAll('.meter').length).toBe(5);
+      expect(host().querySelector('.meter')?.getAttribute('aria-valuenow')).toMatch(/^\d+$/);
+    });
+
+    it('filters by workload', async () => {
+      await render({ section: 'judges' });
+      await setInput('#judge-load', 'idle');
+
+      // Every seeded judge is carrying something, so nothing is idle yet.
+      expect(host().querySelector('.empty')?.textContent).toContain('No judges match');
+    });
+
+    it('searches by email as well as name', async () => {
+      await render({ section: 'judges' });
+      await setInput('#judge-search', 'n.rahman@');
+
+      expect(teamNames()).toEqual(['Nadia Rahman']);
+    });
+
+    it('adds a registered participant to the panel', async () => {
+      await render({ section: 'judges' });
+      await setInput('#judge-add', optionValue('#judge-add', 'Nicholas Yap'));
+      await click('.assign button', 'Add to panel');
+
+      expect(host().querySelector('.banner--notice')?.textContent).toContain('can now judge');
+      expect(teamNames()).toContain('Nicholas Yap');
+    });
+
+    it('asks before letting somebody judge the event they are competing in', async () => {
+      await render({ section: 'judges' });
+      await setInput('#judge-add', optionValue('#judge-add', 'Aisha Rahman'));
+      await click('.assign button', 'Add to panel');
+
+      expect(host().querySelector('.confirm')).not.toBeNull();
+      expect(host().textContent).toContain('judging the event they are entered in');
+
+      await click('.confirm__actions button', 'Add anyway');
+
+      expect(teamNames()).toContain('Aisha Rahman');
+      expect(host().querySelector('.grid__issue')?.textContent).toContain('Also competing');
+    });
+
+    it('refuses to remove a judge who is still reviewing', async () => {
+      await render({ section: 'judges' });
+      await setInput('#judge-search', 'Sofia');
+      await click('.grid__actions .link-button', 'Remove');
+
+      expect(host().querySelector('.banner--error')?.textContent).toContain('Reassign those');
+      expect(teamNames()).toContain('Dr. Sofia Lindqvist');
+    });
+
+    it('removes a judge who has nothing assigned', async () => {
+      await render({ section: 'judges' });
+      await setInput('#judge-add', optionValue('#judge-add', 'Nicholas Yap'));
+      await click('.assign button', 'Add to panel');
+
+      await setInput('#judge-search', 'Nicholas');
+      await click('.grid__actions .link-button', 'Remove');
+
+      expect(host().querySelector('.banner--notice')?.textContent).toContain('is off the panel');
+    });
+  });
+
   describe('assignments', () => {
     it('lists only teams that have something to review', async () => {
       await render({ section: 'assignments' });
