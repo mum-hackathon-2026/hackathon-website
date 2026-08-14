@@ -66,6 +66,7 @@ class UserRepositoryTest {
         user.setPhone("+60 12-345 6789");
         user.setResumeUrl("https://drive.google.com/file/d/1Resume/view");
         user.setLinkedinUrl("https://www.linkedin.com/in/form-registrant");
+        user.setGithubUrl("https://github.com/form-registrant");
 
         User saved = userRepository.saveAndFlush(user);
         entityManager.clear();
@@ -78,6 +79,9 @@ class UserRepositoryTest {
         assertThat(found.getResumeUrl()).isEqualTo("https://drive.google.com/file/d/1Resume/view");
         assertThat(found.getLinkedinUrl())
                 .isEqualTo("https://www.linkedin.com/in/form-registrant");
+        assertThat(found.getGithubUrl())
+                .as("V4: the participant's own GitHub account, not a project repo")
+                .isEqualTo("https://github.com/form-registrant");
     }
 
     /**
@@ -121,11 +125,12 @@ class UserRepositoryTest {
     }
 
     /**
-     * The three form columns are nullable on purpose: judges and admins are rows in this
-     * table too and never have a resume or a LinkedIn profile. See V3 before changing it.
+     * The four form columns are nullable on purpose: judges and admins are rows in this
+     * table too and never have a resume, a LinkedIn profile or a GitHub account. See V3 and
+     * V4 before changing it.
      */
     @Test
-    void allowsAUserWithNoPhoneResumeOrLinkedIn() {
+    void allowsAUserWithNoneOfTheFormCollectedFields() {
         User judge = new User("google-sub-judge", "judge@example.com", "A Judge");
         judge.setRole("judge");
 
@@ -136,6 +141,7 @@ class UserRepositoryTest {
         assertThat(found.getPhone()).isNull();
         assertThat(found.getResumeUrl()).isNull();
         assertThat(found.getLinkedinUrl()).isNull();
+        assertThat(found.getGithubUrl()).isNull();
     }
 
     /**

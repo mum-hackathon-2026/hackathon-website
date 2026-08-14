@@ -49,7 +49,15 @@ public class Submission {
 
     private String description;
 
-    /** V1 enforces {@code ^https?://} on both URL columns when they are non-null. */
+    /**
+     * The repository for the project this team built. V1 enforces {@code ^https?://} on
+     * both URL columns when they are non-null.
+     *
+     * <p><strong>Not the same thing as {@code User.githubUrl}</strong>, added by V4, which
+     * is a participant's personal GitHub account collected at registration for screening.
+     * This one is an artefact; that one is an identity. They share a column name in
+     * different tables, so a join that selects both must say which it means.
+     */
     @Column(name = "github_url")
     private String githubUrl;
 

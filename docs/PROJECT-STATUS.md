@@ -12,8 +12,8 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 
 | Area | State | One line |
 | ---- | ----- | -------- |
-| **Database** | 🟢 Done | 11 tables across V1 + V2 + V3, live and migrating cleanly |
-| **Backend persistence** | 🟢 Done | All 11 tables mapped, 11 repositories, 44 tests passing |
+| **Database** | 🟢 Done | 11 tables across V1 + V2 + V3 + V4, live and migrating cleanly |
+| **Backend persistence** | 🟢 Done | All 11 tables mapped, 11 repositories, 48 tests passing |
 | **Backend API** | 🟡 Auth only | 2 endpoints (`/api/auth/google`, `/api/auth/me`); nothing for teams, submissions or judging |
 | **Backend security** | 🟢 Built | `SecurityConfig` + JWT filter + Google ID-token verification — **but zero tests** |
 | **Frontend pages** | 🟢 Done | 12 components behind 13 routes, all three roles covered |
@@ -34,6 +34,7 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 - [x] **V1 `V1__baseline_schema.sql`** — creates all 11 tables, seeds the `event_settings` singleton inert (registration windows null, judging closed, nothing published)
 - [x] **V2 `V2__hard_delete_and_status_cleanup.sql`** — ratifies hard delete, the `teams.status` cleanup, and the judge cascade
 - [x] **V3 `V3__form_registration.sql`** — registration moves to a Google Form: `users.google_sub` becomes nullable (NULL = registered, never signed in), and `phone` / `resume_url` / `linkedin_url` are added, all nullable because judges and admins are rows in `users` too
+- [x] **V4 `V4__add_user_github_url.sql`** — adds `users.github_url`, the third screening link the form collects and the one V3 missed. Nullable for the same reason. **Not the same column as `submissions.github_url`** — that is a team's project repo, this is a participant's own account; both are now commented in the database to keep them apart
 - [x] Conventions held throughout V1: `bigint generated always as identity`, `timestamptz`, `text` + `CHECK` over `varchar(n)`, no Postgres `ENUM` types, `numeric` for scored values, every FK index-backed
 - [x] **Two Postgres roles with a privilege split** (`scripts/bootstrap.sql`) — `hackathon_migrator` owns the schema and runs Flyway; `hackathon_app` is DML-only with no DDL
 - [x] Local Postgres 16 in Docker (`hackathon-pg16`) on **5433**
@@ -63,7 +64,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 ### Tests
 
-- [x] **13 test classes / 44 tests** — 11 repository tests (JPA slice against real Postgres), `FlywayBaselineMigrationTests`, and the generated context-load test
+- [x] **13 test classes / 48 tests** — 11 repository tests (JPA slice against real Postgres), `FlywayBaselineMigrationTests`, and the generated context-load test
 - [x] Slice pinned to the real database with `@AutoConfigureTestDatabase(replace = Replace.NONE)` — H2 was removed from `pom.xml` on purpose
 - [x] `FlywayBaselineMigrationTests` **refuses to run** unless live JDBC metadata shows a database ending in `/hackathon_db_test`, because it calls `flyway.clean()`
 - [x] Connection settings environment-overridable (`DB_TEST_URL` / `DB_TEST_USER` / `DB_TEST_PASSWORD`) so CI supplies its own
