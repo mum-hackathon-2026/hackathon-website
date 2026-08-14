@@ -73,13 +73,21 @@ Member 1 GitHub
 
 `Member N GitHub` feeds `users.github_url` — **the person's own account**. The importer matches `github`, `github url`, `github link`, `github profile`, `github account` and `github username`, and deliberately matches nothing containing "project" or "repo", so a form question about a project repository cannot silently land in a participant's profile column.
 
-The importer prints which CSV column fed which field before it touches the database, and **refuses to run if the leader's block did not map** — importing everyone with a silently-null resume is the worst thing it could do.
+The importer prints which CSV column fed which field before it touches the database, and **refuses to run unless every member block that appears at all appears whole** — importing someone with a silently-null resume is the worst thing it could do.
+
+The rule is **all six columns or none at all**, and it applies to each of the four blocks:
+
+- **Member 1 is the leader**, every row has one, so its six columns are always required.
+- **Members 2–4 may be left out of the form entirely.** A sheet that only ever collects pairs has no Member 3 or Member 4 columns, and that is a legitimate shape — the report says `(no columns - not collected)` and the run proceeds.
+- **A block with only some of its columns halts the run.** That is a mis-titled question, not a smaller team: a team with fewer than four members leaves those columns *empty*, it does not omit them. Before this guard existed, a question titled `Member 2 Project GitHub` imported the row, reported `rejected=0` and stored a null GitHub URL the form had actually collected.
+
+**Two columns with the same title also halt the run.** Google Forms lets two questions share a title, and values are keyed by normalised header, so the second column would silently win. Titles differing only in case or punctuation were already refused; exact duplicates now are too.
 
 **It is idempotent, because the form keeps collecting and this gets re-run.** A team whose name is already in the database *and* whose members are exactly the ones in the CSV row is reported as already present and left alone. A team whose name is taken but whose members differ is *rejected*, not merged — that is two teams that picked the same name, and a person has to resolve it. Each team is one transaction, so a team that fails at any step is rolled back whole; there is no such thing as a half-registered team.
 
 `--dry-run` does the identical work and then rolls back instead of committing, so every CHECK, UNIQUE index and foreign key really does fire rather than being approximated.
 
-Rejections are reported per row and never crash the run — duplicate email, a person listed on two teams, a duplicate team name, a team outside 1–4, a malformed email, and a resume, LinkedIn or GitHub value that is not a URL. Rejects do **not** fail the command; a human reads the report and chases them.
+Rejections are reported per row and never stop the run — duplicate email, a person listed on two teams, a duplicate team name, a team outside 1–4, a malformed email, and a resume, LinkedIn or GitHub value that is not a URL. Every other row still imports; a human reads the report and chases the rest.
 
 The **last line is machine-readable** and its keys are stable, for the day this runs unattended:
 
@@ -87,7 +95,17 @@ The **last line is machine-readable** and its keys are stable, for the day this 
 RESULT mode=live rows=8 imported=2 skipped=0 rejected=6
 ```
 
-`mode` is in there deliberately — a dry run and a live run otherwise produce identical counts, and a scheduler must never confuse the two. Because rejects do not set an exit code, **an automated caller should check `rejected=`, not the exit status.**
+`mode` is in there deliberately — a dry run and a live run otherwise produce identical counts, and a scheduler must never confuse the two.
+
+### Exit codes
+
+| Code | Meaning |
+| ---- | ------- |
+| `0` | The import ran to the end and nothing was rejected. |
+| `1` | The import ran to the end, but `rejected=` is non-zero and those rows need a human. **Everything else was still imported** — this is not a failed run, it is a run with follow-up. |
+| `2` | **Nothing was imported.** Bad arguments, an unreadable or malformed CSV, a member block missing some of its columns, two columns with the same name, a file with no data rows, or no reachable database. |
+
+A `RESULT` line is printed for `0` and `1` and **never** for `2`, so an unattended caller can rely on the exit code alone and read `rejected=` only when it wants the count. The distinction that matters to a scheduler is `1` versus `2`: after a `1` the database has changed and re-running will report the imported teams as already present; after a `2` nothing happened and the sheet or the environment has to be fixed first.
 
 Connection settings default to the local container as `hackathon_app` (DML only — an importer has no business holding DDL rights) and are overridable via `IMPORT_DB_URL` / `IMPORT_DB_USER` / `IMPORT_DB_PASSWORD`. Prefer those to `--password`, which is visible to anyone who can list processes.
 
