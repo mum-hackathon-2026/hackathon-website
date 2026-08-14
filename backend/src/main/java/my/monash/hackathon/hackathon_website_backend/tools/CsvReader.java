@@ -83,7 +83,7 @@ final class CsvReader {
 
         List<ParsedRecord> records = parse(content);
         if (records.isEmpty()) {
-            throw new MalformedCsvException("the file is empty — expected a header row");
+            throw new MalformedCsvException("the file is empty - expected a header row");
         }
 
         List<String> headerRecord = records.getFirst().fields();
@@ -98,7 +98,18 @@ final class CsvReader {
                 continue;
             }
             String existing = headersByNormalisedName.putIfAbsent(normalised, trimmed);
-            if (existing != null && !existing.equals(trimmed)) {
+            if (existing != null) {
+                // Exact duplicates are refused as firmly as near-duplicates. Google Forms lets
+                // two questions carry the same title, and the row reader keys values by
+                // normalised header, so the second column would silently overwrite the first
+                // and the value stored would be whichever happened to come last.
+                if (existing.equals(trimmed)) {
+                    throw new MalformedCsvException(
+                            "two columns have the same name: '" + trimmed + "'. Google Forms "
+                                    + "allows two questions with the same title, but there is no "
+                                    + "way to tell which one to read - the value would be taken "
+                                    + "from whichever column came last. Rename one of them.");
+                }
                 throw new MalformedCsvException(
                         "two columns mean the same thing once punctuation and case are ignored: "
                                 + "'" + existing + "' and '" + trimmed + "'. Rename one of them.");
@@ -200,8 +211,10 @@ final class CsvReader {
 
         // A file that does not end in a newline still has a final record.
         if (inQuotes) {
+            // ASCII only: this is printed to a console that is frequently cp1252 on Windows,
+            // where a non-ASCII dash arrives as a replacement character.
             throw new MalformedCsvException(
-                    "the file ends inside a quoted field — a closing double quote is missing "
+                    "the file ends inside a quoted field - a closing double quote is missing "
                             + "(the record starting at line " + recordStart + " never ends)");
         }
         if (!field.isEmpty() || !fields.isEmpty()) {

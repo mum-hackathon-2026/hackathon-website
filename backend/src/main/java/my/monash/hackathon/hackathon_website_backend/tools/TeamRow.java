@@ -1,6 +1,7 @@
 package my.monash.hackathon.hackathon_website_backend.tools;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -9,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * One row of the exported registration sheet, turned into a team and its members.
@@ -133,6 +135,23 @@ final class TeamRow {
         List<String> aliases(int block) {
             return suffixes.stream().map(suffix -> "member" + block + suffix).toList();
         }
+
+        /** The header spelling to recommend when this field failed to map, e.g. "Member 3 Name". */
+        String canonicalHeader(int block) {
+            return "Member " + block + " " + label;
+        }
+    }
+
+    /** Every field's label, in form order: Name, Email, Phone, Resume, LinkedIn, GitHub. */
+    static List<String> fieldLabels() {
+        return Arrays.stream(Field.values()).map(Field::label).toList();
+    }
+
+    /** The six canonical header spellings for one member block, quoted for a report. */
+    static String canonicalHeaders(int block) {
+        return Arrays.stream(Field.values())
+                .map(field -> "'" + field.canonicalHeader(block) + "'")
+                .collect(Collectors.joining(", "));
     }
 
     static List<String> teamNameHeaders() {
