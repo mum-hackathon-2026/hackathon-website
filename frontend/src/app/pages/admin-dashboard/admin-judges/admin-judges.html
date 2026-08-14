@@ -37,9 +37,11 @@
   </div>
 
   <p class="assign__hint">
-    Only people who have already signed in can be added.
-    <code>users.google_sub</code> is <code>NOT NULL</code>, so there is no row to promote until
-    somebody has been through Google themselves, and no invitations table to hold one who has not.
+    Only people who already hold a <code>users</code> row can be added, because that row
+    <em>is</em> the permission — sign-in looks the address up and refuses an account it cannot find.
+    Registration puts it there, so somebody can be put on the panel before they have ever signed in;
+    V3 made <code>users.google_sub</code> nullable for exactly that case, and it fills in on their
+    first Google sign-in. There is no way to add an address from here.
   </p>
 </section>
 

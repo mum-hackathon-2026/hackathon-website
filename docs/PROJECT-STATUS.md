@@ -1,8 +1,8 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `595c6cb` (= `origin/main`) plus the Judges section on `feature/admin-judges`, 2026-08-13.
-**Verified:** the frontend suite and a production build were run against the branch; the backend figures are carried forward from `98e50df` and **predate the auth layer merged in #32** — see [§7](#7-verification). Everything else here is read from the source tree.
+**As of:** `ad72282` (= `origin/main`, through PR #36) plus the Judges section on `feature/admin-judges`, 2026-08-13.
+**Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
 
@@ -12,18 +12,18 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 
 | Area | State | One line |
 | ---- | ----- | -------- |
-| **Database** | 🟢 Done | 11 tables across V1 + V2, live and migrating cleanly |
+| **Database** | 🟢 Done | 11 tables across V1 + V2 + V3, live and migrating cleanly |
 | **Backend persistence** | 🟢 Done | All 11 tables mapped, 11 repositories, 44 tests passing |
-| **Backend API** | 🟡 Auth only | `AuthController` — `POST /api/auth/google`, `GET /api/auth/me`. No other endpoint exists |
-| **Backend security** | 🟢 Done | `SecurityConfig` + JWT filter; `/api/admin/**` and `/api/judge/**` gated by authority |
+| **Backend API** | 🟡 Auth only | 2 endpoints (`/api/auth/google`, `/api/auth/me`); nothing for teams, submissions or judging |
+| **Backend security** | 🟢 Built | `SecurityConfig` + JWT filter + Google ID-token verification — **but zero tests** |
 | **Frontend pages** | 🟢 Done | 12 components behind 13 routes, all three roles covered |
 | **Admin workspace** | 🟡 6 of 10 | Overview, Teams, Participants, Submissions, Judges, Assignments built; four still stubs |
 | **Frontend data** | 🟡 Stand-ins | 7 in-memory services shaped like the API that will replace them |
-| **Integration** | 🔴 Not started | The two halves have never spoken; no HTTP client is even provided |
+| **Integration** | 🟡 One seam | Sign-in talks to the backend; every other page is still in-memory |
 | **CI** | 🟢 Done | Two jobs, both gating; a failing spec cannot reach `main` |
-| **Docs** | 🟡 Mostly | This file is current; CLAUDE.md still describes the backend as having no controllers |
+| **Docs** | 🟢 Current | This file, CLAUDE.md and docs/README.md all current as of `ad72282` |
 
-**The single most important line:** the persistence layer is finished, the UI is finished, and **the only thing joining them is the auth endpoint that landed in #32 — which the frontend does not call yet.** Every page still runs on in-memory data that resets on reload. Wiring them together is the whole of the remaining work, and it starts with [§6](#6-what-comes-next).
+**The single most important line:** the two halves now speak, but only about **who you are**. Login is real — Google ID token in, JWT out, email checked against the `users` table — and every other page still runs on in-memory data that resets on reload. The pattern for connecting the rest exists; it just has one instance. [§6](#6-what-comes-next) is the order to do it in.
 
 ---
 
@@ -33,6 +33,7 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 
 - [x] **V1 `V1__baseline_schema.sql`** — creates all 11 tables, seeds the `event_settings` singleton inert (registration windows null, judging closed, nothing published)
 - [x] **V2 `V2__hard_delete_and_status_cleanup.sql`** — ratifies hard delete, the `teams.status` cleanup, and the judge cascade
+- [x] **V3 `V3__form_registration.sql`** — registration moves to a Google Form: `users.google_sub` becomes nullable (NULL = registered, never signed in), and `phone` / `resume_url` / `linkedin_url` are added, all nullable because judges and admins are rows in `users` too
 - [x] Conventions held throughout V1: `bigint generated always as identity`, `timestamptz`, `text` + `CHECK` over `varchar(n)`, no Postgres `ENUM` types, `numeric` for scored values, every FK index-backed
 - [x] **Two Postgres roles with a privilege split** (`scripts/bootstrap.sql`) — `hackathon_migrator` owns the schema and runs Flyway; `hackathon_app` is DML-only with no DDL
 - [x] Local Postgres 16 in Docker (`hackathon-pg16`) on **5433**
@@ -46,6 +47,19 @@ The 11 tables: `users`, `event_settings`, `teams`, `team_members`, `submissions`
 - [x] Schema rules encoded in the mappings rather than left to convention: `@MapsId` shared primary keys on `TeamMember` / `Submission` / `TeamResult`, the `EventSettings` singleton, `Score`'s criterion snapshot, `jsonb` on `AuditLog.details`, `@Version` on `Team` and `Submission`
 
 > Each of those encodes a constraint that a naive entity would silently discard. Before editing one, read *Mappings that encode a schema rule* in [CLAUDE.md](../CLAUDE.md).
+
+### Authentication (PRs #32, #34)
+
+The first and so far only HTTP surface. Eight classes in `auth/`, which owns no table.
+
+- [x] **`POST /api/auth/google`** — verifies a Google ID token against Google's keys, requires a verified email, looks the address up in `users`, backfills `google_sub` / `email_verified` / `last_login_at` / display name, and returns a JWT plus the user
+- [x] **Access is by pre-existing row.** An unregistered email gets **403**; there is no self-registration endpoint. This is the whole of the admissions policy
+- [x] **`GET /api/auth/me`** — returns the caller's profile from the JWT. Written for session restore; **nothing calls it yet**
+- [x] **`SecurityConfig`** — stateless, CSRF off, CORS for `http://localhost:4200`, `JwtAuthenticationFilter` ahead of `UsernamePasswordAuthenticationFilter`. Matchers: `/api/auth/**` open, `/api/admin/**` needs authority `admin`, `/api/judge/**` needs `judge`, everything else authenticated
+- [x] **`JwtService`** — HS256, claims `sub`/`email`/`role`/`name`, expiry from `app.jwt.expiration-ms`
+- [x] **Config validated at startup** — `app.jwt.secret` (≥32 chars) and `app.google.client-id` are `@NotBlank`, so a missing value fails the boot rather than a request
+
+> **Zero tests on the backend side.** The `auth/` package has no test class: CI compiles it and never executes it, making it the least-verified code in the repo. The frontend has one wiring test (the client id comes from the token) and otherwise covers the demo path only. See [§4](#4-what-is-not-done).
 
 ### Tests
 
@@ -90,7 +104,7 @@ The 11 tables: `users`, `event_settings`, `teams`, `team_members`, `submissions`
 
 ### Core services (`src/app/core/`)
 
-- [x] `auth/` — `AuthService`, `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`), `SESSION_STORAGE` token
+- [x] `auth/` — `AuthService` with **two sign-in paths**: `signInWithGoogle()` (real, POSTs to the backend, stores the JWT under `hackathon.jwt-token`) and `signIn(role)` (the original demo path, no network, still what the specs and role buttons use). Both feed one `currentUser` signal, so nothing downstream can tell them apart. Plus the `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`) and three injection tokens — `SESSION_STORAGE`, `API_BASE_URL`, `GOOGLE_CLIENT_ID`
 - [x] `event/` — `EVENT_CONFIG` token, `PhaseService`, `MilestoneService`, static site copy
 - [x] `team/`, `submission/`, `results/` — participant-scoped stand-ins
 - [x] `judge/` — assignments, scores, criteria; validation repeats the tables' CHECK constraints so the UI never accepts what the API would reject
@@ -117,9 +131,11 @@ The 11 tables: `users`, `event_settings`, `teams`, `team_members`, `submissions`
 - **Participants** — no student ID column and no eligibility column, so no Verify/Flag action. Eligibility is derived from the address and `users.email_verified` instead, screened against `site.studentEmailDomain`. `event_settings.screening_enabled` is surfaced but gates nothing.
 - **Teams** — no `locked` status in `teams_status_check`, so no Lock action; Withdraw and Disqualify are the settled states that do exist.
 - **Assignments** — supported as drawn. Two departures are constraints rather than choices: a repeat assignment is refused (`assignments_team_id_judge_id_key` is UNIQUE, where the draft ignores it silently), and removing a judge who has started asks first, because `scores.assignment_id` is `ON DELETE CASCADE` and their scores go with the row.
-- **Judges** — no active / inactive / pending judge, because there is no column for one: being a judge *is* holding `users.role = 'judge'`, so adding and removing is that one write. The draft's email invitation cannot exist either — `users.google_sub` is NOT NULL and there is no invitations table, so nobody has a row to promote until they have signed in themselves. Removing is refused while the judge still holds assignments: a role change is not a delete, so `assignments.judge_id`'s cascade never fires and their rows would outlive their access.
+- **Judges** — no active or inactive judge, because there is no column for one: being a judge *is* holding `users.role = 'judge'`, so adding and removing is that one write. The draft's email invitation has nowhere to live either — there is no invitations table, and sign-in admits an address only if `users` already holds it — so an organiser promotes somebody already registered instead. Removing is refused while the judge still holds assignments: a role change is not a delete, so `assignments.judge_id`'s cascade never fires and their rows would outlive their access. **The draft's third state, `pending`, the section does not show** — V3 made it representable (see the note below), but `AdminService` does not carry `google_sub` yet.
 
-> **`AdminJudge.isActive` is gone.** It was documented as a `users` column and there has never been one — V1's `users.status` was dropped by V2 and nothing replaced it. Being a judge is holding `users.role = 'judge'`; there is no separate active flag, and the draft's `pending` state cannot exist at all while `users.google_sub` is NOT NULL, since a row only appears once that person has signed in. The Overview's "Active judges" tile is now a plain judge count.
+> **`AdminJudge.isActive` is gone.** It was documented as a `users` column and there has never been one — V1's `users.status` was dropped by V2 and nothing replaced it. Being a judge is holding `users.role = 'judge'`; there is no separate active flag, so the Overview's "Active judges" tile is now a plain judge count.
+>
+> **The draft's `pending` state, however, is now representable — V3 changed this.** While `users.google_sub` was NOT NULL a row could only appear once that person had signed in, so "invited but not yet joined" had nowhere to live. V3 dropped that NOT NULL: **a row with a NULL `google_sub` is exactly a person who is registered but has never signed in**, which is what the form importer creates for every participant. The same shape would represent a judge who has been added to the allowlist but has not yet logged in. Nothing in the admin UI reads it yet — this is a state the schema can now hold, not a feature that exists.
 
 All seven mirror their tables field for field, and the three team-facing ones share seed data on purpose so they do not describe different universes.
 
@@ -130,7 +146,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Tests
 
-- [x] **27 spec files / 324 tests**, colocated, no database or dev server needed
+- [x] **27 spec files / 325 tests**, colocated, no database or dev server needed
 - [x] Zoneless Angular 21 throughout — signals for state, `await fixture.whenStable()` in tests, vitest under jsdom (not Karma)
 
 ---
@@ -139,13 +155,17 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### The gap between the halves
 
-- [ ] **No controllers beyond auth.** `AuthController` is the only one; nothing serves teams, submissions, assignments, scores or results.
-- [ ] **No frontend HTTP client.** `app.config.ts` provides only `provideBrowserGlobalErrorListeners()` and `provideRouter(routes)` — no `provideHttpClient`, and nothing imports `HttpClient` or calls `fetch`. **This is now the binding constraint**: the auth endpoint exists and has no caller.
-- [ ] **Nothing persists.** Every page runs on in-memory stand-ins that reset on reload, by design.
-- [ ] **Frontend authentication is still a demo.** The backend has real Google OAuth2 and JWT as of #32, but `core/auth/auth.ts` has not been pointed at it: `signIn(role)` still picks one of three hardcoded users and stores a role key in `localStorage`. The guards gate *navigation only* — the server enforcement now exists, but nothing in the browser talks to it.
+- [ ] **One endpoint pair, and it is the auth one.** Nothing serves teams, submissions, judging, results or event settings — no controllers, services or DTOs outside `auth/`. Every repository is still called only by tests.
+- [ ] **Nothing persists in the UI.** Apart from the signed-in user, every page runs on in-memory stand-ins that reset on reload, by design.
+- [ ] **No HTTP interceptor.** The JWT is stored and exposed as `AuthService.token()`, but nothing attaches it to a request — there are no authenticated requests yet. The first non-auth call needs one written alongside it.
+- [ ] **The demo sign-in still bypasses everything.** `signIn(role)` picks one of three hardcoded users with no token, and the guards cannot tell that session from a real one. Guards gate *navigation*; only `SecurityConfig` gates data, and today it guards nothing anyone calls.
+- [ ] **A stored session is never revalidated.** Reload restores the user from `localStorage` without checking the token; `GET /api/auth/me` exists for this and has no caller. An expired or revoked token still looks signed-in.
+- [ ] **No tests on any of the above.** The backend `auth/` package has no test class; `auth.spec.ts` and `sign-in.spec.ts` predate the Google flow and exercise the demo path only.
 
 ### Smaller gaps
 
+- [ ] **The initial bundle is over budget.** 517.29 kB against a 500 kB warning threshold (it was 490.74 kB before the HTTP layer). `npm run build` warns and still exits 0, so **CI does not catch this** — only the 1 MB error threshold fails a build.
+- [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
 - [ ] **No linting.** No ESLint config and no lint script; Prettier is the only tool configured and it only formats. CI marks where the step goes.
 - [ ] **Uneven test coverage.** Every routed page has a spec, but `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts` have none, and most presentational pieces are untested — `page-header`, `profile-menu`, `state-locked`, `event-timeline`, `status-pill`, and the section components under `progress/`, `results/`, `judge-portal/`, `judge-review/`, `admin-dashboard/` and parts of `home/`.
 - [ ] **Six CHECK vocabularies remain unratified** — see [docs/README.md](README.md). Three are at least exercised by the frontend; three (`assignments.status`, `notifications_log.type`, `notifications_log.status`) had never been reviewed until the judge pages started consuming the first of them.
@@ -181,22 +201,28 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #29 | 08-12 | **Admin dashboard rebuilt** as the ten-section workspace — sidebar, Overview, Teams, Submissions |
 | #30 | 08-13 | This file added; `docs/BACKEND-STATUS.md` retired |
 | #31 | 08-13 | **Participants section** — roster with derived eligibility; `memberCount` now counted from it |
-| #32 | 08-13 | **Google OAuth2 + JWT on the backend** — `SecurityConfig`, `JwtAuthenticationFilter`, `AuthController`, email-whitelist enforcement. The first HTTP endpoints in the repo |
-| #33 | 08-13 | **Assignments section** — the assignment read model behind it, and the removal of `AdminJudge.isActive` |
+| #32 | 08-13 | **Backend Google auth** — `auth/` package, `SecurityConfig`, JWT issue/verify, email-whitelist enforcement |
+| #33 | 08-13 | **Assignments section** — assign/unassign judges, panel workload, coverage filters; `AdminJudge.isActive` removed |
+| #34 | 08-13 | **Sign-in wired to the backend** — GIS button, `signInWithGoogle()`, `provideHttpClient()`, 401/403 error copy |
+| #35 | 08-13 | CLAUDE.md brought back in line with the code |
+| #36 | 08-13 | **V3 migration** — form registration: `users.google_sub` nullable, `phone` / `resume_url` / `linkedin_url` added, CSV importer |
 
-**In flight:** `feature/admin-judges` — the Judges section, and `users.role` as a write rather than only a read.
+**In flight:** `feature/admin-judges` (PR #37) — the Judges section, and `users.role` as a write rather than only a read.
 
 ---
 
 ## 6. What comes next
 
-In order. The first two items were items 1 and 2 until #32 landed; the list has moved up.
+In order. The first item is not first by preference.
 
-1. **Give the frontend an HTTP client and point sign-in at `/api/auth/google`.** `provideHttpClient` is still missing, so the endpoint that #32 built has no caller. Replacing `signIn(role)` is the first real integration and proves the JWT round trip before any data endpoint depends on it.
-2. **Controllers + DTOs for the rest**, following the packages-by-feature shape the entities already use. `SecurityConfig` already reserves `/api/admin/**` and `/api/judge/**` by authority, so a new endpoint under either is gated the moment it exists.
-3. **Replace the stand-ins one at a time.** They already return `Promise<{ok} | {ok:false, error}>`, so callers should not need reshaping; this is meant to be a change of data source.
-4. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them.
-5. **Add ESLint**, and fill the coverage gaps listed in [§4](#4-what-is-not-done).
+1. **Test the auth package.** It is the only code that decides who gets in, it is the only code with no test, and CI cannot catch a break in it. A `@WebMvcTest` over `AuthController` with the verifier stubbed covers the three branches that matter (valid + registered → 200, valid + unregistered → 403, unverified email → 401); a `JwtService` round-trip test covers the rest. Do this before the endpoints multiply.
+2. **First non-auth controller + DTOs**, following the packages-by-feature shape the entities already use. Expect a 401 on the first call — `anyRequest().authenticated()` is the rule, and that is deliberate now rather than accidental.
+3. **An HTTP interceptor**, in the same change as that controller, to attach `AuthService.token()` as `Authorization: Bearer …`. Nothing does this today.
+4. **Replace the stand-ins one at a time.** They already return `Promise<{ok} | {ok:false, error}>`, so callers should not need reshaping — this is meant to be a change of data source. `signInWithGoogle()` is the worked example of the shape.
+5. **Close the auth loopholes** — call `GET /api/auth/me` on reload so a stale token cannot look signed-in, and decide when the demo `signIn(role)` path comes out.
+6. **Get back under the bundle budget** (§4) — the next eager route added will push it further.
+7. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them, and note that `SecurityConfig`'s `hasAuthority("admin"/"judge")` is a third copy of the `users.role` literals.
+8. **Add ESLint**, and fill the coverage gaps listed in [§4](#4-what-is-not-done).
 
 Running alongside, and not waiting on any of the above: **the four remaining workspace sections**. None is blocked on the schema — Judging Progress and Audit Log map onto their tables as designed, and Results and Event Settings ship reduced the way Participants, Teams, Judges and Assignments already do.
 
@@ -206,11 +232,16 @@ Running alongside, and not waiting on any of the above: **the four remaining wor
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npx ng test --watch=false` | **27 files, 342 tests passed** | `feature/admin-judges`, 2026-08-13 |
-| Frontend | `npm run build` | **490.74 kB initial, no budget warning** | `feature/admin-judges`, 2026-08-13 |
-| Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 — **before #32**, so the auth layer is unmeasured here |
+| Frontend | `npx ng test --watch=false` | **27 files, 343 tests passed** | `feature/admin-judges`, 2026-08-13 |
+| Frontend | `npm run build` | **517.29 kB initial — ⚠️ budget warning, exit 0** | `feature/admin-judges`, 2026-08-13 |
+| Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
+| Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
-The initial bundle has not moved since #29: the admin route is lazy, so every new section goes into the `admin-dashboard` chunk (89.02 kB) rather than the initial one. Every other route is still eager, and the 500 kB figure is the **warning** threshold — the hard error is 1 MB.
+**The backend suite was not re-run for this pass** — no Postgres was reachable, so only compilation was verified. The 44-test figure is carried forward from `98e50df` and predates the `auth/` package; since `auth/` has no tests of its own, the count is expected to be unchanged, but nobody has confirmed the context still loads against a real database with the new validated properties in play. Run `./mvnw -B clean verify` with the container up before relying on it.
+
+**The bundle warning is not this branch's.** It arrived with the HTTP layer in #34 (490.74 kB → 517.29 kB) and the figure has not moved since: the admin route is the only lazy one, so the Judges section went into its chunk (75.02 kB → 89.32 kB) and left the initial total alone. Everything else is eager, which is where the 17.29 kB overrun lives. The hard error is 1 MB, which is why CI is still green — see [§4](#4-what-is-not-done).
+
+The spec count is 343, up from 325: the Judges section added 18 (10 on `AdminService`, 8 on the dashboard). Before it, neither the Assignments section nor the auth work had added a spec.
 
 The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
 

@@ -13,14 +13,21 @@ type LoadFilter = 'all' | 'idle' | 'outstanding' | 'done';
  * This is the section the design draft and the schema disagree about most, and
  * both departures are the database's word rather than a preference:
  *
- *  - **There is no active / inactive / pending judge.** The draft shows all
- *    three. `users` has no status column — V1 had one, V2 dropped it for hard
- *    delete, and nothing replaced it — so being a judge is holding the role and
- *    nothing else. 'Pending' cannot exist at all: `users.google_sub` is NOT
- *    NULL, so the row does not appear until that person has signed in.
- *  - **A judge cannot be invited by email.** For the same reason, there is
- *    nobody to invite until they have signed in themselves. What an organiser
- *    can do is promote somebody already registered, which is what this offers.
+ *  - **There is no active or inactive judge.** The draft shows both. `users`
+ *    has no status column — V1 had one, V2 dropped it for hard delete, and
+ *    nothing replaced it — so being a judge is holding the role and nothing
+ *    else.
+ *  - **A judge cannot be invited by email.** There is no invitations table, and
+ *    sign-in admits an address only if `users` already holds it. So an
+ *    organiser promotes somebody who is registered rather than inviting a
+ *    stranger, which is what this offers.
+ *
+ * The draft's third state, *pending*, is a different matter. V3 made
+ * `users.google_sub` nullable so form registration could create a row before
+ * that person has any Google identity, which makes 'registered but never signed
+ * in' — NULL `google_sub` — a real state the panel could show. `AdminService`
+ * does not carry the field yet, so this section does not distinguish it; that
+ * is the obvious next addition here, not something the schema forbids.
  */
 @Component({
   selector: 'app-admin-judges',
