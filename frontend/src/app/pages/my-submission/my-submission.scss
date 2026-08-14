@@ -1,22 +1,16 @@
-.submission__error {
-  margin: 0 0 16px;
-  padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--color-red-ink) 35%, transparent);
-  border-radius: 6px;
-  background: var(--color-red-tint);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-red-ink);
-}
-
 .submission__card {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-top: 16px;
   padding: 18px 20px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
+
+  &:first-child {
+    margin-top: 0;
+  }
 }
 
 .submission__subheading {
@@ -69,39 +63,43 @@
   color: var(--color-body);
 }
 
-.submission__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+/* What the form sent us, read back. Two columns on anything but a phone. */
+.submission__facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
 
-.submission__optional {
-  font-weight: 500;
-  text-transform: none;
-  color: var(--color-subtle);
-}
+  dt {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-subtle);
+    padding-top: 2px;
+  }
 
-.submission__textarea {
-  resize: vertical;
-  line-height: 1.6;
-}
+  dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--color-ink);
+  }
 
-.submission__actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
+  a {
+    color: var(--color-blue-ink);
+  }
 
-.submission__saved {
-  font-size: 12.5px;
-  color: var(--color-green-ink);
-}
+  @media (max-width: 420px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
 
-.submission__hint {
-  margin: 14px 0 0;
-  font-size: 12.5px;
-  color: var(--color-muted);
+    dd {
+      margin-bottom: 8px;
+    }
+  }
 }
 
 .submission__locked-summary {

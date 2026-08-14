@@ -1,36 +1,9 @@
-.my-team__error,
-.my-team__notice {
-  margin: 0 0 16px;
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.my-team__error {
-  border: 1px solid color-mix(in srgb, var(--color-red-ink) 35%, transparent);
-  background: var(--color-red-tint);
-  color: var(--color-red-ink);
-}
-
-.my-team__notice {
-  border: 1px solid color-mix(in srgb, var(--color-green-ink) 30%, transparent);
-  background: var(--color-green-tint);
-  color: var(--color-green-ink);
-}
-
 .my-team__card {
   margin-bottom: 16px;
   padding: 18px 20px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
-}
-
-.my-team__choices {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
 }
 
 .my-team__title-row {
@@ -63,49 +36,6 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--color-ink);
-}
-
-.my-team__help {
-  margin: 0 0 14px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--color-muted);
-}
-
-// ── Join code ─────────────────────────────────────────────────────────────
-
-.my-team__code-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
-}
-
-.my-team__code-label {
-  margin: 0 0 2px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-subtle);
-}
-
-.my-team__code {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-ink);
-}
-
-.my-team__code-actions {
-  display: flex;
-  gap: 8px;
 }
 
 // ── Members ───────────────────────────────────────────────────────────────
@@ -202,16 +132,17 @@
   color: var(--color-amber-ink);
 }
 
-.my-team__member-actions {
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
 .my-team__hint {
   margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-hairline);
   font-size: 12.5px;
+  line-height: 1.6;
   color: var(--color-muted);
+
+  a {
+    color: var(--color-blue-ink);
+  }
 }
 
 .my-team__locked-summary {
@@ -219,30 +150,4 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--color-ink);
-}
-
-// ── Forms and buttons ─────────────────────────────────────────────────────
-
-.my-team__form,
-.my-team__rename {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.my-team__rename {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  width: 100%;
-
-  .input {
-    flex: 1;
-    min-width: 160px;
-  }
-}
-
-.my-team__code-input {
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }

@@ -30,6 +30,10 @@ describe('MySubmission', () => {
     return host().textContent?.replace(/\s+/g, ' ') ?? '';
   }
 
+  function formLink(): HTMLAnchorElement | null {
+    return host().querySelector<HTMLAnchorElement>('app-form-link-card a');
+  }
+
   /** `now` must be set before the TestBed builds — PhaseService samples it in its constructor. */
   async function setUp(now: string, { withTeam = true } = {}) {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -63,7 +67,7 @@ describe('MySubmission', () => {
     await setUp(DURING_SUBMISSION, { withTeam: false });
 
     expect(text()).toContain('You need a team first');
-    expect(host().querySelector('#title')).toBeNull();
+    expect(formLink()).toBeNull();
     expect(host().querySelector('a[href="/participant/team"]')).toBeTruthy();
   });
 
@@ -72,24 +76,27 @@ describe('MySubmission', () => {
 
     expect(host().querySelector('app-state-locked')).toBeTruthy();
     expect(text()).toContain("Submissions aren't open yet");
-    expect(host().querySelector('#title')).toBeNull();
+    expect(formLink()).toBeNull();
   });
 
-  it('shows the form once the window opens', async () => {
+  it('links to the submission form once the window opens', async () => {
     await setUp(DURING_SUBMISSION);
 
-    expect(host().querySelector('#title')).toBeTruthy();
-    expect(host().querySelector('#track')).toBeTruthy();
-    expect(text()).toContain('Draft');
+    expect(formLink()?.getAttribute('href')).toBe(
+      DEFAULT_EVENT_CONFIG.site.projectSubmissionFormUrl,
+    );
+    expect(formLink()?.target).toBe('_blank');
+    expect(text()).toContain('Not submitted');
   });
 
-  it('offers every configured track', async () => {
+  /** The form owns the fields now; leaving a second set here would be two sources of truth. */
+  it('carries no submission form of its own', async () => {
     await setUp(DURING_SUBMISSION);
 
-    const options = Array.from(host().querySelectorAll<HTMLOptionElement>('#track option'))
-      .map((o) => o.value)
-      .filter(Boolean);
-    expect(options).toEqual([...DEFAULT_EVENT_CONFIG.site.tracks]);
+    expect(host().querySelector('form')).toBeNull();
+    expect(host().querySelector('input')).toBeNull();
+    expect(host().querySelector('select')).toBeNull();
+    expect(host().querySelector('app-confirm-dialog')).toBeNull();
   });
 
   it('goes read-only once the deadline passes', async () => {
@@ -97,71 +104,35 @@ describe('MySubmission', () => {
 
     expect(host().querySelector('app-state-locked')).toBeTruthy();
     expect(text()).toContain('Submissions are closed');
-    expect(host().querySelector('#title')).toBeNull();
+    expect(formLink()).toBeNull();
   });
 
-  it('surfaces a validation error rather than failing silently', async () => {
+  it('shows nothing on file until an entry arrives', async () => {
     await setUp(DURING_SUBMISSION);
 
-    const github = host().querySelector<HTMLInputElement>('#github')!;
-    github.value = 'github.com/no-scheme';
-    github.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
-
-    host().querySelector<HTMLButtonElement>('.submission__actions .button')!.click();
-    await fixture.whenStable();
-
-    expect(host().querySelector('.submission__error')?.textContent).toContain('http://');
+    expect(text()).not.toContain('What we have on file');
   });
 
-  it('confirms before submitting rather than submitting immediately', async () => {
+  it('reads back the entry once it has been imported', async () => {
     await setUp(DURING_SUBMISSION);
-
-    for (const [id, value] of [
-      ['#title', 'EduPath'],
-      ['#github', 'https://github.com/example/edupath'],
-    ] as const) {
-      const field = host().querySelector<HTMLInputElement>(id)!;
-      field.value = value;
-      field.dispatchEvent(new Event('input'));
-    }
-    const track = host().querySelector<HTMLSelectElement>('#track')!;
-    track.value = DEFAULT_EVENT_CONFIG.site.tracks[0];
-    track.dispatchEvent(new Event('change'));
-    await fixture.whenStable();
-
-    host().querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit'));
-    await fixture.whenStable();
-
-    // Dialog is up, nothing submitted yet.
-    expect(host().querySelector('app-confirm-dialog')).toBeTruthy();
-    expect(submissions.isSubmitted()).toBe(false);
-
-    host().querySelector<HTMLButtonElement>('dialog .button--primary')!.click();
-    await fixture.whenStable();
-
-    expect(submissions.isSubmitted()).toBe(true);
-    expect(submissions.submission()!.submittedAt).toBeInstanceOf(Date);
-  });
-
-  it('loads an existing submission into the form', async () => {
-    await setUp(DURING_SUBMISSION);
-    await submissions.saveDraft({
-      projectTitle: 'Existing work',
-      description: 'From a teammate.',
-      githubUrl: 'https://github.com/example/existing',
+    await submissions.submit({
+      projectTitle: 'EduPath',
+      description: 'Adaptive learning.',
+      githubUrl: 'https://github.com/example/edupath',
       deployedUrl: '',
       trackLabel: DEFAULT_EVENT_CONFIG.site.tracks[1],
     });
     await fixture.whenStable();
 
-    expect(host().querySelector<HTMLInputElement>('#title')!.value).toBe('Existing work');
-    expect(host().querySelector<HTMLSelectElement>('#track')!.value).toBe(
-      DEFAULT_EVENT_CONFIG.site.tracks[1],
-    );
+    expect(text()).toContain('What we have on file');
+    expect(text()).toContain('EduPath');
+    expect(text()).toContain(DEFAULT_EVENT_CONFIG.site.tracks[1]);
+    expect(
+      host().querySelector<HTMLAnchorElement>('.submission__facts a')?.getAttribute('href'),
+    ).toBe('https://github.com/example/edupath');
   });
 
-  it('relabels the submit button once submitted', async () => {
+  it('flips the pill and the card heading once submitted', async () => {
     await setUp(DURING_SUBMISSION);
     await submissions.submit({
       projectTitle: 'EduPath',
@@ -172,8 +143,8 @@ describe('MySubmission', () => {
     });
     await fixture.whenStable();
 
-    expect(text()).toContain('Update submission');
-    expect(text()).toContain('Submitted');
+    expect(host().querySelector('.submission__pill--submitted')).toBeTruthy();
+    expect(text()).toContain('Update your submission');
   });
 });
 

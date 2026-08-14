@@ -13,6 +13,12 @@ import { EVENT_CONFIG } from '../event/event-config';
  * replacing this with HTTP calls is a change of data source rather than a
  * reshape. State lives in memory and resets on reload — deliberately, so nobody
  * mistakes it for storage.
+ *
+ * The mutations below no longer have a caller in the UI. Teams are formed on a
+ * Google Form and imported by `tools/FormRegistrationImporter`, so My Team only
+ * reads. They are kept because the progress and results specs seed their
+ * fixtures through `createTeam` / `joinTeam`, and because a real endpoint will
+ * want the same async boundary. Do not build a page on them.
  */
 
 /**

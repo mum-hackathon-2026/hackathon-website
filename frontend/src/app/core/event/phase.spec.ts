@@ -20,6 +20,8 @@ const BASE: EventConfig = {
     tagline: 'tagline',
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
+    teamRegistrationFormUrl: 'https://forms.gle/test-team-registration',
+    projectSubmissionFormUrl: 'https://forms.gle/test-project-submission',
     studentEmailDomain: 'student.monash.edu',
     tracks: ['Open Innovation'],
     judgingCriteria: [{ name: 'Innovation', weight: 100 }],
