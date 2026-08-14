@@ -76,6 +76,15 @@ public final class FormRegistrationImporter {
     private static final String DEFAULT_USER = "hackathon_app";
     private static final String DEFAULT_PASSWORD = "dev_app_local";
 
+    // Exit codes. An unattended caller reads these; the RESULT line stays the record of what
+    // happened, but a scheduler should not have to parse anything to learn that a run failed.
+    /** The import ran to the end and no row was rejected. */
+    static final int EXIT_OK = 0;
+    /** The import ran to the end, but at least one row was rejected and needs a human. */
+    static final int EXIT_REJECTIONS = 1;
+    /** Nothing was imported: bad arguments, an unreadable or mis-titled sheet, or no database. */
+    static final int EXIT_ABORTED = 2;
+
     // google_sub is deliberately absent from the column list: a form registration has no
     // Google identity yet, so the column takes its NULL. V3 dropped NOT NULL precisely so
     // this insert is possible. role and email_verified are stated rather than left to the
@@ -169,6 +178,15 @@ public final class FormRegistrationImporter {
     private record Options(Path file, boolean dryRun, String url, String user, String password) {}
 
     public static void main(String[] args) {
+        System.exit(run(args));
+    }
+
+    /**
+     * The real entry point. Returns the exit code rather than setting it so that a test can
+     * assert on it without taking the JVM down with it; {@link #main} is the thin shell that
+     * turns the return value into a process status.
+     */
+    static int run(String[] args) {
         Options options;
         try {
             options = parseArguments(args);
@@ -176,16 +194,16 @@ public final class FormRegistrationImporter {
             System.out.println("error: " + e.getMessage());
             System.out.println();
             printUsage();
-            return;
+            return EXIT_ABORTED;
         }
         if (options == null) {
             printUsage();
-            return;
+            return EXIT_OK;
         }
-        new FormRegistrationImporter().run(options);
+        return new FormRegistrationImporter().execute(options);
     }
 
-    private void run(Options options) {
+    private int execute(Options options) {
         System.out.println("Google Form registration import");
         System.out.println("  file      : " + options.file().toAbsolutePath());
         System.out.println("  database  : " + options.url() + " as " + options.user());
@@ -199,34 +217,35 @@ public final class FormRegistrationImporter {
             sheet = CsvReader.read(options.file());
         } catch (IOException e) {
             System.out.println("Could not read " + options.file() + ": " + e.getMessage());
-            return;
+            return EXIT_ABORTED;
         } catch (CsvReader.MalformedCsvException e) {
             System.out.println("Could not parse " + options.file() + ": " + e.getMessage());
-            return;
+            return EXIT_ABORTED;
         }
 
         if (!reportColumnMapping(sheet)) {
-            return;
+            return EXIT_ABORTED;
         }
 
         if (sheet.rows().isEmpty()) {
             System.out.println("The file has a header row but no data rows. Nothing to do.");
-            return;
+            return EXIT_ABORTED;
         }
 
         try (Connection connection = DriverManager.getConnection(
                 options.url(), options.user(), options.password())) {
             connection.setAutoCommit(false);
-            importAll(connection, sheet, options.dryRun());
+            return importAll(connection, sheet, options.dryRun());
         } catch (SQLException e) {
             System.out.println();
             System.out.println("Could not connect to " + options.url() + " as " + options.user()
                     + ": " + e.getMessage());
             System.out.println("Is the Docker container running? `docker start hackathon-pg16`");
+            return EXIT_ABORTED;
         }
     }
 
-    private void importAll(Connection connection, CsvReader.Sheet sheet, boolean dryRun)
+    private int importAll(Connection connection, CsvReader.Sheet sheet, boolean dryRun)
             throws SQLException {
         List<Outcome> outcomes = new ArrayList<>();
 
@@ -245,6 +264,9 @@ public final class FormRegistrationImporter {
         }
 
         printSummary(outcomes, dryRun);
+
+        boolean anyRejected = outcomes.stream().anyMatch(o -> o.status() == Status.REJECTED);
+        return anyRejected ? EXIT_REJECTIONS : EXIT_OK;
     }
 
     /**
@@ -537,9 +559,16 @@ public final class FormRegistrationImporter {
 
     /**
      * Prints which CSV column fed which field before touching the database, and refuses to
-     * continue if the leader's block did not map. A silent mismatch here is the worst
-     * failure this tool has — it would import every participant with a null resume and
-     * report success — so the mapping is shown rather than assumed.
+     * continue if any member block mapped only part of itself. A silent mismatch here is the
+     * worst failure this tool has - it would import a participant with a null resume and
+     * report success - so the mapping is shown rather than assumed.
+     *
+     * <p>The rule is the same for all four blocks: <strong>all six columns or none at all</strong>.
+     * Member 1 is the leader and every row has one, so its block may never be absent. Members
+     * 2-4 may be absent entirely, because a form that only ever collects pairs is a legitimate
+     * shape - but a block with <em>some</em> of its columns is not a smaller team, it is a
+     * mis-titled question. A team with fewer than four members leaves those columns empty; it
+     * does not omit them.
      */
     private static boolean reportColumnMapping(CsvReader.Sheet sheet) {
         System.out.println("Column mapping");
@@ -555,11 +584,16 @@ public final class FormRegistrationImporter {
         System.out.printf("  %-22s <- %s%n", "team name",
                 teamNameHeader == null ? "(NOT PRESENT)" : "'" + teamNameHeader + "'");
 
-        List<String> missingForLeader = new ArrayList<>();
+        // Block number to the labels it failed to map. Every offending block is collected
+        // before anything is reported: fixing a header row means a trip to the spreadsheet,
+        // and whoever makes it should be able to fix all of them in one go rather than
+        // discovering the next one on the next run.
+        Map<Integer, List<String>> incompleteBlocks = new LinkedHashMap<>();
 
         for (int block = 1; block <= TeamRow.MAX_TEAM_SIZE; block++) {
             List<String> lines = new ArrayList<>();
             boolean blockDeclared = false;
+            List<String> missing = new ArrayList<>();
             for (TeamRow.Field field : TeamRow.Field.values()) {
                 String found = null;
                 for (String alias : field.aliases(block)) {
@@ -570,16 +604,21 @@ public final class FormRegistrationImporter {
                 }
                 if (found != null) {
                     blockDeclared = true;
+                } else {
+                    missing.add(field.label());
                 }
                 lines.add(String.format("  %-22s <- %s",
                         "member " + block + " " + field.label().toLowerCase(Locale.ROOT),
                         found == null ? "(not present)" : "'" + found + "'"));
-                if (block == 1 && found == null) {
-                    missingForLeader.add(field.label());
-                }
             }
-            if (blockDeclared) {
+
+            // Member 1 is always required, so its block is always shown and always checked,
+            // even when not one of its columns mapped.
+            if (block == 1 || blockDeclared) {
                 lines.forEach(System.out::println);
+                if (!missing.isEmpty()) {
+                    incompleteBlocks.put(block, missing);
+                }
             } else {
                 System.out.printf("  %-22s %s%n", "member " + block, "(no columns - not collected)");
             }
@@ -591,17 +630,36 @@ public final class FormRegistrationImporter {
                     + TeamRow.teamNameHeaders() + " once case and punctuation are ignored.");
             return false;
         }
-        if (!missingForLeader.isEmpty()) {
-            System.out.println("STOPPING: the leader's block is incomplete - no column for "
-                    + String.join(", ", missingForLeader) + ".");
-            System.out.println("Every row has a leader, so all five of member 1's columns must be "
-                    + "present. Importing without them would silently store nulls.");
-            System.out.println("Rename the sheet's header row to the canonical names, e.g. "
-                    + "'Member 1 Name', 'Member 1 Email', 'Member 1 Phone', 'Member 1 Resume', "
-                    + "'Member 1 LinkedIn', 'Member 1 GitHub'.");
+        if (!incompleteBlocks.isEmpty()) {
+            reportIncompleteBlocks(incompleteBlocks);
             return false;
         }
         return true;
+    }
+
+    /** Explains every member block that mapped some but not all of its six columns. */
+    private static void reportIncompleteBlocks(Map<Integer, List<String>> incompleteBlocks) {
+        for (Map.Entry<Integer, List<String>> entry : incompleteBlocks.entrySet()) {
+            int block = entry.getKey();
+            String who = block == 1
+                    ? "the leader's block (member 1)"
+                    : "member " + block + "'s block";
+            System.out.println("STOPPING: " + who + " is incomplete - no column for "
+                    + String.join(", ", entry.getValue()) + ".");
+        }
+        System.out.println();
+        System.out.println("A member block is all six columns or none at all: "
+                + String.join(", ", TeamRow.fieldLabels()) + ".");
+        System.out.println("Member 1 is the leader and every row has one, so its six columns are "
+                + "always required. Members 2-4 may be left out of the form entirely, but a team "
+                + "with fewer than four members leaves those columns EMPTY - it does not omit "
+                + "them. A block with only some of its columns is a mis-titled question, and "
+                + "importing it would silently store nulls for data the form did collect.");
+        System.out.println();
+        System.out.println("Rename the sheet's header row to the canonical names:");
+        for (Integer block : incompleteBlocks.keySet()) {
+            System.out.println("  member " + block + ": " + TeamRow.canonicalHeaders(block));
+        }
     }
 
     private static void printSummary(List<Outcome> outcomes, boolean dryRun) {
@@ -619,8 +677,8 @@ public final class FormRegistrationImporter {
                 alreadyPresent, rejected);
 
         if (rejected > 0) {
-            System.out.printf("%d row%s need a human - see the REJECTED lines above.%n",
-                    rejected, rejected == 1 ? "" : "s");
+            System.out.printf("%d row%s %s a human - see the REJECTED lines above.%n",
+                    rejected, rejected == 1 ? "" : "s", rejected == 1 ? "needs" : "need");
         }
         if (dryRun) {
             System.out.println();
@@ -702,9 +760,17 @@ public final class FormRegistrationImporter {
 
                   RESULT mode=live rows=8 imported=2 skipped=0 rejected=6
 
-                Rejects do not fail the command - a person reads the report and chases
-                them - so an unattended caller should check rejected= rather than the
-                exit code.
+                Exit codes:
+
+                  0   the import ran to the end and nothing was rejected
+                  1   the import ran to the end, but rejected= is non-zero and those
+                      rows need a human. Everything else was still imported
+                  2   nothing was imported. Bad arguments, an unreadable or malformed
+                      CSV, a member block missing some of its columns, a file with no
+                      data rows, or no reachable database
+
+                A RESULT line is printed for 0 and 1 and never for 2, so an unattended
+                caller can rely on the exit code alone.
 
                 Connection settings also read IMPORT_DB_URL, IMPORT_DB_USER and
                 IMPORT_DB_PASSWORD. Prefer those over --password, which is visible to
