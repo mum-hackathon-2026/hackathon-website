@@ -70,16 +70,18 @@ export const EXTRA_FAQS: readonly Faq[] = [
     answer:
       settings.minTeamSize === 1
         ? 'Yes. Solo entries are accepted, though most teams find the workload easier to share. ' +
-          `You can add up to ${settings.maxTeamSize - 1} teammates at any point before ` +
-          'registration closes.'
-        : `No — every team needs at least ${settings.minTeamSize} members. If you do not have a ` +
-          'team yet, create one and share your join code, or ask a friend to send you theirs.',
+          `The registration form takes up to ${settings.maxTeamSize} people, so name everyone ` +
+          'you already have when you fill it in.'
+        : `No — every team needs at least ${settings.minTeamSize} members. The registration form ` +
+          'asks for the whole team at once, so sort out who you are entering with first.',
   },
   {
-    question: 'How do I join a team?',
+    question: 'How do I register my team?',
     answer:
-      'Every team has a six-character join code. Ask whoever created the team for theirs, then ' +
-      'enter it on the My Team page. You can also create a team yourself and share your own code.',
+      'One person fills in the registration form for the whole team, naming everyone at once — ' +
+      `up to ${settings.maxTeamSize} people. There is no join code and nobody registers ` +
+      'separately. Once your entry is imported, everyone named on it can sign in with the Google ' +
+      'account they gave and see the team on the My Team page.',
   },
   {
     question: 'What challenge tracks are available?',
@@ -97,9 +99,10 @@ export const EXTRA_FAQS: readonly Faq[] = [
   {
     question: 'Where do I submit?',
     answer:
-      'Sign in and open My Submission. You need a project title, a challenge track, a description ' +
-      'and a link to your repository. A live demo link is optional but strongly recommended. The ' +
-      'page accepts edits right up to the deadline.',
+      'On the submission form, linked from the My Submission page. You need a project title, a ' +
+      'challenge track, a description and a link to your repository; a live demo link is ' +
+      'optional but strongly recommended. Anyone on the team can send it, and sending it again ' +
+      'before the deadline replaces your earlier entry.',
   },
   {
     question: 'What happens if my team has an eligibility issue?',

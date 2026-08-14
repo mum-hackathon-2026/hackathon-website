@@ -35,6 +35,17 @@ export interface SiteCopy {
   readonly contactEmail: string;
   readonly discordUrl: string;
   /**
+   * Registration and project submission both live on Google Forms — the site
+   * only links out to them. A form collects one row per team (leader plus up to
+   * three members), which `tools/FormRegistrationImporter` reads into `users`,
+   * `teams` and `team_members`; nothing is written from the browser.
+   *
+   * PLACEHOLDER URLS — not the real forms, same caveat as the dates above.
+   * Swap both values when the real links land.
+   */
+  readonly teamRegistrationFormUrl: string;
+  readonly projectSubmissionFormUrl: string;
+  /**
    * The address domain a student registers with. There is no eligibility column
    * on `users`, so this is what the roster screens against — see AdminService.
    */
@@ -76,6 +87,8 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     tagline: '48 hours. One campus. Build something that matters.',
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
+    teamRegistrationFormUrl: 'https://forms.gle/PLACEHOLDER-team-registration',
+    projectSubmissionFormUrl: 'https://forms.gle/PLACEHOLDER-project-submission',
     studentEmailDomain: 'student.monash.edu',
     tracks: ['Open Innovation', 'Sustainability', 'HealthTech'],
     judgingCriteria: [

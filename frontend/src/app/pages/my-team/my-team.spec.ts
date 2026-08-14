@@ -61,96 +61,59 @@ describe('MyTeam', () => {
     vi.useRealTimers();
   });
 
-  it('offers create and join when you have no team', async () => {
+  it('sends you to the registration form when you have no team', async () => {
     await setUp();
 
-    expect(host().querySelector('#new-team')).toBeTruthy();
-    expect(host().querySelector('#join-code')).toBeTruthy();
+    const link = host().querySelector<HTMLAnchorElement>('app-form-link-card a')!;
+    expect(link.getAttribute('href')).toBe(DEFAULT_EVENT_CONFIG.site.teamRegistrationFormUrl);
+    expect(link.target).toBe('_blank');
     expect(host().querySelector('.my-team__members')).toBeNull();
   });
 
-  it('shows the team, join code and members once you have one', async () => {
+  it('shows the team and its members once you have one', async () => {
     await setUp();
     await teams.createTeam('Late Night Commits');
     await fixture.whenStable();
 
     expect(host().querySelector('.my-team__name')?.textContent?.trim()).toBe('Late Night Commits');
-    expect(host().querySelector('.my-team__code')?.textContent?.trim()).toBe(
-      teams.myTeam()!.joinCode,
-    );
     expect(host().querySelectorAll('.my-team__member').length).toBe(1);
     expect(text()).toContain(`1 of ${DEFAULT_EVENT_CONFIG.settings.maxTeamSize}`);
+    // Registered already — no reason to offer the form again.
+    expect(host().querySelector('app-form-link-card')).toBeNull();
   });
 
-  it('surfaces the service error rather than failing silently', async () => {
-    await setUp();
-    const input = host().querySelector<HTMLInputElement>('#new-team')!;
-    input.value = 'Quantum Leap'; // Seeded, so the name is taken.
-    input.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
-
-    host().querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit'));
-    await fixture.whenStable();
-
-    expect(host().querySelector('.my-team__error')?.textContent).toContain('taken');
-  });
-
-  it('hides leader-only actions from an ordinary member', async () => {
-    await setUp();
-    await teams.joinTeam('QLEAP7'); // Joining does not make you the leader.
-    await fixture.whenStable();
-
-    expect(teams.isLeader()).toBe(false);
-    expect(host().querySelector('.my-team__member-actions')).toBeNull();
-    expect(text()).not.toContain('Rename');
-    expect(text()).not.toContain('Regenerate');
-  });
-
-  it('shows leader-only actions to the leader', async () => {
+  it('marks which member is you and which is the leader', async () => {
     await setUp();
     await teams.createTeam('Command Centre');
     await fixture.whenStable();
 
-    expect(text()).toContain('Rename');
-    expect(text()).toContain('Regenerate');
+    expect(host().querySelector('.my-team__you')).toBeTruthy();
+    expect(host().querySelector('.my-team__leader')).toBeTruthy();
   });
 
-  it('confirms before leaving rather than acting immediately', async () => {
+  /**
+   * The form owns the team, so the page must not imply otherwise. These are the
+   * controls that used to be here and would be lies if they came back.
+   */
+  it('offers no way to change the team from the page', async () => {
     await setUp();
-    await teams.createTeam('Second Thoughts');
+    await teams.createTeam('Read Only');
     await fixture.whenStable();
 
-    const leave = Array.from(host().querySelectorAll<HTMLButtonElement>('button')).find(
-      (b) => b.textContent?.trim() === 'Leave team',
-    )!;
-    leave.click();
-    await fixture.whenStable();
-
-    // Dialog is up and nothing has happened yet.
-    expect(host().querySelector('app-confirm-dialog')).toBeTruthy();
-    expect(teams.myTeam()).not.toBeNull();
-
-    host().querySelector<HTMLButtonElement>('.button--primary')!.click();
-    await fixture.whenStable();
-
-    expect(teams.myTeam()).toBeNull();
-  });
-
-  it('does nothing when the confirmation is dismissed', async () => {
-    await setUp();
-    await teams.createTeam('Still Here');
-    await fixture.whenStable();
-
-    Array.from(host().querySelectorAll<HTMLButtonElement>('button'))
-      .find((b) => b.textContent?.trim() === 'Leave team')!
-      .click();
-    await fixture.whenStable();
-
-    host().querySelector<HTMLDialogElement>('dialog')!.dispatchEvent(new Event('close'));
-    await fixture.whenStable();
-
-    expect(teams.myTeam()).not.toBeNull();
+    for (const gone of ['Rename', 'Regenerate', 'Leave team', 'Make leader', 'Remove']) {
+      expect(text()).not.toContain(gone);
+    }
     expect(host().querySelector('app-confirm-dialog')).toBeNull();
+    expect(host().querySelector('input')).toBeNull();
+  });
+
+  it('shows no join code, because teams are registered whole', async () => {
+    await setUp();
+    await teams.createTeam('No Codes Here');
+    await fixture.whenStable();
+
+    expect(host().querySelector('.my-team__code')).toBeNull();
+    expect(text()).not.toContain(teams.myTeam()!.joinCode);
   });
 
   it('locks once registration has closed', async () => {
@@ -158,8 +121,22 @@ describe('MyTeam', () => {
     await setUp('2026-10-01T12:00:00+08:00');
 
     expect(host().querySelector('app-state-locked')).toBeTruthy();
-    expect(host().querySelector('#new-team')).toBeNull();
-    expect(text()).toContain('Registration has closed');
+    expect(host().querySelector('app-form-link-card')).toBeNull();
+    expect(text()).toContain('Registration is closed');
+  });
+
+  it('summarises the team inside the locked state', async () => {
+    await setUp();
+    await teams.createTeam('Locked Out');
+    await fixture.whenStable();
+
+    // Move past the close date; the shared clock ticks once a second.
+    vi.setSystemTime(new Date('2026-10-01T12:00:00+08:00'));
+    await vi.advanceTimersByTimeAsync(1100);
+    await fixture.whenStable();
+
+    expect(host().querySelector('.my-team__locked-summary')?.textContent).toContain('Locked Out');
+    expect(host().querySelector('.my-team__locked-summary')?.textContent).toContain('1 member');
   });
 });
 

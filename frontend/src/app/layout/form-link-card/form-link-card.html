@@ -1,0 +1,30 @@
+<section class="form-link-card">
+  <h2 class="form-link-card__heading">{{ heading() }}</h2>
+
+  @if (description(); as text) {
+    <p class="form-link-card__description">{{ text }}</p>
+  }
+
+  <a class="button button--primary" [href]="href()" target="_blank" rel="noopener">
+    {{ buttonLabel() }}
+    <svg
+      class="form-link-card__icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <path d="M15 3h6v6" />
+      <path d="M10 14 21 3" />
+    </svg>
+    <span class="visually-hidden">(opens in a new tab)</span>
+  </a>
+
+  @if (note(); as text) {
+    <p class="form-link-card__note">{{ text }}</p>
+  }
+</section>

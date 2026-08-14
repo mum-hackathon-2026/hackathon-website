@@ -102,8 +102,8 @@ export class Progress {
         label: 'Registration',
         accent: 'blue' as const,
         description: registrationDone
-          ? 'Your team is locked in. No new members can join.'
-          : 'Registration is still open — your team can add members until it closes.',
+          ? 'Your team is locked in. The registration form is closed.'
+          : 'Registration is still open — the form is accepting entries until it closes.',
         at: registrationDone ? s.registrationClosesAt : null,
       },
       {
@@ -165,9 +165,9 @@ export class Progress {
     switch (this.currentStage()?.id) {
       case 'registration':
         return {
-          message: 'Registration is still open. Finalise your team before it closes.',
+          message: 'Registration is still open. Get your team registered before it closes.',
           urgent: false,
-          cta: { label: 'Manage team', link: '/participant/team' },
+          cta: { label: 'Register your team', link: '/participant/team' },
         };
       case 'submission':
         // Past the deadline with nothing submitted is the one genuinely bad state.
@@ -175,7 +175,7 @@ export class Progress {
           ? {
               message: 'Submissions are open. Get your project in before the deadline.',
               urgent: true,
-              cta: { label: 'Go to My Submission', link: submitLink },
+              cta: { label: 'Submit your project', link: submitLink },
             }
           : {
               message: 'The submission deadline has passed and your team has no submitted project.',
@@ -204,7 +204,7 @@ export class Progress {
         return {
           message: 'Your team is registered. You can start your submission at any time.',
           urgent: false,
-          cta: { label: 'Go to My Submission', link: submitLink },
+          cta: { label: 'Submit your project', link: submitLink },
         };
     }
   });

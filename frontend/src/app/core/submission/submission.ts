@@ -12,6 +12,11 @@ import { TeamService } from '../team/team';
  *
  * Validation below repeats the table's CHECK constraints rather than inventing
  * rules, so the UI never accepts something the real API would reject.
+ *
+ * `saveDraft` and `submit` no longer have a caller in the UI — projects are
+ * submitted on a Google Form and My Submission only reads the result. They are
+ * kept so the specs can seed a submitted entry, and because the validation is
+ * the written-down copy of the table's constraints. Do not build a page on them.
  */
 
 /** V1's submissions_status_check vocabulary, verbatim. */

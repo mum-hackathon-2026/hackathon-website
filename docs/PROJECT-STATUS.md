@@ -99,6 +99,8 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 | `/sign-in` | `SignIn` | — |
 | `**` | `NotFound` | — |
 
+> **The two participant write-flows are gone from the site (PR #40).** Team registration and project submission both happen on a Google Form now, so `MyTeam` and `MySubmission` are read-only status views plus a link out. There is no create/join/rename/leave, no draft editor, and **no join code anywhere** — the registration form collects one row per team, leader plus up to three members, so a team arrives whole and there is nothing to join. The URLs live on `SiteCopy` as `teamRegistrationFormUrl` / `projectSubmissionFormUrl` and are **placeholders** until the real links land.
+
 - [x] Two paths onto one `Progress` component, distinguished by `data: { tab }`, so each view is linkable
 - [x] `AdminDashboard` is the only lazy route — eagerly importing it pushed the initial bundle past its budget, and organisers are the rarest role. The next page added will face the same choice.
 - [x] Wildcard `**` stays last
@@ -107,7 +109,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 - [x] `auth/` — `AuthService` with **two sign-in paths**: `signInWithGoogle()` (real, POSTs to the backend, stores the JWT under `hackathon.jwt-token`) and `signIn(role)` (the original demo path, no network, still what the specs and role buttons use). Both feed one `currentUser` signal, so nothing downstream can tell them apart. Plus the `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`) and three injection tokens — `SESSION_STORAGE`, `API_BASE_URL`, `GOOGLE_CLIENT_ID`
 - [x] `event/` — `EVENT_CONFIG` token, `PhaseService`, `MilestoneService`, static site copy
-- [x] `team/`, `submission/`, `results/` — participant-scoped stand-ins
+- [x] `team/`, `submission/`, `results/` — participant-scoped stand-ins. **`TeamService` and `SubmissionService` keep their mutations but no page calls them any more** — the two participant pages only read. They are kept because the progress and results specs seed fixtures through `createTeam` / `joinTeam` / `submit`, and because the submission validation is the written-down copy of the table's CHECK constraints. Do not build a page on them.
 - [x] `judge/` — assignments, scores, criteria; validation repeats the tables' CHECK constraints so the UI never accepts what the API would reject
 - [x] `admin/` — event-wide read model (a join across `teams`, `team_members`, `submissions`, `assignments`), plus rename and settle mutations on a team
 
@@ -142,12 +144,12 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Layout kit and design system
 
-- [x] 8 reusable components — `nav-bar`, `profile-menu`, `page-header`, `state-locked`, `confirm-dialog`, `event-timeline`, `faq-list`, `status-pill`
+- [x] 9 reusable components — `nav-bar`, `profile-menu`, `page-header`, `state-locked`, `confirm-dialog`, `event-timeline`, `faq-list`, `status-pill`, `form-link-card`
 - [x] `styles.scss` holds the design system as CSS custom properties — brand accents with pre-darkened `-ink` variants, a neutral ramp, `--font-sans` / `--font-display`
 
 ### Tests
 
-- [x] **27 spec files / 325 tests**, colocated, no database or dev server needed
+- [x] **28 spec files / 345 tests**, colocated, no database or dev server needed
 - [x] Zoneless Angular 21 throughout — signals for state, `await fixture.whenStable()` in tests, vitest under jsdom (not Karma)
 
 ---
@@ -158,6 +160,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 - [ ] **One endpoint pair, and it is the auth one.** Nothing serves teams, submissions, judging, results or event settings — no controllers, services or DTOs outside `auth/`. Every repository is still called only by tests.
 - [ ] **Nothing persists in the UI.** Apart from the signed-in user, every page runs on in-memory stand-ins that reset on reload, by design.
+- [ ] **The Google Forms pipeline stops at registration.** `tools/FormRegistrationImporter` loads the registration CSV into `users` / `teams` / `team_members`, and that is the whole of it. **There is no submission form schema and no submission importer** — [docs/README.md](README.md) still records submission-by-form as undecided, and nothing populates `submissions.status` / `submitted_at`. The site now links participants to both forms, so `MySubmission` displays a status that nothing can currently set.
 - [ ] **No HTTP interceptor.** The JWT is stored and exposed as `AuthService.token()`, but nothing attaches it to a request — there are no authenticated requests yet. The first non-auth call needs one written alongside it.
 - [ ] **The demo sign-in still bypasses everything.** `signIn(role)` picks one of three hardcoded users with no token, and the guards cannot tell that session from a real one. Guards gate *navigation*; only `SecurityConfig` gates data, and today it guards nothing anyone calls.
 - [ ] **A stored session is never revalidated.** Reload restores the user from `localStorage` without checking the token; `GET /api/auth/me` exists for this and has no caller. An expired or revoked token still looks signed-in.
@@ -165,7 +168,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Smaller gaps
 
-- [ ] **The initial bundle is over budget.** 517.29 kB against a 500 kB warning threshold (it was 490.74 kB before the HTTP layer). `npm run build` warns and still exits 0, so **CI does not catch this** — only the 1 MB error threshold fails a build.
+- [ ] **The initial bundle is over budget.** 506.68 kB against a 500 kB warning threshold (it was 490.74 kB before the HTTP layer, and 517.29 kB before the Google Forms change dropped `FormsModule` from the two participant pages). `npm run build` warns and still exits 0, so **CI does not catch this** — only the 1 MB error threshold fails a build. Lazy-loading another route is the way back under.
 - [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
 - [ ] **No linting.** No ESLint config and no lint script; Prettier is the only tool configured and it only formats. CI marks where the step goes.
 - [ ] **Uneven test coverage.** Every routed page has a spec, but `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts` have none, and most presentational pieces are untested — `page-header`, `profile-menu`, `state-locked`, `event-timeline`, `status-pill`, and the section components under `progress/`, `results/`, `judge-portal/`, `judge-review/`, `admin-dashboard/` and parts of `home/`.
@@ -207,6 +210,9 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #34 | 08-13 | **Sign-in wired to the backend** — GIS button, `signInWithGoogle()`, `provideHttpClient()`, 401/403 error copy |
 | #35 | 08-13 | CLAUDE.md brought back in line with the code |
 | #36 | 08-13 | **V3 migration** — form registration: `users.google_sub` nullable, `phone` / `resume_url` / `linkedin_url` added, CSV importer |
+| #38 | 08-13 | **V4 migration** — `users.github_url`, the fourth form-collected field |
+| #39 | 08-13 | Importer hardening — per-member-block guards, duplicate column titles refused, exit codes 0/1/2 |
+| #40 | 08-14 | **Registration and submission moved to Google Forms** — both participant pages become read-only status plus a form link; join codes removed; `form-link-card` added to the layout kit |
 
 **In flight:** `feature/admin-judges` (PR #37) — the Judges section, and `users.role` as a write rather than only a read.
 
