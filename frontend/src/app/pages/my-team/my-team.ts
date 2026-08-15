@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../core/event/event-config';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { PhaseService } from '../../core/event/phase';
 import { TeamService } from '../../core/team/team';
 import { FormLinkCard } from '../../layout/form-link-card/form-link-card';
@@ -27,6 +28,7 @@ export class MyTeam {
   private readonly phase = inject(PhaseService);
 
   protected readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
   protected readonly myt = MYT_OFFSET;
 
   protected readonly team = this.teams.myTeam;
@@ -40,6 +42,7 @@ export class MyTeam {
     () => this.phase.phase() !== 'before-registration' && this.phase.phase() !== 'registration',
   );
 
-  protected readonly registrationClosesAt = this.config.settings.registrationClosesAt;
+  protected readonly registrationClosesAt = this.settings.registrationClosesAt;
+  protected readonly maxTeamSize = this.settings.maxTeamSize;
   protected readonly formUrl = this.config.site.teamRegistrationFormUrl;
 }

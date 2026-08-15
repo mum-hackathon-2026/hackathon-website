@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { EVENT_CONFIG } from '../../core/event/event-config';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { PhaseService } from '../../core/event/phase';
 import { AssignmentStatus, AssignmentView, JudgeService } from '../../core/judge/judge';
 import { ConfirmDialog } from '../../layout/confirm-dialog/confirm-dialog';
@@ -39,8 +40,9 @@ export class JudgePortal {
   private readonly judge = inject(JudgeService);
   private readonly phaseService = inject(PhaseService);
   private readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
 
-  protected readonly eventName = this.config.settings.eventName;
+  protected readonly eventName = this.settings.eventName;
   protected readonly assignments = this.judge.myAssignments;
   protected readonly stats = this.judge.stats;
   protected readonly judgingOpen = this.judge.judgingOpen;

@@ -1,6 +1,6 @@
 <p class="lede">{{ summary() }}</p>
 
-@if (!screeningEnabled) {
+@if (!screeningEnabled()) {
   <p class="banner banner--muted">
     Screening is off — <code>event_settings.screening_enabled</code> is false, so these checks are
     advisory and gate nothing.

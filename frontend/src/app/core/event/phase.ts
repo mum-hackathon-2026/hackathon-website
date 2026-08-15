@@ -1,5 +1,5 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { EVENT_CONFIG } from './event-config';
+import { EventSettingsService } from './event-settings';
 
 /**
  * Where the event currently is, derived from the configured dates.
@@ -26,7 +26,7 @@ const TICK_MS = 1000;
 
 @Injectable({ providedIn: 'root' })
 export class PhaseService {
-  private readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
 
   private readonly clock = signal(Date.now());
 
@@ -38,7 +38,7 @@ export class PhaseService {
 
   readonly phase = computed<EventPhase>(() => {
     const { registrationOpensAt, registrationClosesAt, submissionDeadlineAt, resultsPublishedAt } =
-      this.config.settings;
+      this.settings.settings();
     const now = this.now();
 
     // Latest milestone reached wins, so a null date simply defers to the one before it.
@@ -50,11 +50,11 @@ export class PhaseService {
   });
 
   /** Whether judges may score right now. Admin-controlled, independent of the timeline. */
-  readonly judgingOpen = computed(() => this.config.settings.judgingOpen);
+  readonly judgingOpen = this.settings.judgingOpen;
 
   readonly nextMilestone = computed<Milestone | null>(() => {
     const { registrationOpensAt, registrationClosesAt, submissionDeadlineAt, resultsPublishedAt } =
-      this.config.settings;
+      this.settings.settings();
 
     switch (this.phase()) {
       case 'before-registration':

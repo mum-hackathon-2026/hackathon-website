@@ -108,7 +108,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 ### Core services (`src/app/core/`)
 
 - [x] `auth/` — `AuthService` with **two sign-in paths**: `signInWithGoogle()` (real, POSTs to the backend, stores the JWT under `hackathon.jwt-token`) and `signIn(role)` (the original demo path, no network, still what the specs and role buttons use). Both feed one `currentUser` signal, so nothing downstream can tell them apart. Plus the `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`) and three injection tokens — `SESSION_STORAGE`, `API_BASE_URL`, `GOOGLE_CLIENT_ID`
-- [x] `event/` — `EVENT_CONFIG` token, `PhaseService`, `MilestoneService`, static site copy
+- [x] `event/` — `EVENT_CONFIG` token (now the **seed**, not the live copy), `EventSettingsService` owning the `event_settings` singleton as mutable state, `PhaseService`, `MilestoneService`, static site copy
 - [x] `team/`, `submission/`, `results/` — participant-scoped stand-ins. **`TeamService` and `SubmissionService` keep their mutations but no page calls them any more** — the two participant pages only read. They are kept because the progress and results specs seed fixtures through `createTeam` / `joinTeam` / `submit`, and because the submission validation is the written-down copy of the table's CHECK constraints. Do not build a page on them.
 - [x] `judge/` — assignments, scores, criteria; validation repeats the tables' CHECK constraints so the UI never accepts what the API would reject
 - [x] `admin/` — event-wide read model (a join across `teams`, `team_members`, `submissions`, `assignments`), plus rename and settle mutations on a team
@@ -151,7 +151,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Tests
 
-- [x] **30 spec files / 391 tests**, colocated, no database or dev server needed
+- [x] **31 spec files / 406 tests**, colocated, no database or dev server needed
 - [x] Zoneless Angular 21 throughout — signals for state, `await fixture.whenStable()` in tests, vitest under jsdom (not Karma)
 
 ---
@@ -217,6 +217,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #40 | 08-14 | **Registration and submission moved to Google Forms** — both participant pages become read-only status plus a form link; join codes removed; `form-link-card` added to the layout kit |
 | #41 | 08-15 | **Audit Log section** — full log grouped by day and filterable; `AdminService`'s six mutations now write entries, and the seed grew from 7 rows to 41 |
 | #42 | 08-15 | **Results & Publication section** — rankings read from `ResultsService` so they cannot disagree with the participant page; shortlist toggle, publish/unpublish, and per-row issue flags |
+| #43 | 08-15 | **`EventSettingsService`** — `event_settings` becomes mutable state seeded from `EVENT_CONFIG`; all 19 consumers migrated to read it reactively. No UI change; unblocks the Event Settings section |
 
 **In flight:** nothing. `feature/admin-judges` (PR #37) merged as `86cb516`.
 
@@ -237,7 +238,7 @@ In order. The first item is not first by preference.
 
 Running alongside, and not waiting on any of the above: **the two remaining workspace sections**. Neither is blocked on the schema — Judging Progress maps onto its tables as designed, and Event Settings ships reduced the way the others already do. Judging Progress is parked pending a decision on how judging is run, not on anything technical.
 
-**Event Settings has grown a dependant.** The Results section can stamp `team_results.published_at`, but the participant results page is gated on `event_settings.results_published_at` through the phase, and nothing can edit that column yet. Making event settings mutable is Event Settings' core work, and it means `PhaseService` reading from a service rather than the `EVENT_CONFIG` token — a refactor touching every component that reads `config.settings`.
+**That dependency is now cleared.** `EventSettingsService` (#43) owns `event_settings` as state and every consumer reads it reactively, so the Event Settings section is a form over `update()` rather than a refactor. The one thing still outstanding is wiring `ResultsService.published` to the publication state the Results section sets, instead of to the phase.
 
 ---
 

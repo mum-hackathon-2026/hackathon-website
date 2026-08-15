@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { EVENT_CONFIG } from '../../../core/event/event-config';
+import { EventSettingsService } from '../../../core/event/event-settings';
 
 /** Rotating accent for the pillar top borders, in palette order. */
 const ACCENTS = ['blue', 'green', 'red', 'yellow'] as const;
@@ -12,6 +13,7 @@ const ACCENTS = ['blue', 'green', 'red', 'yellow'] as const;
 })
 export class ThemeSection {
   protected readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
 
   /** Judging criteria carry the accents; the weights come straight from config. */
   protected readonly pillars = computed(() =>
@@ -22,7 +24,7 @@ export class ThemeSection {
   );
 
   protected readonly teamSize = computed(() => {
-    const { minTeamSize, maxTeamSize } = this.config.settings;
+    const { minTeamSize, maxTeamSize } = this.settings.settings();
     return minTeamSize === 1
       ? `Teams can have up to ${maxTeamSize} members, and you may enter solo.`
       : `Teams can have ${minTeamSize} to ${maxTeamSize} members.`;

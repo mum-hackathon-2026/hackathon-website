@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../core/event/event-config';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { PhaseService } from '../../core/event/phase';
 import { SubmissionService } from '../../core/submission/submission';
 import { TeamService } from '../../core/team/team';
@@ -38,8 +39,9 @@ export class MySubmission {
   private readonly phaseService = inject(PhaseService);
 
   protected readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
   protected readonly myt = MYT_OFFSET;
-  protected readonly deadline = this.config.settings.submissionDeadlineAt;
+  protected readonly deadline = this.settings.submissionDeadlineAt;
   protected readonly formUrl = this.config.site.projectSubmissionFormUrl;
 
   protected readonly team = this.teams.myTeam;
@@ -55,7 +57,7 @@ export class MySubmission {
 
   /** Time left to submit, sharing PhaseService's clock rather than starting another. */
   protected readonly countdown = computed(() => {
-    const deadline = this.deadline;
+    const deadline = this.deadline();
     if (!deadline || !this.isOpen()) return null;
 
     const remaining = Math.max(0, deadline.getTime() - this.phaseService.now());

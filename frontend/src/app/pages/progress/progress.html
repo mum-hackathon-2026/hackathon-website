@@ -1,6 +1,6 @@
 <div class="page page--narrow">
   <app-page-header
-    [eyebrow]="eventName"
+    [eyebrow]="eventName()"
     title="Progress"
     subtitle="Where your team stands, and what the event is doing next."
   />
@@ -46,7 +46,7 @@
         </div>
         <div class="summary__item">
           <p class="summary__label">Team size</p>
-          <p class="summary__value">{{ members().length }} / {{ maxTeamSize }} members</p>
+          <p class="summary__value">{{ members().length }} / {{ maxTeamSize() }} members</p>
         </div>
       </div>
     }
