@@ -17,7 +17,7 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 | **Backend API** | 🟡 Auth only | 2 endpoints (`/api/auth/google`, `/api/auth/me`); nothing for teams, submissions or judging |
 | **Backend security** | 🟢 Built | `SecurityConfig` + JWT filter + Google ID-token verification — **but zero tests** |
 | **Frontend pages** | 🟢 Done | 12 components behind 13 routes, all three roles covered |
-| **Admin workspace** | 🟡 7 of 10 | Overview, Teams, Participants, Submissions, Judges, Assignments, Audit Log built; three still stubs |
+| **Admin workspace** | 🟡 8 of 10 | Everything but Judging Progress and Event Settings; those two are the last stubs |
 | **Frontend data** | 🟡 Stand-ins | 7 in-memory services shaped like the API that will replace them |
 | **Integration** | 🟡 One seam | Sign-in talks to the backend; every other page is still in-memory |
 | **CI** | 🟢 Done | Two jobs, both gating; a failing spec cannot reach `main` |
@@ -117,7 +117,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 ### The admin workspace
 
-`admin/dashboard/:section` is ten sections, each its own URL. **Seven are built:**
+`admin/dashboard/:section` is ten sections, each its own URL. **Eight are built:**
 
 | Section | State | Note |
 | ------- | ----- | ---- |
@@ -128,9 +128,10 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 | Judges | ✅ Built | The panel with counted workloads; add and remove by `users.role` |
 | Assignments | ✅ Built | Assign/unassign judges, panel workload, coverage filters |
 | Audit Log | ✅ Built | Full log, grouped by day, filterable by kind; **and the dashboard's own actions now land in it** |
-| Judging Progress, Results & Publication, Event Settings | ⬜ Stub | Placeholder rather than hidden, so the shape is visible |
+| Results & Publication | ✅ Built | Rankings read from `ResultsService`, shortlist toggle, publish/unpublish stamping `team_results.published_at` |
+| Judging Progress, Event Settings | ⬜ Stub | Placeholder rather than hidden, so the shape is visible |
 
-**None of the three remaining is blocked on the schema.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
+**Neither of the two remaining is blocked on the schema.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
 
 - **Participants** — no student ID column and no eligibility column, so no Verify/Flag action. Eligibility is derived from the address and `users.email_verified` instead, screened against `site.studentEmailDomain`. `event_settings.screening_enabled` is surfaced but gates nothing.
 - **Teams** — no `locked` status in `teams_status_check`, so no Lock action; Withdraw and Disqualify are the settled states that do exist.
@@ -150,7 +151,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Tests
 
-- [x] **29 spec files / 365 tests**, colocated, no database or dev server needed
+- [x] **30 spec files / 391 tests**, colocated, no database or dev server needed
 - [x] Zoneless Angular 21 throughout — signals for state, `await fixture.whenStable()` in tests, vitest under jsdom (not Karma)
 
 ---
@@ -215,6 +216,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #39 | 08-13 | Importer hardening — per-member-block guards, duplicate column titles refused, exit codes 0/1/2 |
 | #40 | 08-14 | **Registration and submission moved to Google Forms** — both participant pages become read-only status plus a form link; join codes removed; `form-link-card` added to the layout kit |
 | #41 | 08-15 | **Audit Log section** — full log grouped by day and filterable; `AdminService`'s six mutations now write entries, and the seed grew from 7 rows to 41 |
+| #42 | 08-15 | **Results & Publication section** — rankings read from `ResultsService` so they cannot disagree with the participant page; shortlist toggle, publish/unpublish, and per-row issue flags |
 
 **In flight:** nothing. `feature/admin-judges` (PR #37) merged as `86cb516`.
 
@@ -233,7 +235,9 @@ In order. The first item is not first by preference.
 7. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them, and note that `SecurityConfig`'s `hasAuthority("admin"/"judge")` is a third copy of the `users.role` literals.
 8. **Add ESLint**, and fill the coverage gaps listed in [§4](#4-what-is-not-done).
 
-Running alongside, and not waiting on any of the above: **the three remaining workspace sections**. None is blocked on the schema — Judging Progress maps onto its tables as designed, and Results and Event Settings ship reduced the way Participants, Teams, Judges and Assignments already do. Judging Progress is currently parked pending a decision on how judging is run, not on anything technical.
+Running alongside, and not waiting on any of the above: **the two remaining workspace sections**. Neither is blocked on the schema — Judging Progress maps onto its tables as designed, and Event Settings ships reduced the way the others already do. Judging Progress is parked pending a decision on how judging is run, not on anything technical.
+
+**Event Settings has grown a dependant.** The Results section can stamp `team_results.published_at`, but the participant results page is gated on `event_settings.results_published_at` through the phase, and nothing can edit that column yet. Making event settings mutable is Event Settings' core work, and it means `PhaseService` reading from a service rather than the `EVENT_CONFIG` token — a refactor touching every component that reads `config.settings`.
 
 ---
 

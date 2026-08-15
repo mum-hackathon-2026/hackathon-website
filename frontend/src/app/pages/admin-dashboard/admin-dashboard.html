@@ -71,6 +71,9 @@
       @case ('assignments') {
         <app-admin-assignments />
       }
+      @case ('results') {
+        <app-admin-results />
+      }
       @case ('audit') {
         <app-admin-audit />
       }
@@ -79,8 +82,8 @@
           <p class="stub__heading">{{ sectionLabel() }} isn't built yet</p>
           <p class="stub__body">
             This section is in the design draft and has a place in the workspace, but nothing behind
-            it yet. Overview, Teams, Participants, Submissions, Judges, Assignments and the Audit
-            Log are the ones that work today.
+            it yet. Judging Progress and Event Settings are the two still to come — everything else
+            in the sidebar works today.
           </p>
         </div>
       }

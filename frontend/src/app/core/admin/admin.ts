@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService, Role } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
 import { PhaseService } from '../event/phase';
+import { ResultOutcome, ResultsService } from '../results/results';
 import { SubmissionStatus } from '../submission/submission';
 import { TeamStatus } from '../team/team';
 
@@ -204,6 +205,48 @@ export interface AuditEntry {
   readonly target: string;
   readonly actor: string;
   readonly at: Date;
+}
+
+/**
+ * Why a row is not fit to publish as it stands. Reported, never blocking — an
+ * organiser may well publish a disqualified team's row, since `disqualified` is
+ * one of the outcomes `team_results_outcome_check` allows.
+ */
+export type ResultIssue = 'not_submitted' | 'settled' | 'under_reviewed';
+
+export const RESULT_ISSUE_LABELS: Record<ResultIssue, string> = {
+  not_submitted: 'Scored without a submission',
+  settled: 'Withdrawn or disqualified',
+  under_reviewed: 'Fewer reviews than expected',
+};
+
+/**
+ * One `team_results` row as an organiser checks it, joined to the team it
+ * describes.
+ *
+ * The score, rank and outcome come from `ResultsService` rather than being
+ * recomputed here: it owns the scoring, and a second derivation could rank a
+ * team differently from the page participants will read. What this adds is the
+ * organiser's side — `teams.shortlisted`, the team's status, and whether the
+ * row has been published.
+ */
+export interface AdminResultRow {
+  readonly teamId: number;
+  readonly teamName: string;
+  readonly projectTitle: string;
+  readonly trackLabel: string;
+  readonly finalScore: number | null;
+  readonly rank: number | null;
+  readonly outcome: ResultOutcome | null;
+  readonly judgeCount: number;
+  /** True when another team shares this rank. */
+  readonly tied: boolean;
+  readonly shortlisted: boolean;
+  readonly teamStatus: TeamStatus;
+  readonly submissionStatus: SubmissionStatus | null;
+  /** `team_results.published_at` — per row in V1, not one event-wide flag. */
+  readonly publishedAt: Date | null;
+  readonly issues: readonly ResultIssue[];
 }
 
 /** A follow-up worth surfacing above the fold, with the section that resolves it. */
@@ -916,6 +959,8 @@ export class AdminService {
   private readonly phaseService = inject(PhaseService);
   /** Only for naming the actor on audit entries — this service is event-wide. */
   private readonly auth = inject(AuthService);
+  /** Scores, ranks and outcomes are its business; this service never recomputes them. */
+  private readonly resultsService = inject(ResultsService);
 
   /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
   private readonly rows = signal<readonly SeedTeam[]>(SEED);
@@ -1145,6 +1190,69 @@ export class AdminService {
       completed: judge.completed,
     })),
   );
+
+  /**
+   * `team_results.published_at`, keyed by team. Absent means unpublished.
+   *
+   * A map rather than one event-wide flag because that is what V1 models: each
+   * `team_results` row carries its own `published_at`, so a staged release is
+   * representable even though the section publishes them together.
+   */
+  private readonly publishedAt = signal<ReadonlyMap<number, Date>>(new Map());
+
+  /**
+   * The results table as an organiser checks it before publishing.
+   *
+   * Ranked order, because that is the order it will be read in. Rows come from
+   * `ResultsService.rankings()` — the exact rows participants will see — joined
+   * to the organiser's view of each team so the checks that matter are visible
+   * beside the score.
+   */
+  readonly results = computed<readonly AdminResultRow[]>(() => {
+    const byId = new Map(this.teams().map((team) => [team.teamId, team]));
+    const published = this.publishedAt();
+
+    return this.resultsService
+      .rankings()
+      .map((row) => {
+        const team = byId.get(row.teamId);
+        const issues: ResultIssue[] = [];
+
+        // A score for a team that never submitted is a contradiction worth
+        // seeing rather than hiding: one of the two records is wrong.
+        if (team && team.submissionStatus !== 'submitted') issues.push('not_submitted');
+        if (team && (team.status === 'withdrawn' || team.status === 'disqualified')) {
+          issues.push('settled');
+        }
+        if (team && team.reviewsExpected > 0 && team.reviewsCompleted < team.reviewsExpected) {
+          issues.push('under_reviewed');
+        }
+
+        return {
+          teamId: row.teamId,
+          teamName: team?.teamName ?? row.teamName,
+          projectTitle: row.projectTitle,
+          trackLabel: row.trackLabel,
+          finalScore: row.finalScore,
+          rank: row.rank,
+          outcome: row.outcome,
+          judgeCount: row.judgeCount,
+          tied: row.tied,
+          shortlisted: team?.shortlisted ?? false,
+          teamStatus: team?.status ?? 'forming',
+          submissionStatus: team?.submissionStatus ?? null,
+          publishedAt: published.get(row.teamId) ?? null,
+          issues,
+        };
+      })
+      .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
+  });
+
+  /** True once every result row has been published, which is how the site reads it. */
+  readonly resultsPublished = computed(() => {
+    const rows = this.results();
+    return rows.length > 0 && rows.every((row) => row.publishedAt !== null);
+  });
 
   /** The teams an organiser should follow up, most reasons first. */
   readonly needsAttention = computed<readonly AdminTeamRow[]>(() =>
@@ -1376,6 +1484,75 @@ export class AdminService {
 
       this.setRole(userId, 'participant');
       this.log('judge', 'Removed from judging panel', judge.name);
+      return { ok: true };
+    });
+  }
+
+  /**
+   * Flips `teams.shortlisted`.
+   *
+   * A plain boolean with no rule attached: the column carries no constraint tying
+   * it to a rank or a score, and inventing one here would be a policy decision
+   * the schema has not made. Shortlisting a low-ranked team is allowed.
+   */
+  setShortlisted(teamId: number, shortlisted: boolean): Promise<AdminActionResult> {
+    return this.run(() => {
+      const team = this.rows().find((row) => row.teamId === teamId);
+      if (!team) return { ok: false, error: 'That team no longer exists.' };
+      if (team.shortlisted === shortlisted) return { ok: true };
+
+      this.patch(teamId, () => ({ shortlisted }));
+      this.log(
+        'result',
+        shortlisted ? 'Added to shortlist' : 'Removed from shortlist',
+        team.teamName,
+      );
+      return { ok: true };
+    });
+  }
+
+  /**
+   * Stamps `published_at` on every result row that has a score.
+   *
+   * **Rows without a score are skipped rather than published empty.** A
+   * `team_results` row may legitimately have a null `final_score` — the column is
+   * nullable — but publishing one says "this team's result is final" about a team
+   * nobody scored.
+   *
+   * This does *not* change what participants see yet. `ResultsService.published`
+   * gates the public page on `event_settings.results_published_at` via the phase,
+   * and that column is only editable once the Event Settings section lands. The
+   * two meet when a real API owns both.
+   */
+  publishResults(): Promise<AdminActionResult> {
+    return this.run(() => {
+      const publishable = this.results().filter((row) => row.finalScore !== null);
+      if (publishable.length === 0) {
+        return { ok: false, error: 'No team has a score yet, so there is nothing to publish.' };
+      }
+      if (publishable.every((row) => row.publishedAt !== null)) {
+        return { ok: false, error: 'Every scored result is already published.' };
+      }
+
+      const at = new Date();
+      this.publishedAt.update((current) => {
+        const next = new Map(current);
+        for (const row of publishable) next.set(row.teamId, next.get(row.teamId) ?? at);
+        return next;
+      });
+      this.log('result', 'Results published', `${publishable.length} teams`);
+      return { ok: true };
+    });
+  }
+
+  /** Clears every `published_at`, putting the results back out of sight. */
+  unpublishResults(): Promise<AdminActionResult> {
+    return this.run(() => {
+      const count = this.results().filter((row) => row.publishedAt !== null).length;
+      if (count === 0) return { ok: false, error: 'Nothing is published.' };
+
+      this.publishedAt.set(new Map());
+      this.log('result', 'Results unpublished', `${count} teams`);
       return { ok: true };
     });
   }

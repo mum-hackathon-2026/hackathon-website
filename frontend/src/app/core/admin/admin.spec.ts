@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService, SESSION_STORAGE } from '../auth/auth';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../event/event-config';
+import { ResultsService } from '../results/results';
 import { AdminService, AdminTeamRow } from './admin';
 
 function configWith(overrides: Partial<EventConfig['settings']>): EventConfig {
@@ -698,6 +699,143 @@ describe('AdminService', () => {
       await admin.renameTeam(209, 'Nobody Here');
 
       expect(admin.audit()[0].actor).toBe('Unknown');
+    });
+  });
+
+  describe('results', () => {
+    it('takes its ranking from ResultsService rather than recomputing one', () => {
+      const admin = serviceWith();
+      const results = TestBed.inject(ResultsService);
+
+      // Same teams, same order — a second derivation could disagree.
+      expect(admin.results().map((row) => row.teamId)).toEqual(
+        results.rankings().map((row) => row.teamId),
+      );
+    });
+
+    it('keeps ties sharing a rank', () => {
+      const tied = serviceWith()
+        .results()
+        .filter((row) => row.tied);
+
+      expect(tied.length).toBeGreaterThan(1);
+      expect(new Set(tied.map((row) => row.rank)).size).toBeLessThan(tied.length);
+    });
+
+    it('flags a scored team that never submitted', () => {
+      const rows = serviceWith().results();
+      const mapMind = rows.find((row) => row.teamName === 'MapMind')!;
+
+      // The two stand-ins disagree about MapMind, and that is the point of the
+      // flag: one of the records is wrong and an organiser should see it.
+      expect(mapMind.submissionStatus).toBeNull();
+      expect(mapMind.issues).toContain('not_submitted');
+    });
+
+    it('flags a settled team', async () => {
+      const admin = serviceWith();
+      await admin.setTeamStatus(203, 'disqualified');
+
+      const row = admin.results().find((r) => r.teamId === 203)!;
+      expect(row.issues).toContain('settled');
+    });
+
+    it('starts with nothing published', () => {
+      const admin = serviceWith();
+
+      expect(admin.resultsPublished()).toBe(false);
+      expect(admin.results().every((row) => row.publishedAt === null)).toBe(true);
+    });
+
+    it('publishes every scored row at one time', async () => {
+      const admin = serviceWith();
+
+      expect((await admin.publishResults()).ok).toBe(true);
+
+      const stamps = new Set(admin.results().map((row) => row.publishedAt?.getTime()));
+      expect(admin.resultsPublished()).toBe(true);
+      // One stamp, not one per row: they were published together.
+      expect(stamps.size).toBe(1);
+    });
+
+    it('refuses a second publish rather than restamping', async () => {
+      const admin = serviceWith();
+      await admin.publishResults();
+      const first = admin.results()[0].publishedAt;
+
+      expect(await admin.publishResults()).toEqual({
+        ok: false,
+        error: 'Every scored result is already published.',
+      });
+      expect(admin.results()[0].publishedAt).toBe(first);
+    });
+
+    it('refuses to unpublish when nothing is published', async () => {
+      const admin = serviceWith();
+
+      expect(await admin.unpublishResults()).toEqual({ ok: false, error: 'Nothing is published.' });
+    });
+
+    it('unpublishes without touching the rankings', async () => {
+      const admin = serviceWith();
+      const ranksBefore = admin.results().map((row) => row.rank);
+
+      await admin.publishResults();
+      expect((await admin.unpublishResults()).ok).toBe(true);
+
+      expect(admin.resultsPublished()).toBe(false);
+      expect(admin.results().map((row) => row.rank)).toEqual(ranksBefore);
+    });
+
+    it('records publication in the audit log', async () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          { provide: SESSION_STORAGE, useValue: null },
+          { provide: EVENT_CONFIG, useValue: DEFAULT_EVENT_CONFIG },
+        ],
+      });
+      TestBed.inject(AuthService).signIn('admin');
+      const admin = TestBed.inject(AdminService);
+
+      await admin.publishResults();
+
+      expect(admin.audit()[0]).toMatchObject({ kind: 'result', action: 'Results published' });
+    });
+  });
+
+  describe('shortlisting', () => {
+    it('toggles the flag and logs it', async () => {
+      const admin = serviceWith();
+      const before = admin.results().find((row) => !row.shortlisted)!;
+
+      expect((await admin.setShortlisted(before.teamId, true)).ok).toBe(true);
+
+      expect(admin.results().find((row) => row.teamId === before.teamId)!.shortlisted).toBe(true);
+      expect(admin.audit()[0]).toMatchObject({
+        kind: 'result',
+        action: 'Added to shortlist',
+        target: before.teamName,
+      });
+    });
+
+    it('records nothing when the flag is already what was asked for', async () => {
+      const admin = serviceWith();
+      const already = admin.results().find((row) => row.shortlisted)!;
+      const length = admin.audit().length;
+
+      expect((await admin.setShortlisted(already.teamId, true)).ok).toBe(true);
+
+      expect(admin.audit().length).toBe(length);
+    });
+
+    it('refuses a team that is not there', async () => {
+      const admin = serviceWith();
+
+      expect(await admin.setShortlisted(9999, true)).toEqual({
+        ok: false,
+        error: 'That team no longer exists.',
+      });
     });
   });
 });

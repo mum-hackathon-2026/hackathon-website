@@ -1,0 +1,193 @@
+<p class="lede">{{ summary() }}</p>
+
+@if (error(); as message) {
+  <p class="banner banner--error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner--notice" role="status">{{ message }}</p>
+}
+
+<!-- ── Publication ────────────────────────────────────────────────────────── -->
+
+<section class="panel" aria-labelledby="publish-heading">
+  <h2 class="panel__title" id="publish-heading">Publication</h2>
+
+  <div class="publish">
+    <div class="publish__state">
+      <span class="publish__pill" [class.publish__pill--live]="published()">
+        {{ published() ? 'Published' : 'Not published' }}
+      </span>
+      <p class="publish__detail">
+        @if (published()) {
+          Every scored result carries a publication time.
+        } @else {
+          {{ publishable() }} scored {{ publishable() === 1 ? 'result is' : 'results are' }} ready
+          to publish.
+          @if (flaggedCount() > 0) {
+            <strong>{{ flaggedCount() }}</strong> of them {{ flaggedCount() === 1 ? 'is' : 'are' }}
+            flagged below — worth reading first.
+          }
+        }
+      </p>
+    </div>
+
+    @if (published()) {
+      <button
+        type="button"
+        class="button button--danger"
+        [disabled]="pending()"
+        (click)="confirming.set('unpublish')"
+      >
+        Unpublish
+      </button>
+    } @else {
+      <button
+        type="button"
+        class="button button--primary"
+        [disabled]="pending()"
+        (click)="confirming.set('publish')"
+      >
+        Publish results
+      </button>
+    }
+  </div>
+
+  <p class="publish__caveat">
+    This stamps <code>team_results.published_at</code>, which is where V1 records publication — one
+    time per row. It does not yet open the participant results page: that reads
+    <code>event_settings.results_published_at</code> through the event phase, and nothing can edit
+    that column until the Event Settings section exists.
+  </p>
+</section>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="results-search">Search results</label>
+  <input
+    id="results-search"
+    class="input filters__search"
+    type="search"
+    name="resultsSearch"
+    placeholder="Search team or project"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="results-filter">Filter results</label>
+  <select
+    id="results-filter"
+    class="input"
+    name="resultsFilter"
+    [ngModel]="filter()"
+    (ngModelChange)="filter.set($event)"
+  >
+    @for (option of filters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+<!-- ── Rankings ───────────────────────────────────────────────────────────── -->
+
+@if (rows().length === 0) {
+  <p class="empty">No results match that.</p>
+} @else {
+  <div class="scroller">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th scope="col">Rank</th>
+          <th scope="col">Team</th>
+          <th scope="col">Score</th>
+          <th scope="col">Outcome</th>
+          <th scope="col">Shortlist</th>
+          <th scope="col">Published</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.teamId) {
+          <tr>
+            <td class="grid__num">
+              {{ row.rank ?? '—' }}
+              @if (row.tied) {
+                <span class="rank__tied" title="Shares this rank with another team">tie</span>
+              }
+            </td>
+            <td>
+              <span class="grid__team">{{ row.teamName }}</span>
+              <span class="result__project">{{ row.projectTitle }}</span>
+              @if (row.issues.length > 0) {
+                <span class="grid__issue">
+                  <span>{{ issueText(row.issues) }}</span>
+                </span>
+              }
+            </td>
+            <td class="grid__num">{{ row.finalScore ?? '—' }}</td>
+            <td>
+              @if (row.outcome) {
+                <span class="pill">{{ outcomeLabels[row.outcome] }}</span>
+              } @else {
+                <span class="grid__none">—</span>
+              }
+            </td>
+            <td>
+              <button
+                type="button"
+                class="link-button"
+                [disabled]="pending()"
+                [attr.aria-pressed]="row.shortlisted"
+                (click)="toggleShortlist(row)"
+              >
+                {{ row.shortlisted ? 'On the shortlist' : 'Add' }}
+              </button>
+            </td>
+            <td>
+              @if (row.publishedAt; as when) {
+                <span class="result__live">{{ when | date: 'd MMM, HH:mm' : myt }}</span>
+              } @else {
+                <span class="grid__none">Not published</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<p class="note">
+  Ranks, scores and outcomes are read from the same source as the participant
+  <a routerLink="/results">results page</a>, so this table cannot disagree with what gets published.
+  Standard competition ranking applies: tied teams share a rank and the next rank skips. Flags are
+  advisory — a withdrawn or disqualified team may still carry a published result, since
+  <code>disqualified</code> is one of the outcomes the schema allows.
+</p>
+
+@if (confirming(); as action) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="action === 'publish' ? 'Publish the results?' : 'Unpublish the results?'"
+    [body]="
+      action === 'publish'
+        ? flaggedCount() > 0
+          ? 'This stamps a publication time on ' +
+            publishable() +
+            ' scored results, ' +
+            flaggedCount() +
+            ' of which are flagged. Teams with no score are skipped.'
+          : 'This stamps a publication time on ' +
+            publishable() +
+            ' scored results. Teams with no score are skipped.'
+        : 'Every publication time is cleared. The rankings themselves are untouched, so publishing again restores them.'
+    "
+    [confirmLabel]="action === 'publish' ? 'Publish' : 'Unpublish'"
+    [danger]="action === 'unpublish'"
+    (confirmed)="confirmPublish()"
+    (cancelled)="confirming.set(null)"
+  />
+}
