@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService, Role } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
+import { EventSettingsPatch, EventSettingsService } from '../event/event-settings';
 import { PhaseService } from '../event/phase';
 import { ResultOutcome, ResultsService } from '../results/results';
 import { SubmissionStatus } from '../submission/submission';
@@ -271,6 +272,34 @@ export type SectionId =
   | 'results'
   | 'settings'
   | 'audit';
+
+/** How each `event_settings` column reads in the audit log. */
+const SETTING_LABELS = (key: keyof EventSettingsPatch): string =>
+  ({
+    eventName: 'name',
+    registrationOpensAt: 'registration opens',
+    registrationClosesAt: 'registration closes',
+    submissionDeadlineAt: 'submission deadline',
+    resultsPublishedAt: 'results published',
+    judgingOpen: 'judging open',
+    minTeamSize: 'minimum team size',
+    maxTeamSize: 'maximum team size',
+    screeningEnabled: 'screening',
+  })[key] ?? key;
+
+/**
+ * Whether a settings field actually moved.
+ *
+ * Dates need comparing by value, not by identity: a form rebuilds its `Date`
+ * objects on every keystroke, so `!==` reports every field as changed and the
+ * audit entry lists the whole row each time.
+ */
+function differs(before: unknown, after: unknown): boolean {
+  if (before instanceof Date && after instanceof Date) {
+    return before.getTime() !== after.getTime();
+  }
+  return before !== after;
+}
 
 /**
  * How each `teams.status` value reads in the audit log.
@@ -961,6 +990,8 @@ export class AdminService {
   private readonly auth = inject(AuthService);
   /** Scores, ranks and outcomes are its business; this service never recomputes them. */
   private readonly resultsService = inject(ResultsService);
+  /** Owns `event_settings`; this service writes through it so one copy stays authoritative. */
+  private readonly eventSettings = inject(EventSettingsService);
 
   /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
   private readonly rows = signal<readonly SeedTeam[]>(SEED);
@@ -1540,6 +1571,10 @@ export class AdminService {
         for (const row of publishable) next.set(row.teamId, next.get(row.teamId) ?? at);
         return next;
       });
+      // Also opens the participant results page. `ResultsService.published`
+      // reads the event phase, which derives from this date — so stamping the
+      // rows without it would mark them published where nobody could see them.
+      void this.eventSettings.update({ resultsPublishedAt: at });
       this.log('result', 'Results published', `${publishable.length} teams`);
       return { ok: true };
     });
@@ -1552,9 +1587,42 @@ export class AdminService {
       if (count === 0) return { ok: false, error: 'Nothing is published.' };
 
       this.publishedAt.set(new Map());
+      // Closes the participant page again, for the same reason publishing opens it.
+      void this.eventSettings.update({ resultsPublishedAt: null });
       this.log('result', 'Results unpublished', `${count} teams`);
       return { ok: true };
     });
+  }
+
+  /**
+   * Writes `event_settings` and records what moved.
+   *
+   * A thin pass-through to `EventSettingsService.update()` — which owns the row
+   * and the validation V1 constrains it by — wrapped so the change reaches the
+   * audit log like every other organiser action. The section calls this rather
+   * than the settings service directly, for exactly that reason.
+   *
+   * The entry names the fields that actually changed, not the fields submitted:
+   * a form posts every value it holds, and "Event settings changed: 9 fields"
+   * every time somebody fixes a typo is a log nobody reads.
+   */
+  async updateSettings(patch: EventSettingsPatch): Promise<AdminActionResult> {
+    this.inFlight.update((n) => n + 1);
+    try {
+      const before = this.eventSettings.settings();
+      const result = await this.eventSettings.update(patch);
+      if (!result.ok) return result;
+
+      const changed = (Object.keys(patch) as (keyof EventSettingsPatch)[]).filter((key) =>
+        differs(before[key], this.eventSettings.settings()[key]),
+      );
+      if (changed.length > 0) {
+        this.log('settings', 'Event settings changed', changed.map(SETTING_LABELS).join(', '));
+      }
+      return { ok: true };
+    } finally {
+      this.inFlight.update((n) => n - 1);
+    }
   }
 
   private setRole(userId: number, role: Role): void {

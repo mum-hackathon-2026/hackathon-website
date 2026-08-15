@@ -29,12 +29,12 @@ type PendingPublish = 'publish' | 'unpublish' | null;
  *
  * Three things worth knowing before trusting this screen:
  *
- *  - **Publishing does not yet change what participants see.** It stamps
- *    `team_results.published_at`, which is the column publication lives in, but
- *    `ResultsService` still gates the public page on the configured
- *    `results_published_at` date via the phase. That column becomes editable with
- *    the Event Settings section; until then this reports its own state honestly
- *    rather than pretending to control the other one.
+ *  - **Publishing writes two columns, on purpose.** It stamps
+ *    `team_results.published_at` per row *and* sets
+ *    `event_settings.results_published_at`, because `ResultsService` gates the
+ *    public page on the event phase and the phase derives from that second
+ *    column. Stamping only the rows would mark results published where no
+ *    participant could see them.
  *  - **Flags never block.** A disqualified team is allowed a published row —
  *    `disqualified` is one of `team_results_outcome_check`'s outcomes — so the
  *    issues column is there to be read, not obeyed.

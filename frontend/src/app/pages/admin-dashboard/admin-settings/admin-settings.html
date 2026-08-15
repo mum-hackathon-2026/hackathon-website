@@ -1,0 +1,211 @@
+<p class="lede">
+  One row in <code>event_settings</code>. Every date is Malaysian time (MYT, UTC+8).
+</p>
+
+@if (error(); as message) {
+  <p class="banner banner--error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner--notice" role="status">{{ message }}</p>
+}
+
+<form class="settings" (ngSubmit)="save()">
+  <!-- ── Identity ─────────────────────────────────────────────────────────── -->
+
+  <section class="panel">
+    <h2 class="panel__title">Event</h2>
+
+    <div class="field">
+      <label class="field__label" for="event-name">Event name</label>
+      <input
+        id="event-name"
+        class="input"
+        name="eventName"
+        maxlength="200"
+        [ngModel]="draft().eventName"
+        (ngModelChange)="update('eventName', $event)"
+      />
+      <p class="field__hint">Shown in the page headers and the site footer.</p>
+    </div>
+  </section>
+
+  <!-- ── Schedule ─────────────────────────────────────────────────────────── -->
+
+  <section class="panel">
+    <h2 class="panel__title">Schedule</h2>
+    <p class="panel__lead">
+      These four dates decide the event phase, which is what every countdown, lock and empty state
+      on the site reads. Leave one blank to leave that milestone unset.
+    </p>
+
+    <div class="grid-fields">
+      <div class="field">
+        <label class="field__label" for="reg-opens">Registration opens <span>MYT</span></label>
+        <input
+          id="reg-opens"
+          class="input"
+          type="datetime-local"
+          name="registrationOpensAt"
+          [ngModel]="draft().registrationOpensAt"
+          (ngModelChange)="update('registrationOpensAt', $event)"
+        />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="reg-closes">Registration closes <span>MYT</span></label>
+        <input
+          id="reg-closes"
+          class="input"
+          type="datetime-local"
+          name="registrationClosesAt"
+          [ngModel]="draft().registrationClosesAt"
+          (ngModelChange)="update('registrationClosesAt', $event)"
+        />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="deadline">Submission deadline <span>MYT</span></label>
+        <input
+          id="deadline"
+          class="input"
+          type="datetime-local"
+          name="submissionDeadlineAt"
+          [ngModel]="draft().submissionDeadlineAt"
+          (ngModelChange)="update('submissionDeadlineAt', $event)"
+        />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="results-at">Results published <span>MYT</span></label>
+        <input
+          id="results-at"
+          class="input"
+          type="datetime-local"
+          name="resultsPublishedAt"
+          [ngModel]="draft().resultsPublishedAt"
+          (ngModelChange)="update('resultsPublishedAt', $event)"
+        />
+        <p class="field__hint">
+          A time in the past opens the results to every participant as soon as you save.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Judging ──────────────────────────────────────────────────────────── -->
+
+  <section class="panel">
+    <h2 class="panel__title">Judging</h2>
+
+    <label class="toggle" for="judging-open">
+      <input
+        id="judging-open"
+        type="checkbox"
+        name="judgingOpen"
+        [ngModel]="draft().judgingOpen"
+        (ngModelChange)="update('judgingOpen', $event)"
+      />
+      <span class="toggle__text">
+        <span class="toggle__label">Judging is open</span>
+        <span class="toggle__hint">
+          Judges can only score while this is on. V1 models it as a switch rather than a date
+          window, so it is yours to flip — closing it stops every review in progress from being
+          submitted.
+        </span>
+      </span>
+    </label>
+  </section>
+
+  <!-- ── Teams ────────────────────────────────────────────────────────────── -->
+
+  <section class="panel">
+    <h2 class="panel__title">Teams</h2>
+
+    <div class="grid-fields">
+      <div class="field">
+        <label class="field__label" for="min-size">Minimum team size</label>
+        <input
+          id="min-size"
+          class="input"
+          type="number"
+          min="1"
+          name="minTeamSize"
+          [ngModel]="draft().minTeamSize"
+          (ngModelChange)="updateNumber('minTeamSize', $event)"
+        />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="max-size">Maximum team size</label>
+        <input
+          id="max-size"
+          class="input"
+          type="number"
+          min="1"
+          name="maxTeamSize"
+          [ngModel]="draft().maxTeamSize"
+          (ngModelChange)="updateNumber('maxTeamSize', $event)"
+        />
+        <p class="field__hint">
+          The registration form collects a fixed number of members, so raising this above what the
+          form asks for will not let bigger teams in on its own.
+        </p>
+      </div>
+    </div>
+
+    <label class="toggle" for="screening">
+      <input
+        id="screening"
+        type="checkbox"
+        name="screeningEnabled"
+        [ngModel]="draft().screeningEnabled"
+        (ngModelChange)="update('screeningEnabled', $event)"
+      />
+      <span class="toggle__text">
+        <span class="toggle__label">Eligibility screening enabled</span>
+        <span class="toggle__hint">
+          Surfaced in the Participants section. There is no eligibility column, so this changes what
+          organisers are told, not who may enter.
+        </span>
+      </span>
+    </label>
+  </section>
+
+  <!-- ── Actions ──────────────────────────────────────────────────────────── -->
+
+  <div class="actions">
+    <button type="submit" class="button button--primary" [disabled]="pending() || !dirty()">
+      Save changes
+    </button>
+    <button type="button" class="button" [disabled]="pending() || !dirty()" (click)="reset()">
+      Discard
+    </button>
+    @if (dirty()) {
+      <span class="actions__state">Unsaved changes</span>
+    }
+  </div>
+</form>
+
+<p class="note">
+  Changes are recorded in the <code>audit_log</code> and show up in the Audit Log section, naming
+  the fields that moved. <code>event_settings</code> is a single row constrained to
+  <code>id = 1</code>, so there is nothing to create and nothing to delete here.
+</p>
+
+@if (confirming()) {
+  <app-confirm-dialog
+    [open]="true"
+    heading="Save these settings?"
+    [body]="
+      wouldPublish() && wouldCloseJudging()
+        ? 'This publishes the results to every participant and stops judges scoring. Both take effect immediately.'
+        : wouldPublish()
+          ? 'The results date is in the past, so saving opens the results to every participant immediately.'
+          : 'Judges will no longer be able to submit scores, including reviews they have already started.'
+    "
+    confirmLabel="Save"
+    [danger]="true"
+    (confirmed)="save()"
+    (cancelled)="confirming.set(false)"
+  />
+}
