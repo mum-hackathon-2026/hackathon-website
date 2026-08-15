@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Role } from '../auth/auth';
+import { AuthService, Role } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
 import { PhaseService } from '../event/phase';
 import { SubmissionStatus } from '../submission/submission';
@@ -228,6 +228,21 @@ export type SectionId =
   | 'results'
   | 'settings'
   | 'audit';
+
+/**
+ * How each `teams.status` value reads in the audit log.
+ *
+ * Keyed by the whole of `teams_status_check` as V2 left it, so a migration that
+ * changes that vocabulary fails to compile here rather than logging `undefined`.
+ * `forming` and `complete` share an action: from an organiser's side both are
+ * undoing a withdrawal or a disqualification.
+ */
+const TEAM_STATUS_ACTIONS: Record<TeamStatus, string> = {
+  forming: 'Team reinstated',
+  complete: 'Team reinstated',
+  withdrawn: 'Team withdrawn',
+  disqualified: 'Team disqualified',
+};
 
 export const SECTIONS: readonly { readonly id: SectionId; readonly label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -548,9 +563,21 @@ const ASSIGNED_AT = new Date('2026-10-10T09:00:00+08:00');
 const REVIEW_COMPLETED_AT = new Date('2026-10-11T16:20:00+08:00');
 
 /**
- * Recent `audit_log` rows. The entries survive their actor being deleted — V2
- * nulls `actor_user_id` rather than removing the row — so `actor` is free text
- * here and reads 'Deleted user' when the account has gone.
+ * `audit_log` rows, newest first.
+ *
+ * **Newest-first is load-bearing, not cosmetic.** The Overview feed is
+ * `audit().slice(0, 7)` and `log()` prepends; both assume this order, and
+ * neither would fail visibly if it were reversed — the feed would quietly show
+ * the oldest seven entries of the event.
+ *
+ * The entries survive their actor being deleted — V2 nulls `actor_user_id`
+ * rather than removing the row — so `actor` is free text here and reads
+ * 'Deleted user' when the account has gone. 'System' covers what no person did:
+ * a form import, a participant's own submission.
+ *
+ * Volume is deliberate. Seven rows made the Audit Log section's filters
+ * pointless and made the Overview's "recent activity" the entire log; a real
+ * event of this size generates roughly this much.
  */
 const AUDIT_SEED: readonly AuditEntry[] = [
   {
@@ -609,12 +636,286 @@ const AUDIT_SEED: readonly AuditEntry[] = [
     actor: 'Deleted user',
     at: new Date('2026-10-08T14:03:00+08:00'),
   },
+  {
+    id: 34,
+    kind: 'judge',
+    action: 'Judge assigned',
+    target: 'Nadia Rahman → NeuralNest',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-08T11:30:00+08:00'),
+  },
+  {
+    id: 33,
+    kind: 'judge',
+    action: 'Judge assigned',
+    target: 'Dr. Tomas Novak → Quantum Leap',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-08T11:28:00+08:00'),
+  },
+  {
+    id: 32,
+    kind: 'submission',
+    action: 'Submission received',
+    target: 'MindBridge — SignPath',
+    actor: 'System',
+    at: new Date('2026-10-08T09:47:00+08:00'),
+  },
+  {
+    id: 31,
+    kind: 'result',
+    action: 'Shortlist drafted',
+    target: '6 teams',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-07T17:12:00+08:00'),
+  },
+  {
+    id: 30,
+    kind: 'judge',
+    action: 'Added to judging panel',
+    target: 'Nadia Rahman',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-07T15:05:00+08:00'),
+  },
+  {
+    id: 29,
+    kind: 'team',
+    action: 'Team renamed',
+    target: 'Team Rocket → Ctrl Alt Elite',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-07T14:20:00+08:00'),
+  },
+  {
+    id: 28,
+    kind: 'submission',
+    action: 'Submission received',
+    target: 'HealthHive — TriageBuddy',
+    actor: 'System',
+    at: new Date('2026-10-07T13:02:00+08:00'),
+  },
+  {
+    id: 27,
+    kind: 'participant',
+    action: 'Email verified',
+    target: 'Zara Anand',
+    actor: 'System',
+    at: new Date('2026-10-07T10:41:00+08:00'),
+  },
+  {
+    id: 26,
+    kind: 'submission',
+    action: 'Submission received',
+    target: 'DataForge — LedgerLite',
+    actor: 'System',
+    at: new Date('2026-10-06T22:58:00+08:00'),
+  },
+  {
+    id: 25,
+    kind: 'settings',
+    action: 'Submission deadline extended',
+    target: 'Event settings',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-06T19:30:00+08:00'),
+  },
+  {
+    id: 24,
+    kind: 'judge',
+    action: 'Judge unassigned',
+    target: 'Nadia Rahman → Byte Me',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-06T16:15:00+08:00'),
+  },
+  {
+    id: 23,
+    kind: 'submission',
+    action: 'Submission received',
+    target: 'EcoTrace — LeafLedger',
+    actor: 'System',
+    at: new Date('2026-10-06T14:44:00+08:00'),
+  },
+  {
+    id: 22,
+    kind: 'participant',
+    action: 'Member left team',
+    target: 'Full House',
+    actor: 'Kevin Chua',
+    at: new Date('2026-10-06T11:09:00+08:00'),
+  },
+  {
+    id: 21,
+    kind: 'judge',
+    action: 'Added to judging panel',
+    target: 'Dr. Tomas Novak',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-05T18:22:00+08:00'),
+  },
+  {
+    id: 20,
+    kind: 'submission',
+    action: 'Submission received',
+    target: 'Null Pointer Exception — StackTrace',
+    actor: 'System',
+    at: new Date('2026-10-05T16:37:00+08:00'),
+  },
+  {
+    id: 19,
+    kind: 'team',
+    action: 'Team renamed',
+    target: 'The Nesters → NeuralNest',
+    actor: 'Aisha Rahman',
+    at: new Date('2026-10-05T13:50:00+08:00'),
+  },
+  {
+    id: 18,
+    kind: 'submission',
+    action: 'Submission received',
+    target: 'MapMind — WayFinder',
+    actor: 'System',
+    at: new Date('2026-10-05T10:28:00+08:00'),
+  },
+  {
+    id: 17,
+    kind: 'settings',
+    action: 'Judging criteria published',
+    target: 'Event settings',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-10-04T15:00:00+08:00'),
+  },
+  {
+    id: 16,
+    kind: 'participant',
+    action: 'Email verified',
+    target: 'Hafizuddin Roslan',
+    actor: 'System',
+    at: new Date('2026-10-04T12:14:00+08:00'),
+  },
+  {
+    id: 15,
+    kind: 'settings',
+    action: 'Registration closed',
+    target: 'Event settings',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-09-25T23:59:00+08:00'),
+  },
+  {
+    id: 14,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'Ctrl Alt Elite',
+    actor: 'System',
+    at: new Date('2026-09-25T21:40:00+08:00'),
+  },
+  {
+    id: 13,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'Byte Me',
+    actor: 'System',
+    at: new Date('2026-09-25T21:40:00+08:00'),
+  },
+  {
+    id: 12,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'MapMind',
+    actor: 'System',
+    at: new Date('2026-09-25T21:40:00+08:00'),
+  },
+  {
+    id: 11,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'WaterWatch',
+    actor: 'System',
+    at: new Date('2026-09-25T18:05:00+08:00'),
+  },
+  {
+    id: 10,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'MindBridge',
+    actor: 'System',
+    at: new Date('2026-09-25T18:05:00+08:00'),
+  },
+  {
+    id: 9,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'Full House',
+    actor: 'System',
+    at: new Date('2026-09-24T14:22:00+08:00'),
+  },
+  {
+    id: 8,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'CipherCraft',
+    actor: 'System',
+    at: new Date('2026-09-24T14:22:00+08:00'),
+  },
+  {
+    id: 7,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'HealthHive',
+    actor: 'System',
+    at: new Date('2026-09-23T16:48:00+08:00'),
+  },
+  {
+    id: 6,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'SolarSync',
+    actor: 'System',
+    at: new Date('2026-09-23T16:48:00+08:00'),
+  },
+  {
+    id: 5,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'Null Pointer Exception',
+    actor: 'System',
+    at: new Date('2026-09-22T19:11:00+08:00'),
+  },
+  {
+    id: 4,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'EcoTrace',
+    actor: 'System',
+    at: new Date('2026-09-22T19:11:00+08:00'),
+  },
+  {
+    id: 3,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'DataForge',
+    actor: 'System',
+    at: new Date('2026-09-22T10:02:00+08:00'),
+  },
+  {
+    id: 2,
+    kind: 'team',
+    action: 'Registration imported',
+    target: 'Quantum Leap',
+    actor: 'System',
+    at: new Date('2026-09-21T11:35:00+08:00'),
+  },
+  {
+    id: 1,
+    kind: 'settings',
+    action: 'Registration opened',
+    target: 'Event settings',
+    actor: 'Mei-Lin Zhao',
+    at: new Date('2026-09-21T09:00:00+08:00'),
+  },
 ];
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly config = inject(EVENT_CONFIG);
   private readonly phaseService = inject(PhaseService);
+  /** Only for naming the actor on audit entries — this service is event-wide. */
+  private readonly auth = inject(AuthService);
 
   /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
   private readonly rows = signal<readonly SeedTeam[]>(SEED);
@@ -626,7 +927,9 @@ export class AdminService {
   /** Mutable so the Assignments section's actions land somewhere. */
   private readonly assignmentRows = signal<readonly AdminAssignment[]>(seedAssignments());
 
-  readonly audit = signal<readonly AuditEntry[]>(AUDIT_SEED).asReadonly();
+  /** Mutable so the sections' actions land here too — see `log()`. */
+  private readonly auditRows = signal<readonly AuditEntry[]>(AUDIT_SEED);
+  readonly audit = this.auditRows.asReadonly();
 
   /**
    * `users.role` changes an organiser has made, keyed by `users.id`.
@@ -926,7 +1229,10 @@ export class AdminService {
       );
       if (clash) return { ok: false, error: `Another team is already called ${trimmed}.` };
 
+      // Read before the patch: afterwards the old name is gone.
+      const before = this.rows().find((row) => row.teamId === teamId)?.teamName;
       this.patch(teamId, () => ({ teamName: trimmed }));
+      this.log('team', 'Team renamed', before ? `${before} → ${trimmed}` : trimmed);
       return { ok: true };
     });
   }
@@ -942,9 +1248,11 @@ export class AdminService {
     return this.run(() => {
       const team = this.rows().find((row) => row.teamId === teamId);
       if (!team) return { ok: false, error: 'That team no longer exists.' };
+      // Already there, so nothing happened and nothing is logged.
       if (team.status === status) return { ok: true };
 
       this.patch(teamId, () => ({ status }));
+      this.log('team', TEAM_STATUS_ACTIONS[status], team.teamName);
       return { ok: true };
     });
   }
@@ -983,6 +1291,7 @@ export class AdminService {
           completedAt: null,
         },
       ]);
+      this.log('judge', 'Judge assigned', `${judge.name} → ${team.teamName}`);
       return { ok: true };
     });
   }
@@ -1003,7 +1312,13 @@ export class AdminService {
       const row = this.assignmentRows().find((a) => a.id === assignmentId);
       if (!row) return { ok: false, error: 'That assignment is already gone.' };
 
+      const teamName = this.rows().find((team) => team.teamId === row.teamId)?.teamName;
       this.assignmentRows.update((all) => all.filter((a) => a.id !== assignmentId));
+      this.log(
+        'judge',
+        'Judge unassigned',
+        teamName ? `${row.judgeName} → ${teamName}` : row.judgeName,
+      );
       return { ok: true };
     });
   }
@@ -1031,6 +1346,7 @@ export class AdminService {
       if (!person) return { ok: false, error: 'Nobody is registered under that account.' };
 
       this.setRole(userId, 'judge');
+      this.log('judge', 'Added to judging panel', person.fullName);
       return { ok: true };
     });
   }
@@ -1059,12 +1375,39 @@ export class AdminService {
       }
 
       this.setRole(userId, 'participant');
+      this.log('judge', 'Removed from judging panel', judge.name);
       return { ok: true };
     });
   }
 
   private setRole(userId: number, role: Role): void {
     this.roleOverrides.update((current) => new Map(current).set(userId, role));
+  }
+
+  /**
+   * Records one `audit_log` row for something an organiser just did.
+   *
+   * **Prepends**, because `audit` is newest-first and the Overview's
+   * `slice(0, 7)` depends on it. Called from the success path of each mutation
+   * and nowhere else, so a refused action leaves no trace — matching the real
+   * thing, where the INSERT would sit in the same transaction as the change.
+   *
+   * `actor` is the signed-in organiser's name rather than their id: the column
+   * is a nullable FK that V2 nulls on delete, so the display name has to be
+   * carried on the entry or it would vanish with the account.
+   */
+  private log(kind: AuditEntry['kind'], action: string, target: string): void {
+    this.auditRows.update((all) => [
+      {
+        id: Math.max(0, ...all.map((row) => row.id)) + 1,
+        kind,
+        action,
+        target,
+        actor: this.auth.user()?.name ?? 'Unknown',
+        at: new Date(),
+      },
+      ...all,
+    ]);
   }
 
   private patch(teamId: number, change: (team: SeedTeam) => Partial<SeedTeam>): void {

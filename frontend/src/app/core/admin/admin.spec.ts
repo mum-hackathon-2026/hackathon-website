@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { AuthService, SESSION_STORAGE } from '../auth/auth';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../event/event-config';
 import { AdminService, AdminTeamRow } from './admin';
 
@@ -568,6 +569,135 @@ describe('AdminService', () => {
         ok: false,
         error: 'That team no longer exists.',
       });
+    });
+  });
+
+  describe('audit log', () => {
+    /** Signed in, so entries carry a name rather than falling back to 'Unknown'. */
+    function signedInAdmin(): AdminService {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          { provide: SESSION_STORAGE, useValue: null },
+          { provide: EVENT_CONFIG, useValue: DEFAULT_EVENT_CONFIG },
+        ],
+      });
+      TestBed.inject(AuthService).signIn('admin');
+      return TestBed.inject(AdminService);
+    }
+
+    it('seeds newest first, which the Overview feed depends on', () => {
+      const entries = serviceWith().audit();
+
+      expect(entries.length).toBeGreaterThan(7);
+      for (let i = 1; i < entries.length; i++) {
+        // The Overview shows slice(0, 7) and calls it recent activity; out of
+        // order it would silently show the oldest seven instead.
+        expect(entries[i].at.getTime()).toBeLessThanOrEqual(entries[i - 1].at.getTime());
+      }
+    });
+
+    it('records a rename, naming both the old and the new name', async () => {
+      const admin = signedInAdmin();
+      const before = admin.audit().length;
+
+      await admin.renameTeam(209, 'MapMind Reloaded');
+
+      const newest = admin.audit()[0];
+      expect(admin.audit().length).toBe(before + 1);
+      expect(newest.action).toBe('Team renamed');
+      expect(newest.target).toBe('MapMind → MapMind Reloaded');
+      expect(newest.kind).toBe('team');
+      expect(newest.actor).toBe('Mei-Lin Zhao');
+    });
+
+    it('records nothing when the action was refused', async () => {
+      const admin = signedInAdmin();
+      const before = admin.audit().length;
+
+      // 'Quantum Leap' is taken, so this fails on the UNIQUE name.
+      expect((await admin.renameTeam(209, 'Quantum Leap')).ok).toBe(false);
+      expect(await admin.setTeamStatus(9999, 'withdrawn')).toEqual({
+        ok: false,
+        error: 'That team no longer exists.',
+      });
+
+      expect(admin.audit().length).toBe(before);
+    });
+
+    it('records nothing when the status was already what was asked for', async () => {
+      const admin = signedInAdmin();
+      await admin.setTeamStatus(209, 'withdrawn');
+      const after = admin.audit().length;
+
+      // Succeeds, but changes nothing, so there is nothing to record.
+      expect((await admin.setTeamStatus(209, 'withdrawn')).ok).toBe(true);
+
+      expect(admin.audit().length).toBe(after);
+    });
+
+    it('names the settled state rather than logging a bare status', async () => {
+      const admin = signedInAdmin();
+
+      await admin.setTeamStatus(209, 'disqualified');
+      expect(admin.audit()[0].action).toBe('Team disqualified');
+
+      await admin.setTeamStatus(209, 'complete');
+      expect(admin.audit()[0].action).toBe('Team reinstated');
+    });
+
+    it('records panel changes against the person', async () => {
+      const admin = signedInAdmin();
+      const someone = admin.participants()[0];
+
+      await admin.grantJudgeRole(someone.userId);
+      expect(admin.audit()[0]).toMatchObject({
+        kind: 'judge',
+        action: 'Added to judging panel',
+        target: someone.fullName,
+      });
+
+      await admin.revokeJudgeRole(someone.userId);
+      expect(admin.audit()[0]).toMatchObject({
+        action: 'Removed from judging panel',
+        target: someone.fullName,
+      });
+    });
+
+    it('records an assignment against both the judge and the team', async () => {
+      const admin = signedInAdmin();
+      const team = admin.assignments().find((row) => row.judges.length === 0)!;
+      const judge = admin.judges()[0];
+
+      await admin.assignJudge(team.teamId, judge.userId);
+
+      expect(admin.audit()[0]).toMatchObject({
+        kind: 'judge',
+        action: 'Judge assigned',
+        target: `${judge.name} → ${team.teamName}`,
+      });
+    });
+
+    it('keeps each new entry ahead of the seed', async () => {
+      const admin = signedInAdmin();
+      const seedTop = admin.audit()[0].id;
+
+      await admin.renameTeam(209, 'First');
+      await admin.renameTeam(209, 'Second');
+
+      const [newest, second] = admin.audit();
+      expect(newest.target).toBe('First → Second');
+      expect(second.target).toBe('MapMind → First');
+      expect(newest.id).toBeGreaterThan(second.id);
+      expect(second.id).toBeGreaterThan(seedTop);
+    });
+
+    it('falls back rather than throwing when nobody is signed in', async () => {
+      const admin = serviceWith();
+
+      await admin.renameTeam(209, 'Nobody Here');
+
+      expect(admin.audit()[0].actor).toBe('Unknown');
     });
   });
 });

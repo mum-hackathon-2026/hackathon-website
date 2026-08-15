@@ -233,7 +233,7 @@
   background: var(--color-blue);
 }
 .feed__dot--participant {
-  background: #7c3aed;
+  background: var(--color-violet);
 }
 .feed__dot--judge {
   background: var(--color-green);
@@ -243,6 +243,11 @@
 }
 .feed__dot--result {
   background: var(--color-red-ink);
+}
+// 'settings' had no rule, so those entries fell back to the grey default and
+// read as an unrecognised kind. The audit log uses the same six colours.
+.feed__dot--settings {
+  background: var(--color-amber-ink);
 }
 
 .feed__text {

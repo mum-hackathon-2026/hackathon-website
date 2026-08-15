@@ -105,11 +105,22 @@ describe('AdminDashboard', () => {
       expect(title()).toBe('Submissions');
     });
 
+    // Pick a section that is still a stub. This test names one deliberately
+    // rather than deriving it, so building the last stub fails here and makes
+    // somebody delete the placeholder branch instead of leaving it unreachable.
     it('shows a placeholder for sections that are not built', async () => {
+      await render({ section: 'settings' });
+
+      expect(title()).toBe('Event Settings');
+      expect(host().textContent).toContain("isn't built yet");
+    });
+
+    it('renders the audit log rather than a placeholder', async () => {
       await render({ section: 'audit' });
 
       expect(title()).toBe('Audit Log');
-      expect(host().textContent).toContain("isn't built yet");
+      expect(host().querySelector('app-admin-audit')).toBeTruthy();
+      expect(host().textContent).not.toContain("isn't built yet");
     });
 
     it('reports the phase and whether judging is open', async () => {

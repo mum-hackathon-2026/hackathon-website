@@ -17,6 +17,11 @@
   --color-red-ink: #c5221f;
   --color-red-tint: #fce8e6;
 
+  /* Outside the Google palette, and deliberately: the audit log needs a sixth
+     hue for 'participant' that none of the four brand accents can supply
+     without colliding with a status colour. */
+  --color-violet: #7c3aed;
+
   /* Role accents — text on tint, both sides already contrast-safe. */
   --color-green-ink: #1e7e34;
   --color-green-tint: #e6f4ea;
