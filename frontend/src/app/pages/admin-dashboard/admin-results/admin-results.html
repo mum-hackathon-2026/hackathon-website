@@ -53,10 +53,10 @@
   </div>
 
   <p class="publish__caveat">
-    This stamps <code>team_results.published_at</code>, which is where V1 records publication — one
-    time per row. It does not yet open the participant results page: that reads
-    <code>event_settings.results_published_at</code> through the event phase, and nothing can edit
-    that column until the Event Settings section exists.
+    This stamps <code>team_results.published_at</code> on every scored row — where V1 records
+    publication, one time per row — and sets <code>event_settings.results_published_at</code>, which
+    is what opens the participant results page. Both move together, so a published result is one
+    participants can actually read. Unpublishing clears both.
   </p>
 </section>
 

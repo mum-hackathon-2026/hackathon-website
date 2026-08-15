@@ -109,9 +109,9 @@ describe('AdminDashboard', () => {
     // rather than deriving it, so building the last stub fails here and makes
     // somebody delete the placeholder branch instead of leaving it unreachable.
     it('shows a placeholder for sections that are not built', async () => {
-      await render({ section: 'settings' });
+      await render({ section: 'judging' });
 
-      expect(title()).toBe('Event Settings');
+      expect(title()).toBe('Judging Progress');
       expect(host().textContent).toContain("isn't built yet");
     });
 

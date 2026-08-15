@@ -74,6 +74,9 @@
       @case ('results') {
         <app-admin-results />
       }
+      @case ('settings') {
+        <app-admin-settings />
+      }
       @case ('audit') {
         <app-admin-audit />
       }
@@ -82,8 +85,8 @@
           <p class="stub__heading">{{ sectionLabel() }} isn't built yet</p>
           <p class="stub__body">
             This section is in the design draft and has a place in the workspace, but nothing behind
-            it yet. Judging Progress and Event Settings are the two still to come — everything else
-            in the sidebar works today.
+            it yet. Judging Progress is the only one still to come — everything else in the sidebar
+            works today.
           </p>
         </div>
       }
