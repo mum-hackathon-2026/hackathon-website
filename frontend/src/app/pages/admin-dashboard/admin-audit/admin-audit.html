@@ -1,0 +1,94 @@
+<p class="lede">{{ summary() }}</p>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="audit-search">Search the audit log</label>
+  <input
+    id="audit-search"
+    class="input filters__search"
+    type="search"
+    name="auditSearch"
+    placeholder="Search action, target or actor"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="audit-kind">Filter by kind</label>
+  <select
+    id="audit-kind"
+    class="input"
+    name="auditKind"
+    [ngModel]="kind()"
+    (ngModelChange)="kind.set($event)"
+  >
+    @for (option of kindFilters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+<!-- ── Log ────────────────────────────────────────────────────────────────── -->
+
+@if (days().length === 0) {
+  <p class="empty">Nothing in the log matches that.</p>
+} @else {
+  <div class="scroller">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th scope="col">Time</th>
+          <th scope="col">Action</th>
+          <th scope="col">Target</th>
+          <th scope="col">Actor</th>
+        </tr>
+      </thead>
+      @for (day of days(); track day.key) {
+        <tbody>
+          <tr class="day">
+            <th class="day__cell" colspan="4" scope="colgroup">
+              {{ day.at | date: 'EEEE d MMMM y' : myt }}
+              <span class="day__count">
+                {{ day.entries.length }} {{ day.entries.length === 1 ? 'entry' : 'entries' }}
+              </span>
+            </th>
+          </tr>
+
+          @for (entry of day.entries; track entry.id) {
+            <tr>
+              <td class="grid__num">{{ entry.at | date: 'HH:mm' : myt }}</td>
+              <td>
+                <span class="kind" [class]="'kind--' + entry.kind" aria-hidden="true"></span>
+                <span class="grid__team">{{ entry.action }}</span>
+                <span class="visually-hidden">({{ kindLabels[entry.kind] }})</span>
+              </td>
+              <td>{{ entry.target }}</td>
+              <td>
+                @if (entry.actor === 'System') {
+                  <span class="actor actor--system">System</span>
+                } @else if (entry.actor === 'Deleted user') {
+                  <span class="actor actor--gone">Deleted user</span>
+                } @else {
+                  {{ entry.actor }}
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      }
+    </table>
+  </div>
+}
+
+<p class="note">
+  Entries are never edited or removed from here — an audit log that the dashboard could rewrite
+  would not be one. They also outlive the people in them:
+  <code>audit_log.actor_user_id</code> is <code>ON DELETE SET NULL</code>, so deleting an account
+  anonymises its trail rather than deleting it, and those rows read "Deleted user". The
+  <code>details</code> column is <code>jsonb</code> that nothing validates, so it is not shown —
+  displaying it would imply a structure it does not have.
+</p>
