@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { SPONSOR_TIERS, Sponsor } from '../../../core/event/event-content';
+import { SPONSORS, Sponsor } from '../../../core/event/event-content';
 
 @Component({
   selector: 'app-home-sponsors',
@@ -8,20 +8,17 @@ import { SPONSOR_TIERS, Sponsor } from '../../../core/event/event-content';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SponsorsSection {
-  protected readonly tiers = SPONSOR_TIERS;
+  protected readonly sponsors = SPONSORS;
 
-  /** Domains whose logo failed to load, so we can fall back to initials. */
+  /** Sponsors whose logo file failed to load, so we can fall back to a wordmark. */
   private readonly missingLogos = signal(new Set<string>());
 
-  protected logoUrl(sponsor: Sponsor): string {
-    return `https://logo.clearbit.com/${sponsor.domain}`;
-  }
-
   protected hasLogo(sponsor: Sponsor): boolean {
-    return !this.missingLogos().has(sponsor.domain);
+    return !this.missingLogos().has(sponsor.name);
   }
 
   protected onLogoError(sponsor: Sponsor): void {
-    this.missingLogos.update((current) => new Set(current).add(sponsor.domain));
+    // A new Set rather than a mutation, so the signal actually notifies OnPush.
+    this.missingLogos.update((current) => new Set(current).add(sponsor.name));
   }
 }
