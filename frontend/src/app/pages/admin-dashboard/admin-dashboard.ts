@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 import { AdminService, SECTIONS, SectionId, isSectionId } from '../../core/admin/admin';
 import { EVENT_CONFIG } from '../../core/event/event-config';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { PhaseService } from '../../core/event/phase';
 import { AdminAssignments } from './admin-assignments/admin-assignments';
 import { AdminAudit } from './admin-audit/admin-audit';
@@ -52,10 +53,11 @@ export class AdminDashboard {
   private readonly admin = inject(AdminService);
   private readonly phaseService = inject(PhaseService);
   private readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly sections = SECTIONS;
-  protected readonly eventName = this.config.settings.eventName;
+  protected readonly eventName = this.settings.eventName;
 
   protected readonly stats = this.admin.stats;
   protected readonly judgingOpen = this.phaseService.judgingOpen;

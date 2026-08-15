@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../core/event/event-config';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { OUTCOME_LABELS, ResultsService } from '../../core/results/results';
 import { PageHeader } from '../../layout/page-header/page-header';
 import { StateLocked } from '../../layout/state-locked/state-locked';
@@ -34,8 +35,9 @@ export class Results {
   private readonly results = inject(ResultsService);
 
   protected readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
   protected readonly myt = MYT_OFFSET;
-  protected readonly eventName = this.config.settings.eventName;
+  protected readonly eventName = this.settings.eventName;
   protected readonly outcomeLabels = OUTCOME_LABELS;
 
   protected readonly published = this.results.published;

@@ -1,5 +1,6 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { EVENT_CONFIG } from '../event/event-config';
+import { EventSettingsService } from '../event/event-settings';
 import { PhaseService } from '../event/phase';
 import { TeamService } from '../team/team';
 
@@ -161,6 +162,7 @@ export class ResultsService {
   private readonly teams = inject(TeamService);
   private readonly phase = inject(PhaseService);
   private readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
 
   /**
    * Results are visible once the configured publication date passes. V1 has a
@@ -168,7 +170,8 @@ export class ResultsService {
    */
   readonly published = computed(() => this.phase.phase() === 'results');
 
-  readonly publishedAt = this.config.settings.resultsPublishedAt;
+  /** A signal, not a snapshot: an organiser can move the publication date. */
+  readonly publishedAt = this.settings.resultsPublishedAt;
 
   readonly totalTeams = SEED.length;
 

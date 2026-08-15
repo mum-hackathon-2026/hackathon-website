@@ -7,6 +7,7 @@ import {
   EligibilityState,
 } from '../../../core/admin/admin';
 import { EVENT_CONFIG } from '../../../core/event/event-config';
+import { EventSettingsService } from '../../../core/event/event-settings';
 
 /** 'all' is the unfiltered default; 'none' is the people on no team. */
 type EligibilityFilter = EligibilityState | 'all';
@@ -35,6 +36,7 @@ type TeamFilter = string;
 export class AdminParticipants {
   private readonly admin = inject(AdminService);
   private readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
 
   protected readonly eligibilityLabels = ELIGIBILITY_LABELS;
   protected readonly studentDomain = this.config.site.studentEmailDomain;
@@ -44,7 +46,7 @@ export class AdminParticipants {
    * yet. Surfaced rather than acted on: when screening is off these checks are
    * advisory, and saying so is more honest than implying they gate anything.
    */
-  protected readonly screeningEnabled = this.config.settings.screeningEnabled;
+  protected readonly screeningEnabled = this.settings.screeningEnabled;
 
   protected readonly search = signal('');
   protected readonly teamFilter = signal<TeamFilter>('all');

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../core/event/event-config';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { ALL_FAQS, ORGANIZERS } from '../../core/event/event-content';
 import { FaqList } from '../../layout/faq-list/faq-list';
 import { PageHeader } from '../../layout/page-header/page-header';
@@ -24,9 +25,10 @@ interface KeyDate {
 })
 export class Organizers {
   private readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
 
   protected readonly myt = MYT_OFFSET;
-  protected readonly eventName = this.config.settings.eventName;
+  protected readonly eventName = this.settings.eventName;
   protected readonly contactEmail = this.config.site.contactEmail;
   protected readonly organizers = ORGANIZERS;
   protected readonly faqs = ALL_FAQS;
@@ -39,7 +41,7 @@ export class Organizers {
    * has no judging dates of its own, only a `judging_open` flag.
    */
   protected readonly keyDates = computed<readonly KeyDate[]>(() => {
-    const s = this.config.settings;
+    const s = this.settings.settings();
 
     const all: readonly (KeyDate | null)[] = [
       s.registrationOpensAt && {

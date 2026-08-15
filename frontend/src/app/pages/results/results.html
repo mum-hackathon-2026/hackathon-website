@@ -1,12 +1,14 @@
 <div class="page page--narrow">
-  <app-page-header [eyebrow]="eventName" title="Results" [subtitle]="subtitle()" />
+  <app-page-header [eyebrow]="eventName()" title="Results" [subtitle]="subtitle()" />
 
   @if (!published()) {
     <app-state-locked
       heading="Results are not published yet"
       reason="Scores are still being compiled and verified. Everyone is notified at the same time."
       [deadline]="
-        publishedAt ? 'Publishing ' + (publishedAt | date: 'd MMM y, h:mm a' : myt) + ' MYT' : ''
+        publishedAt()
+          ? 'Publishing ' + (publishedAt() | date: 'd MMM y, h:mm a' : myt) + ' MYT'
+          : ''
       "
     >
       <p class="locked-preview">Rankings, awards and judge feedback appear here.</p>

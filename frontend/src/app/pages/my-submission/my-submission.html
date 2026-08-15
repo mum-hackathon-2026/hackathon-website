@@ -20,7 +20,9 @@
       heading="Submissions aren't open yet"
       reason="The submission form opens once registration closes."
       [deadline]="
-        deadline ? 'Submissions close ' + (deadline | date: 'd MMM y, h:mm a' : myt) + ' MYT' : ''
+        deadline()
+          ? 'Submissions close ' + (deadline() | date: 'd MMM y, h:mm a' : myt) + ' MYT'
+          : ''
       "
     />
   } @else if (!isOpen()) {
@@ -28,7 +30,9 @@
     <app-state-locked
       heading="Submissions are closed"
       reason="The deadline has passed, so the form is no longer accepting entries."
-      [deadline]="deadline ? 'Closed ' + (deadline | date: 'd MMM y, h:mm a' : myt) + ' MYT' : ''"
+      [deadline]="
+        deadline() ? 'Closed ' + (deadline() | date: 'd MMM y, h:mm a' : myt) + ' MYT' : ''
+      "
     >
       @if (submission(); as record) {
         <p class="submission__locked-summary">

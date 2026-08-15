@@ -10,8 +10,10 @@
       heading="Registration is closed"
       reason="The registration form is no longer accepting entries, so teams can no longer change."
       [deadline]="
-        registrationClosesAt
-          ? 'Registration closed ' + (registrationClosesAt | date: 'd MMM y, h:mm a' : myt) + ' MYT'
+        registrationClosesAt()
+          ? 'Registration closed ' +
+            (registrationClosesAt() | date: 'd MMM y, h:mm a' : myt) +
+            ' MYT'
           : ''
       "
     >
@@ -33,9 +35,7 @@
     <section class="my-team__card">
       <div class="my-team__members-head">
         <h3 class="my-team__subheading">Members</h3>
-        <span class="my-team__count">
-          {{ members().length }} of {{ config.settings.maxTeamSize }}
-        </span>
+        <span class="my-team__count"> {{ members().length }} of {{ maxTeamSize() }} </span>
       </div>
 
       <ul class="my-team__members">
@@ -69,7 +69,7 @@
     <app-form-link-card
       heading="Register your team"
       description="One person fills the form in for the whole team — up to
-        {{ config.settings.maxTeamSize }} people, named all at once. There is no join code and
+        {{ maxTeamSize() }} people, named all at once. There is no join code and
         nobody needs to sign up separately."
       [href]="formUrl"
       buttonLabel="Open the registration form"

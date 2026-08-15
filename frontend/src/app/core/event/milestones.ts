@@ -1,4 +1,5 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { EventSettingsService } from './event-settings';
 import { EVENT_CONFIG } from './event-config';
 import { PhaseService } from './phase';
 
@@ -6,7 +7,7 @@ import { PhaseService } from './phase';
  * The event schedule as a list of milestones, each tagged with where it sits
  * relative to now.
  *
- * Derived from EVENT_CONFIG rather than declared, so the timeline page and the
+ * Derived from the event settings rather than declared, so the timeline page and the
  * participant progress page can never drift from what the homepage counts down
  * to. Both render this through `app-event-timeline`.
  */
@@ -38,6 +39,7 @@ const MS_PER_DAY = 86_400_000;
 @Injectable({ providedIn: 'root' })
 export class MilestoneService {
   private readonly phaseService = inject(PhaseService);
+  private readonly settings = inject(EventSettingsService);
   private readonly config = inject(EVENT_CONFIG);
 
   /**
@@ -45,7 +47,7 @@ export class MilestoneService {
    * publishing: V1 has no judging dates of its own, only a `judging_open` flag.
    */
   readonly milestones = computed<readonly EventMilestone[]>(() => {
-    const s = this.config.settings;
+    const s = this.settings.settings();
     const teamSize =
       s.minTeamSize === 1
         ? `up to ${s.maxTeamSize} members`

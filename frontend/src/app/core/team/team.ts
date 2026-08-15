@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth';
-import { EVENT_CONFIG } from '../event/event-config';
+import { EventSettingsService } from '../event/event-settings';
 
 /**
  * DEMO TEAM DATA — NOT PERSISTED.
@@ -139,7 +139,7 @@ function seedMembers(): TeamMember[] {
 @Injectable({ providedIn: 'root' })
 export class TeamService {
   private readonly auth = inject(AuthService);
-  private readonly config = inject(EVENT_CONFIG);
+  private readonly settings = inject(EventSettingsService);
 
   private readonly teams = signal<readonly Team[]>(seedTeams());
   private readonly members = signal<readonly TeamMember[]>(seedMembers());
@@ -187,7 +187,7 @@ export class TeamService {
       .sort((a, b) => Number(b.isLeader) - Number(a.isLeader) || a.name.localeCompare(b.name));
   });
 
-  readonly isFull = computed(() => this.myTeamMembers().length >= this.config.settings.maxTeamSize);
+  readonly isFull = computed(() => this.myTeamMembers().length >= this.settings.maxTeamSize());
 
   /** Counted, not a flag, so overlapping calls don't clear each other's state. */
   private readonly inFlight = signal(0);
@@ -249,7 +249,7 @@ export class TeamService {
       if (!team) return { ok: false, error: 'No team has that join code.' };
 
       const size = this.members().filter((m) => m.teamId === team.id).length;
-      if (size >= this.config.settings.maxTeamSize) {
+      if (size >= this.settings.maxTeamSize()) {
         return { ok: false, error: `${team.name} is already full.` };
       }
 

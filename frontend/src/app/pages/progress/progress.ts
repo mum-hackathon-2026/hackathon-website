@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { EVENT_CONFIG } from '../../core/event/event-config';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { PhaseService } from '../../core/event/phase';
 import { SubmissionService } from '../../core/submission/submission';
 import { TeamService } from '../../core/team/team';
@@ -33,11 +34,12 @@ export class Progress {
   private readonly route = inject(ActivatedRoute);
 
   protected readonly config = inject(EVENT_CONFIG);
-  protected readonly eventName = this.config.settings.eventName;
+  private readonly settings = inject(EventSettingsService);
+  protected readonly eventName = this.settings.eventName;
 
   protected readonly team = this.teams.myTeam;
   protected readonly members = this.teams.myTeamMembers;
-  protected readonly maxTeamSize = this.config.settings.maxTeamSize;
+  protected readonly maxTeamSize = this.settings.maxTeamSize;
 
   /** Which tab the route asks for. Both paths render this component. */
   protected readonly tab = toSignal(
@@ -77,7 +79,7 @@ export class Progress {
     const submission = this.submissions.submission();
     const current = this.currentIndex();
     const memberCount = this.members().length;
-    const s = this.config.settings;
+    const s = this.settings.settings();
 
     // State first: two stages describe themselves differently depending on
     // whether they are still running or already behind the team.
@@ -93,7 +95,7 @@ export class Progress {
         label: 'Team formed',
         accent: 'green' as const,
         description: team
-          ? `${team.name} registered with ${memberCount} of ${this.maxTeamSize} members.`
+          ? `${team.name} registered with ${memberCount} of ${s.maxTeamSize} members.`
           : 'You are not on a team yet.',
         at: team?.createdAt ?? null,
       },
