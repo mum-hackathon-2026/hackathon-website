@@ -1,0 +1,103 @@
+@use '../admin-table';
+
+// Comments are `//` so Sass strips them: this file shares the 4 kB
+// per-component budget with the table partial it pulls in.
+
+// ── Publication panel ───────────────────────────────────────────────────────
+
+.panel {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.panel__title {
+  margin: 0 0 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+.publish {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.publish__state {
+  flex: 1;
+  min-width: 220px;
+}
+
+.publish__pill {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 12px;
+  background: var(--color-hairline);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.publish__pill--live {
+  background: var(--color-green-tint);
+  color: var(--color-green-ink);
+}
+
+.publish__detail {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-muted);
+
+  strong {
+    color: var(--color-amber-ink);
+  }
+}
+
+.publish__caveat {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-hairline);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-subtle);
+
+  code {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--color-hairline);
+    font-size: 11px;
+  }
+}
+
+// ── Table extras ────────────────────────────────────────────────────────────
+
+.rank__tied {
+  margin-left: 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-amber-ink);
+}
+
+.result__project {
+  display: block;
+  font-size: 12px;
+  color: var(--color-subtle);
+}
+
+.result__live {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-green-ink);
+}

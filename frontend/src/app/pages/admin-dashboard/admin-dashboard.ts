@@ -10,6 +10,7 @@ import { AdminAudit } from './admin-audit/admin-audit';
 import { AdminJudges } from './admin-judges/admin-judges';
 import { AdminOverview } from './admin-overview/admin-overview';
 import { AdminParticipants } from './admin-participants/admin-participants';
+import { AdminResults } from './admin-results/admin-results';
 import { AdminSidebar } from './admin-sidebar/admin-sidebar';
 import { AdminSubmissions } from './admin-submissions/admin-submissions';
 import { AdminTeams } from './admin-teams/admin-teams';
@@ -38,6 +39,7 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
     AdminJudges,
     AdminOverview,
     AdminParticipants,
+    AdminResults,
     AdminSidebar,
     AdminSubmissions,
     AdminTeams,
