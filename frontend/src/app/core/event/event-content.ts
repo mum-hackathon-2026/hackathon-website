@@ -4,10 +4,12 @@ import { DEFAULT_EVENT_CONFIG } from './event-config';
  * List content the homepage and the organisers page render. Kept beside
  * event-config.ts so "change what the site says" is one folder to open.
  *
- * UNVERIFIED: the sponsor line-up and the organiser names, roles, departments,
- * emails and bios all came from the design draft and nobody has ratified them.
- * The prize figures likewise. Treat them as placeholder until the team confirms
- * — the email addresses in particular are constructed, not real inboxes.
+ * UNVERIFIED: the organiser names, roles, departments, emails and bios all came
+ * from the design draft and nobody has ratified them. The prize figures
+ * likewise. Treat them as placeholder until the team confirms — the email
+ * addresses in particular are constructed, not real inboxes.
+ *
+ * SPONSORS is the exception: Averis is confirmed, and is the only sponsor.
  */
 
 const { settings, site } = DEFAULT_EVENT_CONFIG;
@@ -117,95 +119,18 @@ export const ALL_FAQS: readonly Faq[] = [...FAQS, ...EXTRA_FAQS];
 
 export interface Sponsor {
   readonly name: string;
-  readonly domain: string;
-  readonly initials: string;
-  readonly color: string;
-  readonly background: string;
+  /**
+   * Path to the logo under frontend/public/. angular.json copies that folder to
+   * the build root, so the reference carries no `assets/` prefix.
+   *
+   * A file that fails to load is not a broken section — the sponsors component
+   * falls back to rendering the name as a wordmark. That is what lets a better
+   * asset (an SVG, say) be dropped in later as a pure data change.
+   */
+  readonly logo: string;
 }
 
-export interface SponsorTier {
-  readonly name: string;
-  readonly key: 'platinum' | 'gold' | 'silver';
-  readonly sponsors: readonly Sponsor[];
-}
-
-export const SPONSOR_TIERS: readonly SponsorTier[] = [
-  {
-    name: 'Platinum',
-    key: 'platinum',
-    sponsors: [
-      {
-        name: 'Atlassian',
-        domain: 'atlassian.com',
-        initials: 'AT',
-        color: '#0052CC',
-        background: '#E6F0FF',
-      },
-      {
-        name: 'Google',
-        domain: 'google.com',
-        initials: 'G',
-        color: '#4285F4',
-        background: '#E8F0FE',
-      },
-    ],
-  },
-  {
-    name: 'Gold',
-    key: 'gold',
-    sponsors: [
-      {
-        name: 'Canva',
-        domain: 'canva.com',
-        initials: 'CV',
-        color: '#7D2AE8',
-        background: '#F3E8FF',
-      },
-      {
-        name: 'Seek',
-        domain: 'seek.com.au',
-        initials: 'SK',
-        color: '#1A1A2E',
-        background: '#F0F0F0',
-      },
-      {
-        name: 'REA Group',
-        domain: 'rea-group.com',
-        initials: 'RE',
-        color: '#E4003B',
-        background: '#FFE4EC',
-      },
-    ],
-  },
-  {
-    name: 'Silver',
-    key: 'silver',
-    sponsors: [
-      { name: 'Xero', domain: 'xero.com', initials: 'XE', color: '#13B5EA', background: '#E3F7FD' },
-      {
-        name: 'Buildkite',
-        domain: 'buildkite.com',
-        initials: 'BK',
-        color: '#14CC80',
-        background: '#E3FBF0',
-      },
-      {
-        name: 'CultureAmp',
-        domain: 'cultureamp.com',
-        initials: 'CA',
-        color: '#FF4E50',
-        background: '#FFE8E8',
-      },
-      {
-        name: 'Carsales',
-        domain: 'carsales.com.au',
-        initials: 'CS',
-        color: '#E30613',
-        background: '#FFE4E4',
-      },
-    ],
-  },
-];
+export const SPONSORS: readonly Sponsor[] = [{ name: 'Averis', logo: 'sponsors/averis.png' }];
 
 export interface Organizer {
   readonly name: string;
