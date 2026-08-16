@@ -29,9 +29,12 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
  * missing section falls back to the overview instead of 404ing — the route
  * matched, it is only the section name that is wrong.
  *
- * Six sections are built. The rest render a short placeholder rather than
- * being hidden, so the shape of the finished workspace is visible and nobody
- * wonders whether a section was forgotten.
+ * Nine of the ten sections are built. Judging Progress is the only one left,
+ * and it renders a short placeholder rather than being hidden, so the shape of
+ * the finished workspace is visible and nobody wonders whether it was
+ * forgotten. The `@default` branch below is what serves it — a section added to
+ * `SECTIONS` without a `@case` here lands there too, which is the intended
+ * behaviour rather than a gap.
  */
 @Component({
   selector: 'app-admin-dashboard',

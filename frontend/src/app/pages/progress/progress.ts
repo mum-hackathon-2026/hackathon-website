@@ -157,8 +157,12 @@ export class Progress {
 
   /**
    * What this team should do now. Deliberately links only to pages that exist —
-   * a routerLink to an unregistered path throws NG04002 when clicked, so the
-   * results CTA waits for the results page to land.
+   * a routerLink to an unregistered path throws NG04002 when clicked, so check
+   * `app.routes.ts` before adding a CTA here.
+   *
+   * The later stages carry no CTA because there is nothing for the team to do,
+   * not because the page is missing: `/results` exists and is reachable from the
+   * nav, so the results message is deliberately a statement rather than a link.
    */
   protected readonly nextAction = computed<NextAction>(() => {
     const phase = this.phaseService.phase();
