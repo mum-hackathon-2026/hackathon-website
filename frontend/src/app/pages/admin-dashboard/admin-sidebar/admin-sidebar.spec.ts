@@ -84,6 +84,40 @@ describe('AdminSidebar', () => {
     expect(host().querySelector('.scrim')).toBeNull();
   });
 
+  /*
+   * The scrim is pointer-only and marked aria-hidden, so Escape is the keyboard
+   * way out. Without it a keyboard user could only close the drawer by
+   * navigating somewhere via a section link.
+   */
+  it('closes on Escape', async () => {
+    await setUp({ open: true });
+    let dismissed = 0;
+    fixture.componentInstance.dismissed.subscribe(() => (dismissed += 1));
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await fixture.whenStable();
+
+    expect(dismissed).toBe(1);
+  });
+
+  it('ignores Escape while closed, so it does not swallow the key', async () => {
+    await setUp({ open: false });
+    let dismissed = 0;
+    fixture.componentInstance.dismissed.subscribe(() => (dismissed += 1));
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await fixture.whenStable();
+
+    expect(dismissed).toBe(0);
+  });
+
+  // Presentational: a backdrop should not be announced or reachable by tab.
+  it('hides the scrim from assistive technology', async () => {
+    await setUp({ open: true });
+
+    expect(host().querySelector('.scrim')!.getAttribute('aria-hidden')).toBe('true');
+  });
+
   it('dismisses the drawer when a section is chosen', async () => {
     await setUp({ open: true });
     let dismissed = 0;
