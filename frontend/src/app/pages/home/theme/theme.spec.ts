@@ -3,7 +3,15 @@ import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../../../core/e
 import { EventSettingsService } from '../../../core/event/event-settings';
 import { ThemeSection } from './theme';
 
-async function render(overrides: Partial<EventConfig['settings']> = {}) {
+/**
+ * `tracks` is overridable because the blurb's wording depends on how many there
+ * are, and the shipped config has exactly three — the count that hides both of
+ * the shapes this component used to get wrong.
+ */
+async function render(
+  overrides: Partial<EventConfig['settings']> = {},
+  tracks: readonly string[] = DEFAULT_EVENT_CONFIG.site.tracks,
+) {
   TestBed.resetTestingModule();
   await TestBed.configureTestingModule({
     imports: [ThemeSection],
@@ -12,6 +20,7 @@ async function render(overrides: Partial<EventConfig['settings']> = {}) {
         provide: EVENT_CONFIG,
         useValue: {
           ...DEFAULT_EVENT_CONFIG,
+          site: { ...DEFAULT_EVENT_CONFIG.site, tracks },
           settings: { ...DEFAULT_EVENT_CONFIG.settings, ...overrides },
         },
       },
@@ -92,6 +101,49 @@ describe('ThemeSection', () => {
       expect(blurb(fixture)).toContain(
         `${tracks.slice(0, -1).join(', ')} and ${tracks[tracks.length - 1]}`,
       );
+    });
+
+    /*
+     * The three cases below are the ones the shipped three-track config hides.
+     * Both bugs they cover were live in the markup and unreachable in practice,
+     * which is exactly why they went unnoticed: `tracks` is config, so the
+     * blurb has to read correctly at any length rather than at today's.
+     */
+    it('does not state a count the track list could contradict', async () => {
+      const fixture = await render({}, [
+        'Open Innovation',
+        'Sustainability',
+        'HealthTech',
+        'FinTech',
+      ]);
+
+      // The old copy said "one of three tracks" beside a list of however many
+      // were configured, so a fourth track made the sentence wrong.
+      expect(blurb(fixture)).toContain('HealthTech and FinTech');
+      expect(blurb(fixture)).not.toContain('three');
+    });
+
+    it('drops the "and" clause when there is only one track', async () => {
+      const fixture = await render({}, ['Open Innovation']);
+
+      expect(blurb(fixture)).toContain('Pick a track — Open Innovation — and build');
+      // The old join produced "— and Open Innovation —": an "and" with an
+      // empty first clause in front of it.
+      expect(blurb(fixture)).not.toContain('and Open Innovation');
+    });
+
+    it('joins exactly two tracks with "and" and no comma', async () => {
+      const fixture = await render({}, ['Open Innovation', 'HealthTech']);
+
+      expect(blurb(fixture)).toContain('Open Innovation and HealthTech');
+      expect(blurb(fixture)).not.toContain('Open Innovation, HealthTech');
+    });
+
+    it('leaves the aside out entirely when no tracks are configured', async () => {
+      const fixture = await render({}, []);
+
+      expect(blurb(fixture)).toContain('Pick a track and build');
+      expect(blurb(fixture)).not.toContain('—');
     });
 
     it('says solo entries are allowed when the minimum is one', async () => {
