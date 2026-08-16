@@ -1,7 +1,7 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `e79cb18` (= `origin/main`, through PR #50) plus the accessibility rules on `feature/eslint-a11y`, 2026-08-16.
+**As of:** `8d6a8d3` (= `origin/main`, through PR #51) plus the coverage work on `test/frontend-spec-coverage`, 2026-08-16.
 **Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
@@ -174,7 +174,8 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 - [x] ~~**The initial bundle is over budget.**~~ Resolved in #47 — the two judge routes went lazy and the initial bundle fell to 452.82 kB. **And #49 closed the mechanism that let it drift**: the error threshold moved from 1 MB to 500 kB, so a breach now fails the build and therefore CI, with a 480 kB warning as the early signal. The remaining eager routes are the public pages plus the four participant ones.
 - [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
 - [x] ~~**No linting.**~~ Resolved in #50 — angular-eslint 21 over TypeScript and templates, `npm run lint`, and a CI step that fails the job on a violation. #51 added the template **accessibility** preset on top. One thing remains deliberately outside it: type-aware rules, because the compiler already does that work under `strict`.
-- [ ] **Uneven test coverage — 22 files still have no spec**, down from 30 in #48, which closed the admin workspace. Every routed page has a spec and every `admin-dashboard/` section now has one too; what remains is `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts`, the layout kit (`page-header`, `profile-menu`, `state-locked`, `event-timeline`, `status-pill`), and the section components under `progress/`, `results/`, `judge-portal/`, `judge-review/` and parts of `home/`. **The count was previously given here as "~10" and was never right** — it is read from the tree now.
+- [x] ~~**Uneven test coverage — 22 files still have no spec.**~~ Closed in #52, which specced the remaining 21 source files: `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts`, the whole layout kit, and every section component under `progress/`, `results/`, `judge-portal/`, `judge-review/` and `home/`. **Every file under `src/app/` now has a colocated spec except `app.config.ts`** (and `src/main.ts`), which are bootstrap wiring with nothing to assert. The count went 30 → 22 → 0 across #48 and #52. What is *not* closed by this is the auth gap below: coverage is now even across the frontend, and the backend `auth/` package still has none.
+- [ ] **Two homepage copy strings do not follow their config.** Found while speccing `home/theme/`, and left as found rather than fixed in a test-only change. `theme.html` hardcodes the phrase "one of three tracks" beside a `trackList()` built from `site.tracks`, so a fourth track would be named in the list and miscounted in the sentence; and `ThemeSection.trackList()` renders `" and X"` with a leading space and no first clause when `tracks` has exactly one entry. Neither is reachable with today's three tracks, so neither is a live bug — the specs cover the three-track path and stop there.
 - [ ] **Six CHECK vocabularies remain unratified** — see [docs/README.md](README.md). Three are at least exercised by the frontend; three (`assignments.status`, `notifications_log.type`, `notifications_log.status`) had never been reviewed until the judge pages started consuming the first of them.
 - [ ] **Placeholder content.** `DEMO_USERS`, `DEFAULT_EVENT_CONFIG` dates and the service seeds are marked as placeholders in the source. Read the file header before treating any of it as a team decision.
 
@@ -227,8 +228,9 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #49 | 08-16 | **The bundle budget became a gate** — error threshold 1 MB → 500 kB with a 480 kB warning, so a breach fails CI instead of warning past it |
 | #50 | 08-16 | **ESLint** — angular-eslint 21 over TypeScript and templates, `npm run lint`, and a real CI step. The first run found one thing: a `submit` output shadowing the native DOM event, renamed to `submitted` |
 | #51 | 08-16 | **Template accessibility rules** — preset enabled, and with it a real fix: the admin drawer had no keyboard exit, so Escape now closes it as `NavBar`'s does. The scrim is `aria-hidden`; the confirm dialog's two rules are suppressed with the argument in the template |
+| #52 | 08-16 | **Specs for the last 21 untested frontend files** — the layout kit, `core/results`, the three `core/event` data modules, and every `progress/`, `results/`, `judge-portal/`, `judge-review/` and `home/` section. 502 → 741 tests across 40 → 61 files; coverage is now even across `src/app/`. No production code changed, and two latent copy bugs in `home/theme/` were recorded in [§4](#4-what-is-not-done) rather than fixed here |
 
-**In flight:** nothing. `feature/admin-judges` (PR #37) merged as `86cb516`.
+**In flight:** `test/frontend-spec-coverage` (PR #52).
 
 ---
 
@@ -243,7 +245,7 @@ In order. The first item is not first by preference.
 5. **Close the auth loopholes** — call `GET /api/auth/me` on reload so a stale token cannot look signed-in, and decide when the demo `signIn(role)` path comes out.
 6. ~~**Keep an eye on the bundle**~~ — done. #47 bought 47 kB of headroom and #49 made 500 kB a hard error, so CI now catches a breach instead of warning past it. Only participant and public pages are left eager; the fix when the error fires is `loadComponent`, as the three role-gated pages already do.
 7. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them, and note that `SecurityConfig`'s `hasAuthority("admin"/"judge")` is a third copy of the `users.role` literals.
-8. ~~**Add ESLint**~~ — done in #50, with the accessibility preset following in #51. What remains from this item is the coverage gaps listed in [§4](#4-what-is-not-done): 22 files without a spec, all outside the admin workspace.
+8. ~~**Add ESLint**~~ — done in #50, with the accessibility preset following in #51, and ~~the coverage gaps~~ closed in #52. **The one coverage gap left is item 1 on this list**: the frontend is evenly covered and the backend `auth/` package still has no test at all.
 
 Running alongside, and not waiting on any of the above: **Judging Progress**, the last workspace section. It is not blocked on the schema — it maps onto its tables as designed — but is parked pending a decision on how judging is run.
 
@@ -255,9 +257,9 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npm run lint` | **All files pass linting — exit 0** (accessibility preset included) | `feature/eslint-a11y`, 2026-08-16 |
-| Frontend | `npx ng test --watch=false` | **40 files, 502 tests passed** | `feature/eslint-a11y`, 2026-08-16 |
-| Frontend | `npm run build` | **452.82 kB initial — ✅ exit 0, 27 kB below the 480 kB warning** | `feature/eslint-a11y`, 2026-08-16 |
+| Frontend | `npm run lint` | **All files pass linting — exit 0** (accessibility preset included) | `test/frontend-spec-coverage`, 2026-08-16 |
+| Frontend | `npx ng test --watch=false` | **61 files, 741 tests passed** | `test/frontend-spec-coverage`, 2026-08-16 |
+| Frontend | `npm run build` | **452.82 kB initial — ✅ exit 0, 27 kB below the 480 kB warning** | `test/frontend-spec-coverage`, 2026-08-16 |
 | Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
@@ -267,11 +269,17 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 #49 then made 500 kB the *error* threshold rather than 1 MB. **This was verified by breaching it deliberately** — thresholds temporarily lowered to 400/420 kB, at which `npm run build` printed `✘ [ERROR]` and exited **1**, then restored. Under the real values it exits 0 at 452.82 kB. A budget nothing enforces is a comment, so it was worth proving the gate closes.
 
-**The spec count is 502 across 40 files, up from 425 across 32.** (#51 added three to `admin-sidebar` for the Escape behaviour and the hidden scrim.) All 74 came from #48, which specced the eight admin-dashboard components that had none. The build is unchanged at 452.82 kB, as it should be — specs are not bundled, so movement there would mean something had been imported into production code by mistake.
+**The spec count is 741 across 61 files, up from 502 across 40.** All 239 came from #52, which specced the last 21 frontend source files without one; #48 had done the same for the eight admin-dashboard components, and the two together take the untested count from 30 to zero. The build is unchanged at 452.82 kB across both, as it should be — specs are not bundled, so movement there would mean something had been imported into production code by mistake.
+
+**#52's specs were written against the reasoning, not the rendering.** Where a component encodes a schema rule or a decision, the test names it: `criterion-card` clearing to `null` rather than `0` because "unscored" and "scored zero" are different `scores` rows; `judging-progress` counting against the non-declined total because that is the denominator `percentComplete` uses; `rankings-table` prefixing a shared rank with `=` because standard competition ranking otherwise reads as a bug. Assertions run against the exported map or service where one exists — `ASSIGNMENT_STATUS_LABELS`, `ORGANIZERS`, `AdminService`-style — so a vocabulary change surfaces as a component that stopped reading it, not as a stale literal in a test.
+
+**`progress-stage.spec.ts` is the odd one:** the file it covers declares only types, so the spec holds the agreement instead. `ProgressStageId` is pinned by an exhaustive `Record`, which fails to *compile* if an id is added or renamed, and one test renders `Progress` to confirm it emits exactly as many stages as the union declares — the hand-written six-element `completion` array it indexes into is what a seventh stage would silently knock out of step.
 
 **The linter was checked the same way as the budget guard** — an unused import added to `app.ts`, at which `npm run lint` reported `@typescript-eslint/no-unused-vars` and exited **1**, then removed. A linter that has never failed is an untested one.
 
 Each new spec was checked by breaking the code it covers and confirming the right test failed — the cascade guard in Assignments, the competitor confirmation in Judges, and the `Math.max(1, …)` floor in the workload panel were each inverted in turn, and each was caught. A spec that passes either way tests nothing.
+
+**#52 was held to the same bar, on three mutations spanning a service, a component and a shared derivation.** `outcomeFor`'s finalist threshold was narrowed from rank 10 to 3 (caught by `results.spec.ts`); `criterion-card`'s `Number.isNaN` guard was removed so a typed `5abc` would emit `NaN` (caught by its own spec); and `MilestoneService`'s `Math.floor` was swapped for `Math.ceil` (caught **four** times, twice in `milestones.spec.ts` and twice in `event-timeline.spec.ts`, which is the point — the countdown is shared and both readers of it now assert on it).
 
 The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
 
