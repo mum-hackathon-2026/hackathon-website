@@ -1,7 +1,7 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `99d2dfd` (= `origin/main`, through PR #52) plus the comment fixes on `fix/stale-comments`, 2026-08-16.
+**As of:** `640c8fd` (= `origin/main`, through PR #53) plus the auth specs on `test/frontend-auth-specs`, 2026-08-16.
 **Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
@@ -16,12 +16,12 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 | **Backend persistence** | 🟢 Done | All 11 tables mapped, 11 repositories, 48 tests passing |
 | **Backend API** | 🟡 Auth only | 2 endpoints (`/api/auth/google`, `/api/auth/me`); nothing for teams, submissions or judging |
 | **Backend security** | 🟢 Built | `SecurityConfig` + JWT filter + Google ID-token verification — **but zero tests** |
-| **Frontend pages** | 🟢 Done | 12 components behind 13 routes, all three roles covered |
+| **Frontend pages** | 🟢 Done | 12 components behind 14 route entries, all three roles covered |
 | **Admin workspace** | 🟡 9 of 10 | Everything but Judging Progress, which is the last stub |
 | **Frontend data** | 🟡 Stand-ins | 7 in-memory services shaped like the API that will replace them |
 | **Integration** | 🟡 One seam | Sign-in talks to the backend; every other page is still in-memory |
 | **CI** | 🟢 Done | Two jobs, both gating; a failing spec cannot reach `main` |
-| **Docs** | 🟢 Current | This file, CLAUDE.md and docs/README.md all current as of `ad72282` |
+| **Docs** | 🟢 Current | This file, CLAUDE.md and docs/README.md all current as of `640c8fd` |
 
 **The single most important line:** the two halves now speak, but only about **who you are**. Login is real — Google ID token in, JWT out, email checked against the `users` table — and every other page still runs on in-memory data that resets on reload. The pattern for connecting the rest exists; it just has one instance. [§6](#6-what-comes-next) is the order to do it in.
 
@@ -60,7 +60,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 - [x] **`JwtService`** — HS256, claims `sub`/`email`/`role`/`name`, expiry from `app.jwt.expiration-ms`
 - [x] **Config validated at startup** — `app.jwt.secret` (≥32 chars) and `app.google.client-id` are `@NotBlank`, so a missing value fails the boot rather than a request
 
-> **Zero tests on the backend side.** The `auth/` package has no test class: CI compiles it and never executes it, making it the least-verified code in the repo. The frontend has one wiring test (the client id comes from the token) and otherwise covers the demo path only. See [§4](#4-what-is-not-done).
+> **Zero tests on the backend side.** The `auth/` package has no test class: CI compiles it and never executes it, making it the least-verified code in the repo. **The frontend side is covered** as of #54 — the request shape, the role fallback, all four error branches, the JWT round-trip and the GIS script loading — so the two halves of one flow are now verified very unevenly. See [§4](#4-what-is-not-done).
 
 ### Tests
 
@@ -81,7 +81,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 ### Pages and routes
 
-**12 page components behind 13 routes.** All three roles now have a landing page, and `ROLE_HOME` sends each one there on sign-in.
+**12 page components behind 14 route entries.** Two components take two paths each — `Progress` and `AdminDashboard` — which is why the counts differ. All three roles now have a landing page, and `ROLE_HOME` sends each one there on sign-in.
 
 | Route | Component | Guard |
 | ----- | --------- | ----- |
@@ -167,7 +167,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 - [ ] **No HTTP interceptor.** The JWT is stored and exposed as `AuthService.token()`, but nothing attaches it to a request — there are no authenticated requests yet. The first non-auth call needs one written alongside it.
 - [ ] **The demo sign-in still bypasses everything.** `signIn(role)` picks one of three hardcoded users with no token, and the guards cannot tell that session from a real one. Guards gate *navigation*; only `SecurityConfig` gates data, and today it guards nothing anyone calls.
 - [ ] **A stored session is never revalidated.** Reload restores the user from `localStorage` without checking the token; `GET /api/auth/me` exists for this and has no caller. An expired or revoked token still looks signed-in.
-- [ ] **No tests on any of the above.** The backend `auth/` package has no test class; `auth.spec.ts` and `sign-in.spec.ts` predate the Google flow and exercise the demo path only.
+- [ ] **The backend half of auth has no test.** The `auth/` package has no test class — CI compiles it and never runs it. **The frontend half was closed in #54**: `signInWithGoogle`, every error branch, the JWT round-trip and the GIS script loading are covered. The asymmetry is the point — a break in the client fails CI, the same break in the server does not.
 
 ### Smaller gaps
 
@@ -233,7 +233,9 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 | #53 | 08-16 | **Four stale code comments corrected**, each of which described a state the code had moved past — the admin dashboard's "six sections", `publishResults`' "does not change what participants see yet", `Progress.nextAction`'s "waits for the results page to land", and `status-pill`'s prediction about the admin view. Two matching claims in CLAUDE.md fixed with them. Comments and docs only; no behaviour changed |
 
-**In flight:** `fix/stale-comments` (PR #53).
+| #54 | 08-16 | **The frontend half of auth is now tested** — `signInWithGoogle`'s request shape, role fallback, initials derivation, JWT persistence and restore, all four error branches, plus the GIS script loading and the credential handler driven through the paste-a-token form. 741 → 778 tests. No production code changed; the backend `auth/` package remains untested |
+
+**In flight:** `test/frontend-auth-specs` (PR #54).
 
 ---
 
@@ -260,9 +262,9 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npm run lint` | **All files pass linting — exit 0** (accessibility preset included) | `test/frontend-spec-coverage`, 2026-08-16 |
-| Frontend | `npx ng test --watch=false` | **61 files, 741 tests passed** | `test/frontend-spec-coverage`, 2026-08-16 |
-| Frontend | `npm run build` | **452.82 kB initial — ✅ exit 0, 27 kB below the 480 kB warning** | `test/frontend-spec-coverage`, 2026-08-16 |
+| Frontend | `npm run lint` | **All files pass linting — exit 0** (accessibility preset included) | `test/frontend-auth-specs`, 2026-08-16 |
+| Frontend | `npx ng test --watch=false` | **61 files, 778 tests passed** | `test/frontend-auth-specs`, 2026-08-16 |
+| Frontend | `npm run build` | **452.82 kB initial — ✅ exit 0, 27 kB below the 480 kB warning** | `test/frontend-auth-specs`, 2026-08-16 |
 | Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
@@ -272,7 +274,9 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 #49 then made 500 kB the *error* threshold rather than 1 MB. **This was verified by breaching it deliberately** — thresholds temporarily lowered to 400/420 kB, at which `npm run build` printed `✘ [ERROR]` and exited **1**, then restored. Under the real values it exits 0 at 452.82 kB. A budget nothing enforces is a comment, so it was worth proving the gate closes.
 
-**The spec count is 741 across 61 files, up from 502 across 40.** All 239 came from #52, which specced the last 21 frontend source files without one; #48 had done the same for the eight admin-dashboard components, and the two together take the untested count from 30 to zero. The build is unchanged at 452.82 kB across both, as it should be — specs are not bundled, so movement there would mean something had been imported into production code by mistake.
+**The spec count is 778 across 61 files**, the last 37 from #54's auth work — 23 on `AuthService.signInWithGoogle` and 14 on the sign-in page. They are the first frontend specs to use `provideHttpClientTesting()`, and they reach the credential handler through the paste-a-token form because jsdom cannot run Google Identity Services; the GIS callback and that form share the handler, so covering one covers both. Three mutations were checked: removing the `isRole` fallback so an unknown role passes through, moving the 403 branch to 409, and dropping `errorMessage.set(result.error)` — caught by 1, 3 and 3 tests respectively.
+
+**Before that it was 741 across 61 files, up from 502 across 40.** All 239 came from #52, which specced the last 21 frontend source files without one; #48 had done the same for the eight admin-dashboard components, and the two together take the untested count from 30 to zero. The build is unchanged at 452.82 kB across both, as it should be — specs are not bundled, so movement there would mean something had been imported into production code by mistake.
 
 **#52's specs were written against the reasoning, not the rendering.** Where a component encodes a schema rule or a decision, the test names it: `criterion-card` clearing to `null` rather than `0` because "unscored" and "scored zero" are different `scores` rows; `judging-progress` counting against the non-declined total because that is the denominator `percentComplete` uses; `rankings-table` prefixing a shared rank with `=` because standard competition ranking otherwise reads as a bug. Assertions run against the exported map or service where one exists — `ASSIGNMENT_STATUS_LABELS`, `ORGANIZERS`, `AdminService`-style — so a vocabulary change surfaces as a component that stopped reading it, not as a stale literal in a test.
 
