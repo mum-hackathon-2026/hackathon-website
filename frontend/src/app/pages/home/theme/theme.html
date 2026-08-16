@@ -2,9 +2,19 @@
   <div class="theme__intro">
     <p class="theme__eyebrow">Theme</p>
     <h2 class="theme__title">Build for the world you want to live in.</h2>
+    <!--
+      "one of three tracks" used to be hardcoded beside a list built from
+      config, so a fourth track was named in the list and miscounted in the
+      sentence. The list names them all, so it carries the count on its own and
+      the sentence no longer states one.
+    -->
     <p class="theme__blurb">
-      Pick one of three tracks — {{ trackList() }} — and build any project you want, using any
-      technology, then pitch it to the judges. {{ teamSize() }}
+      @if (trackList()) {
+        Pick a track — {{ trackList() }} — and build any project you want,
+      } @else {
+        Pick a track and build any project you want,
+      }
+      using any technology, then pitch it to the judges. {{ teamSize() }}
     </p>
   </div>
 
