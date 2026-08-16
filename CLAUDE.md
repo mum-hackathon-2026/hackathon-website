@@ -246,7 +246,11 @@ Production budgets are 480 kB warning / **500 kB error** on the initial bundle a
 
 Coverage is uneven and thinner than it looks. Every routed page has a spec, but four `core/` files have none — `results/results.ts`, `event/milestones.ts`, `event/event-content.ts`, `event/event-config.ts` — and most presentational pieces are untested (`page-header`, `state-locked`, `profile-menu`, `event-timeline`, `stage-list`, `rankings-table`, `judge-reviews`, and several `home/` sections). `auth.spec.ts` and `sign-in.spec.ts` cover the demo path plus one GIS test (that the client id comes from `GOOGLE_CLIENT_ID`); `signInWithGoogle` itself, the script loading and the 401/403 error branches are untested, as is the whole backend `auth/` package.
 
-There is no lint script and no ESLint config — nothing lints this code. Prettier is the only tool configured, and it only formats. CI no longer has a lint step at all; the workflow marks where one goes once ESLint is configured.
+**`npm run lint` runs angular-eslint over `src/**/*.ts` and `src/**/*.html`, and CI fails on a violation.** Config is `frontend/eslint.config.js` (flat config): `recommended` from eslint, typescript-eslint and angular-eslint, plus the template rules, with `eslint-config-prettier` last so formatting stays Prettier's job.
+
+Two deliberate omissions, both explained in the config file. It is **not type-aware** — `recommended`, not `recommendedTypeChecked` — because `tsconfig.json` is already strict and `npm run build` enforces that in CI. And the **accessibility preset is off**: it flags exactly two sites today (the confirm dialog's backdrop and the admin sidebar's scrim), and both need a UI decision rather than a lint fix.
+
+**Pin angular-eslint to the 21 line.** Its peer range is `@angular/cli >= 21.0.0 < 22.0.0`; `latest` is the 22 line and will not install against this CLI.
 
 ## Configuration and profiles
 
@@ -261,7 +265,7 @@ There is no lint script and no ESLint config — nothing lints this code. Pretti
 
 `.github/workflows/ci.yml` runs two independent jobs.
 
-- **Frontend** — `npm ci`, `npx ng test --watch=false`, `npm run build`. **A failing spec fails the job**: the test step carries no `continue-on-error` and no `--if-present`, so a broken spec cannot reach `main`. `--watch=false` is passed explicitly rather than left to the builder's CI detection — a runner with no TTY that fell into watch mode would hang until the job timeout, which reports as a hang rather than as a test failure. There is no lint step; the workflow comments where one goes once ESLint is configured.
+- **Frontend** — `npm ci`, `npm run lint`, `npx ng test --watch=false`, `npm run build`. **A failing spec or a lint violation fails the job**: neither step carries `continue-on-error` or `--if-present`, so neither can reach `main`. The missing `--if-present` on lint is deliberate — an earlier version had it, and the step silently did nothing while reading as though the code was linted. `--watch=false` is passed explicitly rather than left to the builder's CI detection — a runner with no TTY that fell into watch mode would hang until the job timeout, which reports as a hang rather than as a test failure. The build step also gates the bundle budget, which errors at 500 kB.
 - **Backend** — `./mvnw -B clean verify` against a **`postgres:16` service container** with a `pg_isready` health check, exposed on the runner's `localhost:5432`, with `DB_TEST_URL`/`DB_TEST_USER`/`DB_TEST_PASSWORD` set on the build step. Local development stays on 5433; only CI uses 5432.
 
 ## Spring Boot 4 gotchas
