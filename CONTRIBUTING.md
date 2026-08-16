@@ -25,6 +25,8 @@ ci: run the frontend specs on every PR
 docs: bring the schema notes current
 ```
 
+**No `Co-authored-by:` trailers for tools.** GitHub turns one into a second author avatar on the commit and on the PR, so an assistant that helped write a change ends up sitting beside you in the history as though it were a teammate. Credit the people; leave the tooling out of the log. Co-authoring a commit with another **person** on the team is still fine and is what the trailer is for.
+
 ## Code review expectations
 
 - Review within 24 hours where possible — we're a small team, don't let PRs sit.
