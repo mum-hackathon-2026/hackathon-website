@@ -1,21 +1,17 @@
 <section class="theme">
   <div class="theme__intro">
-    <p class="theme__eyebrow">Theme</p>
-    <h2 class="theme__title">Build for the world you want to live in.</h2>
-    <!--
-      "one of three tracks" used to be hardcoded beside a list built from
-      config, so a fourth track was named in the list and miscounted in the
-      sentence. The list names them all, so it carries the count on its own and
-      the sentence no longer states one.
-    -->
-    <p class="theme__blurb">
-      @if (trackList()) {
-        Pick a track — {{ trackList() }} — and build any project you want,
-      } @else {
-        Pick a track and build any project you want,
-      }
-      using any technology, then pitch it to the judges. {{ teamSize() }}
-    </p>
+    <p class="theme__eyebrow">Theme & Problem Statement</p>
+    <h2 class="theme__title">Classified · Revealed at Kickoff</h2>
+
+    <div class="theme__mystery-card">
+      <div class="theme__mystery-icon" aria-hidden="true">?</div>
+      <div class="theme__mystery-content">
+        <span class="theme__mystery-tag">🔒 Top Secret</span>
+        <p class="theme__blurb">
+          The official problem statement and challenge tracks remain classified until the opening ceremony. Prepare your team, sharpen your tools, and get ready to innovate! {{ teamSize() }}
+        </p>
+      </div>
+    </div>
   </div>
 
   <ul class="theme__pillars">
