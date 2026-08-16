@@ -4,11 +4,12 @@ import { ASSIGNMENT_STATUS_LABELS, AssignmentStatus } from '../../core/judge/jud
 /**
  * An assignment's status as a dot and a label.
  *
- * Shared because the portal table, the "continue" card and the review screen all
- * need the same four treatments. Those three are the only consumers: the admin
- * Assignments section renders its own `.chip` against `ADMIN_ASSIGNMENT_STATUS_LABELS`,
- * which is a second copy of the same four `assignments.status` labels. Reach for
- * this component before adding a third.
+ * The one treatment for `assignments.status` anywhere in the app: the judge
+ * portal table, the "continue" card, the review screen, and the judge chips on
+ * the admin Assignments section all render through here. Admin used to draw its
+ * own `.chip` against a second copy of these four labels; that copy is gone, and
+ * `ASSIGNMENT_STATUS_LABELS` is now the only place the wording lives. Reach for
+ * this component rather than starting another.
  */
 @Component({
   selector: 'app-status-pill',

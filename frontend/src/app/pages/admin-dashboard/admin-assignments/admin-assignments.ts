@@ -1,12 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import {
-  ADMIN_ASSIGNMENT_STATUS_LABELS,
-  AdminAssignment,
-  AdminAssignmentRow,
-  AdminService,
-} from '../../../core/admin/admin';
+import { AdminAssignment, AdminAssignmentRow, AdminService } from '../../../core/admin/admin';
 import { ConfirmDialog } from '../../../layout/confirm-dialog/confirm-dialog';
+import { StatusPill } from '../../../layout/status-pill/status-pill';
 import { JudgeWorkloadPanel } from './judge-workload/judge-workload';
 
 /** 'all' is the unfiltered default; the rest narrow to what needs doing. */
@@ -33,7 +29,7 @@ interface PendingRemoval {
  */
 @Component({
   selector: 'app-admin-assignments',
-  imports: [ConfirmDialog, FormsModule, JudgeWorkloadPanel],
+  imports: [ConfirmDialog, FormsModule, JudgeWorkloadPanel, StatusPill],
   templateUrl: './admin-assignments.html',
   styleUrl: './admin-assignments.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,7 +37,6 @@ interface PendingRemoval {
 export class AdminAssignments {
   private readonly admin = inject(AdminService);
 
-  protected readonly statusLabels = ADMIN_ASSIGNMENT_STATUS_LABELS;
   protected readonly pending = this.admin.pending;
   protected readonly workloads = this.admin.workloads;
 

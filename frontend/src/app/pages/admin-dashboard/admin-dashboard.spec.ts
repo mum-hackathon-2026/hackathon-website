@@ -3,6 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { BehaviorSubject } from 'rxjs';
 import { SECTIONS } from '../../core/admin/admin';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../../core/event/event-config';
+import { ASSIGNMENT_STATUS_LABELS, AssignmentStatus } from '../../core/judge/judge';
 import { AdminDashboard } from './admin-dashboard';
 
 interface Options {
@@ -61,6 +62,18 @@ function railLabels(): string[] {
 function teamNames(): string[] {
   return Array.from(host().querySelectorAll('.grid__team')).map(
     (el) => el.textContent?.trim() ?? '',
+  );
+}
+
+/**
+ * A judge chip picked by the status its `app-status-pill` is showing.
+ *
+ * The chip itself is neutral — the status lives on the shared pill inside it —
+ * so this reads the state off the pill rather than off the chip's own classes.
+ */
+function chipWithStatus(status: AssignmentStatus): HTMLElement | undefined {
+  return Array.from(host().querySelectorAll<HTMLElement>('.chip')).find((chip) =>
+    chip.querySelector(`.status-pill--${status}`),
   );
 }
 
@@ -410,8 +423,13 @@ describe('AdminDashboard', () => {
 
       const chips = Array.from(host().querySelectorAll('.chip'));
       expect(chips.length).toBeGreaterThan(0);
-      expect(host().querySelector('.chip--completed')).not.toBeNull();
-      expect(host().querySelector('.chip--declined')).not.toBeNull();
+
+      // The chips render the shared pill, so the wording is the judge pages'
+      // wording — asserting against the map is what keeps the two in step.
+      expect(chipWithStatus('completed')?.textContent).toContain(
+        ASSIGNMENT_STATUS_LABELS.completed,
+      );
+      expect(chipWithStatus('declined')?.textContent).toContain(ASSIGNMENT_STATUS_LABELS.declined);
     });
 
     it('filters to the teams with nobody assigned', async () => {
@@ -467,7 +485,7 @@ describe('AdminDashboard', () => {
       await setInput('#assignment-search', 'HealthHive');
 
       // HealthHive's panel is two pending and one declined.
-      const remove = host().querySelector<HTMLButtonElement>('.chip--pending .chip__remove');
+      const remove = chipWithStatus('pending')?.querySelector<HTMLButtonElement>('.chip__remove');
       expect(remove, 'a pending judge should be removable outright').toBeTruthy();
       remove!.click();
       await fixture.whenStable();
@@ -480,7 +498,7 @@ describe('AdminDashboard', () => {
       await render({ section: 'assignments' });
       await setInput('#assignment-search', 'NeuralNest');
 
-      const remove = host().querySelector<HTMLButtonElement>('.chip--completed .chip__remove');
+      const remove = chipWithStatus('completed')?.querySelector<HTMLButtonElement>('.chip__remove');
       remove!.click();
       await fixture.whenStable();
 

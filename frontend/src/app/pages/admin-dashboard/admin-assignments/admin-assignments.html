@@ -121,9 +121,9 @@
               } @else {
                 <span class="chips">
                   @for (judge of row.judges; track judge.id) {
-                    <span class="chip" [class]="'chip--' + judge.status">
+                    <span class="chip">
                       <span class="chip__name">{{ judge.judgeName }}</span>
-                      <span class="chip__status">{{ statusLabels[judge.status] }}</span>
+                      <app-status-pill [status]="judge.status" />
                       <button
                         type="button"
                         class="chip__remove"
