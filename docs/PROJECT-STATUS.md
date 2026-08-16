@@ -1,7 +1,7 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `8d6a8d3` (= `origin/main`, through PR #51) plus the coverage work on `test/frontend-spec-coverage`, 2026-08-16.
+**As of:** `99d2dfd` (= `origin/main`, through PR #52) plus the comment fixes on `fix/stale-comments`, 2026-08-16.
 **Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
@@ -175,6 +175,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 - [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
 - [x] ~~**No linting.**~~ Resolved in #50 — angular-eslint 21 over TypeScript and templates, `npm run lint`, and a CI step that fails the job on a violation. #51 added the template **accessibility** preset on top. One thing remains deliberately outside it: type-aware rules, because the compiler already does that work under `strict`.
 - [x] ~~**Uneven test coverage — 22 files still have no spec.**~~ Closed in #52, which specced the remaining 21 source files: `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts`, the whole layout kit, and every section component under `progress/`, `results/`, `judge-portal/`, `judge-review/` and `home/`. **Every file under `src/app/` now has a colocated spec except `app.config.ts`** (and `src/main.ts`), which are bootstrap wiring with nothing to assert. The count went 30 → 22 → 0 across #48 and #52. What is *not* closed by this is the auth gap below: coverage is now even across the frontend, and the backend `auth/` package still has none.
+- [ ] **`assignments.status` has two label maps.** `ASSIGNMENT_STATUS_LABELS` in `core/judge/judge.ts` and `ADMIN_ASSIGNMENT_STATUS_LABELS` in `core/admin/admin.ts` are character-for-character identical — the same four labels for the same column — and the admin Assignments section renders its own `.chip` against the second rather than reusing `app-status-pill`. Nothing keeps them in step, so a relabelling done in one place leaves the judge and organiser views disagreeing about the same row. Noted in `status-pill`'s docblock; merging them is a code change and was left out of #53, which was comments only.
 - [ ] **Two homepage copy strings do not follow their config.** Found while speccing `home/theme/`, and left as found rather than fixed in a test-only change. `theme.html` hardcodes the phrase "one of three tracks" beside a `trackList()` built from `site.tracks`, so a fourth track would be named in the list and miscounted in the sentence; and `ThemeSection.trackList()` renders `" and X"` with a leading space and no first clause when `tracks` has exactly one entry. Neither is reachable with today's three tracks, so neither is a live bug — the specs cover the three-track path and stop there.
 - [ ] **Six CHECK vocabularies remain unratified** — see [docs/README.md](README.md). Three are at least exercised by the frontend; three (`assignments.status`, `notifications_log.type`, `notifications_log.status`) had never been reviewed until the judge pages started consuming the first of them.
 - [ ] **Placeholder content.** `DEMO_USERS`, `DEFAULT_EVENT_CONFIG` dates and the service seeds are marked as placeholders in the source. Read the file header before treating any of it as a team decision.
@@ -230,7 +231,9 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #51 | 08-16 | **Template accessibility rules** — preset enabled, and with it a real fix: the admin drawer had no keyboard exit, so Escape now closes it as `NavBar`'s does. The scrim is `aria-hidden`; the confirm dialog's two rules are suppressed with the argument in the template |
 | #52 | 08-16 | **Specs for the last 21 untested frontend files** — the layout kit, `core/results`, the three `core/event` data modules, and every `progress/`, `results/`, `judge-portal/`, `judge-review/` and `home/` section. 502 → 741 tests across 40 → 61 files; coverage is now even across `src/app/`. No production code changed, and two latent copy bugs in `home/theme/` were recorded in [§4](#4-what-is-not-done) rather than fixed here |
 
-**In flight:** `test/frontend-spec-coverage` (PR #52).
+| #53 | 08-16 | **Four stale code comments corrected**, each of which described a state the code had moved past — the admin dashboard's "six sections", `publishResults`' "does not change what participants see yet", `Progress.nextAction`'s "waits for the results page to land", and `status-pill`'s prediction about the admin view. Two matching claims in CLAUDE.md fixed with them. Comments and docs only; no behaviour changed |
+
+**In flight:** `fix/stale-comments` (PR #53).
 
 ---
 

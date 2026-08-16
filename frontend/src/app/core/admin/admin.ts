@@ -1550,10 +1550,11 @@ export class AdminService {
    * nullable — but publishing one says "this team's result is final" about a team
    * nobody scored.
    *
-   * This does *not* change what participants see yet. `ResultsService.published`
-   * gates the public page on `event_settings.results_published_at` via the phase,
-   * and that column is only editable once the Event Settings section lands. The
-   * two meet when a real API owns both.
+   * **This does change what participants see.** `ResultsService.published` gates
+   * the public page on `event_settings.results_published_at` via the phase, so
+   * this method stamps that column as well as the rows — see the comment on the
+   * `eventSettings.update` call below. Publishing therefore opens the participant
+   * results page, and `unpublishResults` closes it again.
    */
   publishResults(): Promise<AdminActionResult> {
     return this.run(() => {
