@@ -1,7 +1,7 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `c6e71b2` (= `origin/main`, through PR #44) plus the Averis sponsor section on `feature/averis-sponsor-section`, 2026-08-15.
+**As of:** `c47fedd` (= `origin/main`, through PR #45) plus the sponsor note rewording on `feature/sponsor-note-copy`, 2026-08-16.
 **Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
@@ -221,6 +221,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #43 | 08-15 | **`EventSettingsService`** — `event_settings` becomes mutable state seeded from `EVENT_CONFIG`; all 19 consumers migrated to read it reactively. No UI change; unblocks the Event Settings section |
 | #44 | 08-15 | **Event Settings section** — the row editable end to end, and publishing from Results now also sets `results_published_at`, so it actually opens the participant page |
 | #45 | 08-15 | **Averis sponsor section** — the nine placeholder sponsors and their dead Clearbit logo lookups replaced by one confirmed sponsor on a self-hosted asset; tiers removed, `SPONSORS` is an array of one |
+| #46 | 08-16 | Sponsor note reworded as a thank-you, and it now reads the event name from `EventSettingsService` instead of hardcoding it |
 
 **In flight:** nothing. `feature/admin-judges` (PR #37) merged as `86cb516`.
 
@@ -249,16 +250,16 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npx ng test --watch=false` | **32 files, 425 tests passed** | `feature/averis-sponsor-section`, 2026-08-15 |
-| Frontend | `npm run build` | **505.30 kB initial — ⚠️ budget warning, exit 0** | `feature/averis-sponsor-section`, 2026-08-15 |
+| Frontend | `npx ng test --watch=false` | **32 files, 425 tests passed** | `feature/sponsor-note-copy`, 2026-08-16 |
+| Frontend | `npm run build` | **505.35 kB initial — ⚠️ budget warning, exit 0** | `feature/sponsor-note-copy`, 2026-08-16 |
 | Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
 **The backend suite was not re-run for this pass** — no Postgres was reachable, so only compilation was verified. The 44-test figure is carried forward from `98e50df` and predates the `auth/` package; since `auth/` has no tests of its own, the count is expected to be unchanged, but nobody has confirmed the context still loads against a real database with the new validated properties in play. Run `./mvnw -B clean verify` with the container up before relying on it.
 
-**The bundle warning is not this branch's.** It arrived with the HTTP layer in #34 (490.74 kB → 517.29 kB) and has been drifting back down since as pages shed dependencies — #40 dropped `FormsModule` from the two participant pages, and #45 removed the sponsor tier machinery (506.68 kB → 505.30 kB). The remaining 5.30 kB overrun is eager code; the admin route is still the only lazy one. The hard error is 1 MB, which is why CI is still green — see [§4](#4-what-is-not-done).
+**The bundle warning is not this branch's.** It arrived with the HTTP layer in #34 (490.74 kB → 517.29 kB) and has been drifting back down since as pages shed dependencies — #40 dropped `FormsModule` from the two participant pages, and #45 removed the sponsor tier machinery (506.68 kB → 505.30 kB). This branch adds 0.05 kB of template text back (505.30 kB → 505.35 kB). The remaining 5.35 kB overrun is eager code; the admin route is still the only lazy one. The hard error is 1 MB, which is why CI is still green — see [§4](#4-what-is-not-done).
 
-The spec count is 425 across 32 files. It has not moved on this branch: #45 rewrote the two existing sponsor specs rather than adding any.
+The spec count is 425 across 32 files. It has not moved on this branch: #46 changed copy only, and the two sponsor specs assert on `SPONSORS` and the logo fallback rather than on the note's wording.
 
 The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
 
