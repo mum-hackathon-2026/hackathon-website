@@ -3,6 +3,7 @@ import { AuthService, Role } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
 import { EventSettingsPatch, EventSettingsService } from '../event/event-settings';
 import { PhaseService } from '../event/phase';
+import { AssignmentStatus } from '../judge/judge';
 import { ResultOutcome, ResultsService } from '../results/results';
 import { SubmissionStatus } from '../submission/submission';
 import { TeamStatus } from '../team/team';
@@ -151,27 +152,19 @@ export interface AdminJudge {
 }
 
 /**
- * Mirrors the `assignments_status_check` vocabulary, verbatim.
+ * One `assignments` row, joined to the judge's name for display.
  *
- * UNRATIFIED, like the judge pages' copy of it — V1's proposal, never signed
- * off. If the vocabulary changes, this union changes with it.
+ * `status` reuses `AssignmentStatus` and its labels from `core/judge` rather
+ * than restating the `assignments_status_check` vocabulary here — admin and the
+ * judge pages read the same column, so a second copy could only ever drift from
+ * it. The vocabulary is still UNRATIFIED; see the union's own comment.
  */
-export type AdminAssignmentStatus = 'pending' | 'in_progress' | 'completed' | 'declined';
-
-export const ADMIN_ASSIGNMENT_STATUS_LABELS: Record<AdminAssignmentStatus, string> = {
-  pending: 'Not started',
-  in_progress: 'In progress',
-  completed: 'Completed',
-  declined: 'Declined',
-};
-
-/** One `assignments` row, joined to the judge's name for display. */
 export interface AdminAssignment {
   readonly id: number;
   readonly teamId: number;
   readonly judgeId: number;
   readonly judgeName: string;
-  readonly status: AdminAssignmentStatus;
+  readonly status: AssignmentStatus;
   readonly assignedAt: Date;
   readonly completedAt: Date | null;
 }
@@ -604,7 +597,7 @@ const JUDGE_SEED: readonly SeedJudge[] = [
  * which is also why `reviewsExpected` keys off the submission rather than the
  * team.
  */
-const ASSIGNMENT_SEED: readonly (readonly [number, number, AdminAssignmentStatus])[] = [
+const ASSIGNMENT_SEED: readonly (readonly [number, number, AssignmentStatus])[] = [
   [201, 2, 'completed'],
   [201, 12, 'completed'],
   [201, 13, 'completed'],

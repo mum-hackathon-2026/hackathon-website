@@ -72,26 +72,8 @@
   color: var(--color-ink);
 }
 
-.chip__status {
-  color: var(--color-muted);
-  font-size: 10.5px;
-}
-
-// Status tints the chip rather than the text, so the name stays readable.
-.chip--completed {
-  border-color: color-mix(in srgb, var(--color-green) 55%, transparent);
-  background: var(--color-green-tint);
-}
-
-.chip--in_progress {
-  border-color: color-mix(in srgb, var(--color-yellow) 60%, transparent);
-  background: var(--color-amber-tint);
-}
-
-.chip--declined {
-  border-color: color-mix(in srgb, var(--color-red-ink) 35%, transparent);
-  background: var(--color-red-tint);
-}
+// The status colour lives in the app-status-pill this chip wraps, so the chip
+// itself stays neutral — tinting both would put a tint inside a tint.
 
 .chip__remove {
   width: 18px;
