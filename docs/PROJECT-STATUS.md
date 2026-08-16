@@ -1,7 +1,7 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `c47fedd` (= `origin/main`, through PR #45) plus the sponsor note rewording on `feature/sponsor-note-copy`, 2026-08-16.
+**As of:** `041835f` (= `origin/main`, through PR #46) plus the lazy judge routes on `feature/lazy-judge-routes`, 2026-08-16.
 **Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
@@ -92,8 +92,8 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 | `/participant/submission` | `MySubmission` | `participantGuard` |
 | `/participant/progress/team` | `Progress` (`tab: 'team'`) | `participantGuard` |
 | `/participant/progress/event` | `Progress` (`tab: 'event'`) | `participantGuard` |
-| `/judge/portal` | `JudgePortal` | `judgeGuard` |
-| `/judge/reviews/:assignmentId` | `JudgeReview` | `judgeGuard` |
+| `/judge/portal` | `JudgePortal` — **lazy-loaded** | `judgeGuard` |
+| `/judge/reviews/:assignmentId` | `JudgeReview` — **lazy-loaded** | `judgeGuard` |
 | `/admin/dashboard` | `AdminDashboard` — **lazy-loaded** | `adminGuard` |
 | `/results` | `Results` | `signedInGuard` (any role) |
 | `/sign-in` | `SignIn` | — |
@@ -102,7 +102,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 > **The two participant write-flows are gone from the site (PR #40).** Team registration and project submission both happen on a Google Form now, so `MyTeam` and `MySubmission` are read-only status views plus a link out. There is no create/join/rename/leave, no draft editor, and **no join code anywhere** — the registration form collects one row per team, leader plus up to three members, so a team arrives whole and there is nothing to join. The URLs live on `SiteCopy` as `teamRegistrationFormUrl` / `projectSubmissionFormUrl` and are **placeholders** until the real links land.
 
 - [x] Two paths onto one `Progress` component, distinguished by `data: { tab }`, so each view is linkable
-- [x] `AdminDashboard` is the only lazy route — eagerly importing it pushed the initial bundle past its budget, and organisers are the rarest role. The next page added will face the same choice.
+- [x] The three role-gated pages — `AdminDashboard`, `JudgePortal`, `JudgeReview` — are the lazy routes. Everything a signed-out visitor can reach is eager; everything behind an `adminGuard` or `judgeGuard` is not, because participants are most of the traffic and can never reach any of it.
 - [x] Wildcard `**` stays last
 
 ### Core services (`src/app/core/`)
@@ -171,7 +171,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Smaller gaps
 
-- [ ] **The initial bundle is over budget.** 505.30 kB against a 500 kB warning threshold (it was 490.74 kB before the HTTP layer, and 517.29 kB before the Google Forms change dropped `FormsModule` from the two participant pages). `npm run build` warns and still exits 0, so **CI does not catch this** — only the 1 MB error threshold fails a build. Lazy-loading another route is the way back under.
+- [x] ~~**The initial bundle is over budget.**~~ Resolved in #47 — the two judge routes went lazy and the initial bundle fell to 452.82 kB, 47 kB clear of the 500 kB warning. **The mechanism that let it drift is still there**: `npm run build` only *warns* at 500 kB and exits 0, so CI stays green while over budget — only the 1 MB error threshold fails a build. The remaining eager routes are the public pages plus the four participant ones.
 - [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
 - [ ] **No linting.** No ESLint config and no lint script; Prettier is the only tool configured and it only formats. CI marks where the step goes.
 - [ ] **Uneven test coverage.** Every routed page has a spec, but `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts` have none, and most presentational pieces are untested — `page-header`, `profile-menu`, `state-locked`, `event-timeline`, `status-pill`, and the section components under `progress/`, `results/`, `judge-portal/`, `judge-review/`, `admin-dashboard/` and parts of `home/`.
@@ -222,6 +222,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #44 | 08-15 | **Event Settings section** — the row editable end to end, and publishing from Results now also sets `results_published_at`, so it actually opens the participant page |
 | #45 | 08-15 | **Averis sponsor section** — the nine placeholder sponsors and their dead Clearbit logo lookups replaced by one confirmed sponsor on a self-hosted asset; tiers removed, `SPONSORS` is an array of one |
 | #46 | 08-16 | Sponsor note reworded as a thank-you, and it now reads the event name from `EventSettingsService` instead of hardcoding it |
+| #47 | 08-16 | **Judge routes lazy-loaded** — `JudgePortal` and `JudgeReview` behind `loadComponent`, taking the initial bundle from 505.35 kB to 452.82 kB and ending the budget warning that had stood since #34 |
 
 **In flight:** nothing. `feature/admin-judges` (PR #37) merged as `86cb516`.
 
@@ -236,7 +237,7 @@ In order. The first item is not first by preference.
 3. **An HTTP interceptor**, in the same change as that controller, to attach `AuthService.token()` as `Authorization: Bearer …`. Nothing does this today.
 4. **Replace the stand-ins one at a time.** They already return `Promise<{ok} | {ok:false, error}>`, so callers should not need reshaping — this is meant to be a change of data source. `signInWithGoogle()` is the worked example of the shape.
 5. **Close the auth loopholes** — call `GET /api/auth/me` on reload so a stale token cannot look signed-in, and decide when the demo `signIn(role)` path comes out.
-6. **Get back under the bundle budget** (§4) — the next eager route added will push it further.
+6. **Keep an eye on the bundle** — #47 bought 47 kB of headroom by lazy-loading the judge routes, but CI still cannot fail on the warning, so the next few eager pages will spend it unnoticed. Only participant and public pages are left eager, and those are the ones everybody loads.
 7. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them, and note that `SecurityConfig`'s `hasAuthority("admin"/"judge")` is a third copy of the `users.role` literals.
 8. **Add ESLint**, and fill the coverage gaps listed in [§4](#4-what-is-not-done).
 
@@ -250,14 +251,14 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npx ng test --watch=false` | **32 files, 425 tests passed** | `feature/sponsor-note-copy`, 2026-08-16 |
-| Frontend | `npm run build` | **505.35 kB initial — ⚠️ budget warning, exit 0** | `feature/sponsor-note-copy`, 2026-08-16 |
+| Frontend | `npx ng test --watch=false` | **32 files, 425 tests passed** | `feature/lazy-judge-routes`, 2026-08-16 |
+| Frontend | `npm run build` | **452.82 kB initial — ✅ under budget, no warning** | `feature/lazy-judge-routes`, 2026-08-16 |
 | Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
 **The backend suite was not re-run for this pass** — no Postgres was reachable, so only compilation was verified. The 44-test figure is carried forward from `98e50df` and predates the `auth/` package; since `auth/` has no tests of its own, the count is expected to be unchanged, but nobody has confirmed the context still loads against a real database with the new validated properties in play. Run `./mvnw -B clean verify` with the container up before relying on it.
 
-**The bundle warning is not this branch's.** It arrived with the HTTP layer in #34 (490.74 kB → 517.29 kB) and has been drifting back down since as pages shed dependencies — #40 dropped `FormsModule` from the two participant pages, and #45 removed the sponsor tier machinery (506.68 kB → 505.30 kB). This branch adds 0.05 kB of template text back (505.30 kB → 505.35 kB). The remaining 5.35 kB overrun is eager code; the admin route is still the only lazy one. The hard error is 1 MB, which is why CI is still green — see [§4](#4-what-is-not-done).
+**The bundle is under budget for the first time since #34.** The warning arrived with the HTTP layer (490.74 kB → 517.29 kB) and drifted down as pages shed dependencies — #40 dropped `FormsModule` from the two participant pages, #45 removed the sponsor tier machinery. #47 ended it outright: moving `JudgePortal` and `JudgeReview` behind `loadComponent` took 52.53 kB out of the initial chunk (505.35 kB → **452.82 kB**), into a 20.03 kB and a 23.14 kB lazy chunk. Note the two figures do not net: the judge pages shared code with the eager bundle that now travels with them.
 
 The spec count is 425 across 32 files. It has not moved on this branch: #46 changed copy only, and the two sponsor specs assert on `SPONSORS` and the logo fallback rather than on the note's wording.
 

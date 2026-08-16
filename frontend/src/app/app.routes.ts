@@ -5,8 +5,6 @@ import { NotFound } from './pages/not-found/not-found';
 import { MySubmission } from './pages/my-submission/my-submission';
 import { MyTeam } from './pages/my-team/my-team';
 import { Organizers } from './pages/organizers/organizers';
-import { JudgePortal } from './pages/judge-portal/judge-portal';
-import { JudgeReview } from './pages/judge-review/judge-review';
 import { Progress } from './pages/progress/progress';
 import { Results } from './pages/results/results';
 import { SignIn } from './pages/sign-in/sign-in';
@@ -43,22 +41,25 @@ export const routes: Routes = [
     data: { tab: 'event' },
     title: 'Progress · Monash Hackathon 2026',
   },
+  // Lazy for the same reason as the admin dashboard below: both pages are behind
+  // a role guard, so every participant was downloading judging code they can
+  // never reach. They share a chunk because JudgeService is common to both and
+  // the portal is the only way into a review.
   {
     path: 'judge/portal',
-    component: JudgePortal,
+    loadComponent: () => import('./pages/judge-portal/judge-portal').then((m) => m.JudgePortal),
     canActivate: [judgeGuard],
     title: 'Judge portal · Monash Hackathon 2026',
   },
   {
     path: 'judge/reviews/:assignmentId',
-    component: JudgeReview,
+    loadComponent: () => import('./pages/judge-review/judge-review').then((m) => m.JudgeReview),
     canActivate: [judgeGuard],
     title: 'Review · Monash Hackathon 2026',
   },
-  // Lazy, unlike every route above it. Eagerly importing this page took the
-  // initial bundle past its 500 kB budget, and organisers are the rarest role —
-  // nobody else ever needs this code. The budget is close enough now that the
-  // next page added will face the same choice.
+  // Lazy for the same reason, and first to be so: eagerly importing this page
+  // took the initial bundle past its 500 kB budget, and organisers are the
+  // rarest role — nobody else ever needs this code.
   // Bare path redirects so a section is always named in the URL, which keeps the
   // sidebar's active state honest and makes every section linkable.
   {
