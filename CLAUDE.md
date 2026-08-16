@@ -238,11 +238,11 @@ npx ng test --watch=false --include src/app/core/team/team.spec.ts   # single sp
 npx prettier --write .                       # only formatting tool configured
 ```
 
-Production budgets are 500 kB warning / 1 MB error on the initial bundle and 4 kB / 8 kB per component stylesheet. Specs are colocated (`team.ts` → `team.spec.ts`) and need no database or dev server.
+Production budgets are 480 kB warning / **500 kB error** on the initial bundle and 4 kB / 8 kB per component stylesheet. Specs are colocated (`team.ts` → `team.spec.ts`) and need no database or dev server.
 
 **The initial bundle is 452.82 kB against a 500 kB budget, and the headroom is recent.** It sat over the threshold from the auth work (490.74 kB → 517.29 kB, `provideHttpClient()` and the `rxjs` behind it being eager) until the judge routes went lazy. **The three role-gated pages are the lazy routes** — `AdminDashboard`, `JudgePortal`, `JudgeReview` — and everything reachable without a role guard is eager. Put a new role-gated page behind `loadComponent`; that is the pattern.
 
-Note what does *not* protect this: `npm run build` prints a `WARNING` at 500 kB and still exits 0, so **CI stays green while the budget is breached** — only the 1 MB error threshold fails a build. The budget was over for thirteen PRs without anything catching it.
+**Breaching 500 kB now fails the build**, and therefore CI. The error threshold used to sit at 1 MB, so a breach only warned and `npm run build` still exited 0 — which is how the bundle stayed over budget for thirteen PRs with nothing catching it. The 480 kB warning is the early signal: it fires with 20 kB still in hand, so the first PR to approach the limit hears about it while there is room to fix it rather than at the point of being blocked.
 
 Coverage is uneven and thinner than it looks. Every routed page has a spec, but four `core/` files have none — `results/results.ts`, `event/milestones.ts`, `event/event-content.ts`, `event/event-config.ts` — and most presentational pieces are untested (`page-header`, `state-locked`, `profile-menu`, `event-timeline`, `stage-list`, `rankings-table`, `judge-reviews`, and several `home/` sections). `auth.spec.ts` and `sign-in.spec.ts` cover the demo path plus one GIS test (that the client id comes from `GOOGLE_CLIENT_ID`); `signInWithGoogle` itself, the script loading and the 401/403 error branches are untested, as is the whole backend `auth/` package.
 
