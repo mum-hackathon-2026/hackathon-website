@@ -77,7 +77,8 @@ describe('Hero', () => {
     expect(host.querySelector('.hero__countdown')).toBeNull();
     expect(badge(host)).toContain('Results are out');
     // The call to action stays; only the countdown goes.
-    expect(host.querySelectorAll('.hero__cta').length).toBe(2);
+    expect(host.querySelectorAll('.hero__cta').length).toBe(1);
+    expect(host.querySelector('.hero__cta')?.getAttribute('href')).toContain('google.com/forms');
   });
 
   it('reads dates as MYT rather than the local zone', async () => {
