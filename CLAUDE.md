@@ -235,7 +235,8 @@ npm run build                                # production config; enforces bundl
 npm test                                     # vitest via @angular/build:unit-test (jsdom)
 npx ng test --watch=false                    # one-shot run, for scripted checks
 npx ng test --watch=false --include src/app/core/team/team.spec.ts   # single spec
-npx prettier --write .                       # only formatting tool configured
+npm run format                               # prettier --write .
+npm run format:check                         # what CI runs; fails on unformatted code
 ```
 
 Production budgets are 480 kB warning / **500 kB error** on the initial bundle and 4 kB / 8 kB per component stylesheet. Specs are colocated (`team.ts` → `team.spec.ts`) and need no database or dev server.
@@ -252,6 +253,8 @@ Production budgets are 480 kB warning / **500 kB error** on the initial bundle a
 **One coverage gap remains, and it is not on this side.** `auth.spec.ts` and `sign-in.spec.ts` now cover the real Google path as well as the demo one — the request shape, the role fallback, the initials derivation, JWT persistence and restore, every error branch, and the GIS script loading. The **backend `auth/` package still has no test at all**. Frontend auth specs use `provideHttpClient()` + `provideHttpClientTesting()` and drive the credential handler through the paste-a-token form, because jsdom cannot run Google Identity Services.
 
 **`npm run lint` runs angular-eslint over `src/**/*.ts` and `src/**/*.html`, and CI fails on a violation.** Config is `frontend/eslint.config.js` (flat config): `recommended` from eslint, typescript-eslint and angular-eslint, plus the template rules, with `eslint-config-prettier` last so formatting stays Prettier's job.
+
+**`npm run format:check` is the other half of that split, and CI fails on it too.** Because `eslint-config-prettier` switches every layout rule off, **a green lint says nothing about formatting** — the two checks do not overlap and neither substitutes for the other. Prettier runs on bare defaults; there is no config file, only `frontend/.prettierignore`. **That ignore file is load-bearing**: Prettier does not read `.gitignore`, so without it the gitignored `figma-draft/` export contributes ~32 violations on any machine that has it, and the real ones are lost in the noise. Both checks are scoped to `frontend/` — the workflow sets `working-directory`, so root-level Markdown and `docs/` are formatted by nothing.
 
 **The template accessibility preset is on**, so a click handler on a non-interactive element fails the build. Two patterns already resolved under it, worth knowing before writing a third:
 
@@ -275,7 +278,7 @@ One further omission: the config is **not type-aware** — `recommended`, not `r
 
 `.github/workflows/ci.yml` runs two independent jobs.
 
-- **Frontend** — `npm ci`, `npm run lint`, `npx ng test --watch=false`, `npm run build`. **A failing spec or a lint violation fails the job**: neither step carries `continue-on-error` or `--if-present`, so neither can reach `main`. The missing `--if-present` on lint is deliberate — an earlier version had it, and the step silently did nothing while reading as though the code was linted. `--watch=false` is passed explicitly rather than left to the builder's CI detection — a runner with no TTY that fell into watch mode would hang until the job timeout, which reports as a hang rather than as a test failure. The build step also gates the bundle budget, which errors at 500 kB.
+- **Frontend** — `npm ci`, `npm run lint`, `npm run format:check`, `npx ng test --watch=false`, `npm run build`. **A failing spec, a lint violation or unformatted code fails the job**: no step carries `continue-on-error` or `--if-present`, so none of them can reach `main`. The missing `--if-present` on lint is deliberate — an earlier version had it, and the step silently did nothing while reading as though the code was linted. `--watch=false` is passed explicitly rather than left to the builder's CI detection — a runner with no TTY that fell into watch mode would hang until the job timeout, which reports as a hang rather than as a test failure. The build step also gates the bundle budget, which errors at 500 kB.
 - **Backend** — `./mvnw -B clean verify` against a **`postgres:16` service container** with a `pg_isready` health check, exposed on the runner's `localhost:5432`, with `DB_TEST_URL`/`DB_TEST_USER`/`DB_TEST_PASSWORD` set on the build step. Local development stays on 5433; only CI uses 5432.
 
 ## Spring Boot 4 gotchas

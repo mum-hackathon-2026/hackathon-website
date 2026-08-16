@@ -1,0 +1,19 @@
+# Prettier does not read .gitignore, so anything ignored there that Prettier
+# would otherwise walk has to be repeated here. Without this file
+# `npx prettier --check .` reports ~32 violations in figma-draft alone and the
+# two real ones are lost in the noise.
+
+# Build and tool output
+/dist
+/tmp
+/out-tsc
+/.angular
+/coverage
+
+# The Figma export the design tokens were derived from. Gitignored and not in
+# the repo, so it is nobody's code to format — but it sits inside frontend/ on
+# a machine that has it, which is enough for Prettier to walk it.
+/figma-draft
+
+# Generated, and not ours to lay out.
+package-lock.json

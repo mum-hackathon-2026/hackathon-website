@@ -35,6 +35,14 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Prettier over everything outside frontend/.prettierignore. Separate from
+      # the Lint step on purpose: `eslint-config-prettier` sits last in the flat
+      # config and switches every layout rule off, so ESLint says nothing at all
+      # about formatting and a green lint is not evidence of a formatted tree.
+      # Same `--if-present` reasoning as above — a missing script must fail.
+      - name: Format check
+        run: npm run format:check
+
       # Vitest under jsdom via the @angular/build:unit-test builder, so no
       # browser is needed. `--watch=false` is explicit rather than left to the
       # builder's CI detection: without it a runner with no TTY would sit in
