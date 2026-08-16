@@ -248,7 +248,12 @@ Coverage is uneven and thinner than it looks. Every routed page has a spec, but 
 
 **`npm run lint` runs angular-eslint over `src/**/*.ts` and `src/**/*.html`, and CI fails on a violation.** Config is `frontend/eslint.config.js` (flat config): `recommended` from eslint, typescript-eslint and angular-eslint, plus the template rules, with `eslint-config-prettier` last so formatting stays Prettier's job.
 
-Two deliberate omissions, both explained in the config file. It is **not type-aware** — `recommended`, not `recommendedTypeChecked` — because `tsconfig.json` is already strict and `npm run build` enforces that in CI. And the **accessibility preset is off**: it flags exactly two sites today (the confirm dialog's backdrop and the admin sidebar's scrim), and both need a UI decision rather than a lint fix.
+**The template accessibility preset is on**, so a click handler on a non-interactive element fails the build. Two patterns already resolved under it, worth knowing before writing a third:
+
+- **A presentational backdrop takes `aria-hidden="true"`** — that satisfies the rules honestly, because a scrim should be neither announced nor tabbed to, and the keyboard path belongs elsewhere. `admin-sidebar` pairs it with `(document:keydown.escape)`, the same host binding `nav-bar` uses for its drawer. **A dismissible overlay needs that Escape handler**; without one the scrim is a pointer-only exit.
+- **`confirm-dialog` disables the two rules inline, with the reasoning in the template.** Native `<dialog>` + `showModal()` already gives Escape-to-close, which the rules cannot see; making the element focusable would add a tab stop on the backdrop and help nobody. That comment is the precedent for suppressing these rules — a suppression needs an argument, not just a disable.
+
+One further omission: the config is **not type-aware** — `recommended`, not `recommendedTypeChecked` — because `tsconfig.json` is already strict and `npm run build` enforces that in CI.
 
 **Pin angular-eslint to the 21 line.** Its peer range is `@angular/cli >= 21.0.0 < 22.0.0`; `latest` is the 22 line and will not install against this CLI.
 

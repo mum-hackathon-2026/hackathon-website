@@ -1,5 +1,5 @@
 @if (open()) {
-  <div class="scrim" (click)="dismissed.emit()"></div>
+  <div class="scrim" aria-hidden="true" (click)="dismissed.emit()"></div>
 }
 
 <aside class="rail" [class.rail--open]="open()">

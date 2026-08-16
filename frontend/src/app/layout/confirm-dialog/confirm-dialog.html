@@ -1,3 +1,12 @@
+<!--
+  The keyboard path here is the native one, which the rules cannot see: showModal()
+  gives Escape-to-close, and (close) above emits `cancelled` for it exactly as the
+  cancel button does. The click handler only catches a pointer landing on the
+  backdrop. Making <dialog> focusable and adding a keydown, which is what these
+  rules ask for, would put a tab stop on the backdrop and change nothing for a
+  keyboard user who can already press Escape.
+-->
+<!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
 <dialog #dialog class="confirm" (close)="onClose()" (click)="onBackdropClick($event)">
   <div class="confirm__panel">
     <h2 class="confirm__heading">{{ heading() }}</h2>
