@@ -1,8 +1,8 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `640c8fd` (= `origin/main`, through PR #53) plus the auth specs on `test/frontend-auth-specs`, 2026-08-16.
-**Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
+**As of:** `145e708` (= `origin/main`, through PR #59) plus the session-revalidation work on `feature/revalidate-session-on-reload`, 2026-08-16.
+**Verified:** the frontend suite, lint, format check and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
 
@@ -19,7 +19,7 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 | **Frontend pages** | 🟢 Done | 12 components behind 14 route entries, all three roles covered |
 | **Admin workspace** | 🟡 9 of 10 | Everything but Judging Progress, which is the last stub |
 | **Frontend data** | 🟡 Stand-ins | 7 in-memory services shaped like the API that will replace them |
-| **Integration** | 🟡 One seam | Sign-in talks to the backend; every other page is still in-memory |
+| **Integration** | 🟡 One seam | Sign-in and session revalidation talk to the backend; every other page is still in-memory |
 | **CI** | 🟢 Done | Two jobs, both gating; a failing spec cannot reach `main` |
 | **Docs** | 🟢 Current | This file, CLAUDE.md and docs/README.md all current as of `640c8fd` |
 
@@ -55,7 +55,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 - [x] **`POST /api/auth/google`** — verifies a Google ID token against Google's keys, requires a verified email, looks the address up in `users`, backfills `google_sub` / `email_verified` / `last_login_at` / display name, and returns a JWT plus the user
 - [x] **Access is by pre-existing row.** An unregistered email gets **403**; there is no self-registration endpoint. This is the whole of the admissions policy
-- [x] **`GET /api/auth/me`** — returns the caller's profile from the JWT. Written for session restore; **nothing calls it yet**
+- [x] **`GET /api/auth/me`** — returns the caller's profile from the JWT. Written for session restore, and **called for it as of #60**: `AuthService.revalidateSession()` asks it on construction, so a reload checks the stored token instead of trusting it
 - [x] **`SecurityConfig`** — stateless, CSRF off, CORS for `http://localhost:4200`, `JwtAuthenticationFilter` ahead of `UsernamePasswordAuthenticationFilter`. Matchers: `/api/auth/**` open, `/api/admin/**` needs authority `admin`, `/api/judge/**` needs `judge`, everything else authenticated
 - [x] **`JwtService`** — HS256, claims `sub`/`email`/`role`/`name`, expiry from `app.jwt.expiration-ms`
 - [x] **Config validated at startup** — `app.jwt.secret` (≥32 chars) and `app.google.client-id` are `@NotBlank`, so a missing value fails the boot rather than a request
@@ -107,7 +107,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 ### Core services (`src/app/core/`)
 
-- [x] `auth/` — `AuthService` with **two sign-in paths**: `signInWithGoogle()` (real, POSTs to the backend, stores the JWT under `hackathon.jwt-token`) and `signIn(role)` (the original demo path, no network, still what the specs and role buttons use). Both feed one `currentUser` signal, so nothing downstream can tell them apart. Plus the `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`) and three injection tokens — `SESSION_STORAGE`, `API_BASE_URL`, `GOOGLE_CLIENT_ID`
+- [x] `auth/` — `AuthService` with **two sign-in paths**: `signInWithGoogle()` (real, POSTs to the backend, stores the JWT under `hackathon.jwt-token`) and `signIn(role)` (the original demo path, no network, still what the specs and role buttons use). Both feed one `currentUser` signal through one `toAuthUser()` mapping, so nothing downstream can tell them apart — except `revalidateSession()`, which runs on construction, asks `GET /api/auth/me` about a stored JWT, and skips the tokenless demo session precisely because it has nothing to check. Plus the `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`) and three injection tokens — `SESSION_STORAGE`, `API_BASE_URL`, `GOOGLE_CLIENT_ID`
 - [x] `event/` — `EVENT_CONFIG` token (now the **seed**, not the live copy), `EventSettingsService` owning the `event_settings` singleton as mutable state, `PhaseService`, `MilestoneService`, static site copy
 - [x] `team/`, `submission/`, `results/` — participant-scoped stand-ins. **`TeamService` and `SubmissionService` keep their mutations but no page calls them any more** — the two participant pages only read. They are kept because the progress and results specs seed fixtures through `createTeam` / `joinTeam` / `submit`, and because the submission validation is the written-down copy of the table's CHECK constraints. Do not build a page on them.
 - [x] `judge/` — assignments, scores, criteria; validation repeats the tables' CHECK constraints so the UI never accepts what the API would reject
@@ -152,7 +152,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Tests
 
-- [x] **32 spec files / 425 tests**, colocated, no database or dev server needed
+- [x] **61 spec files / 798 tests**, colocated, no database or dev server needed. Every file under `src/app/` has one except `app.config.ts` and `src/main.ts`, which are bootstrap wiring
 - [x] Zoneless Angular 21 throughout — signals for state, `await fixture.whenStable()` in tests, vitest under jsdom (not Karma)
 
 ---
@@ -164,9 +164,9 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 - [ ] **One endpoint pair, and it is the auth one.** Nothing serves teams, submissions, judging, results or event settings — no controllers, services or DTOs outside `auth/`. Every repository is still called only by tests.
 - [ ] **Nothing persists in the UI.** Apart from the signed-in user, every page runs on in-memory stand-ins that reset on reload, by design.
 - [ ] **The Google Forms pipeline stops at registration.** `tools/FormRegistrationImporter` loads the registration CSV into `users` / `teams` / `team_members`, and that is the whole of it. **There is no submission form schema and no submission importer** — [docs/README.md](README.md) still records submission-by-form as undecided, and nothing populates `submissions.status` / `submitted_at`. The site now links participants to both forms, so `MySubmission` displays a status that nothing can currently set.
-- [ ] **No HTTP interceptor.** The JWT is stored and exposed as `AuthService.token()`, but nothing attaches it to a request — there are no authenticated requests yet. The first non-auth call needs one written alongside it.
+- [ ] **Still no HTTP interceptor.** #60 added the first authenticated request — `revalidateSession()` — and it sets its own `Authorization` header rather than introducing an interceptor for a single call. That stays the right shape only while the count is one: the first non-auth endpoint needs a real interceptor, and should absorb this header when it arrives.
 - [ ] **The demo sign-in still bypasses everything.** `signIn(role)` picks one of three hardcoded users with no token, and the guards cannot tell that session from a real one. Guards gate *navigation*; only `SecurityConfig` gates data, and today it guards nothing anyone calls.
-- [ ] **A stored session is never revalidated.** Reload restores the user from `localStorage` without checking the token; `GET /api/auth/me` exists for this and has no caller. An expired or revoked token still looks signed-in.
+- [x] ~~**A stored session is never revalidated.**~~ Closed in #60. `AuthService.revalidateSession()` runs on construction and asks `GET /api/auth/me` about the stored JWT, so an expired token or a deleted user no longer reads as signed in across a reload. **Two limits are deliberate and remain:** it signs out on 401/403 only, because an unreachable backend is not evidence a session is bad; and it does not gate navigation, so a stale session survives one render before the answer lands — the page behind the guard then has no data, since the API refuses the same token. `sessionCheck` is the promise to await if that window ever needs closing.
 - [ ] **The backend half of auth has no test.** The `auth/` package has no test class — CI compiles it and never runs it. **The frontend half was closed in #54**: `signInWithGoogle`, every error branch, the JWT round-trip and the GIS script loading are covered. The asymmetry is the point — a break in the client fails CI, the same break in the server does not.
 
 ### Smaller gaps
@@ -245,6 +245,10 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 | #58 | 08-16 | **Commits no longer co-author themselves with tooling** — CONTRIBUTING.md now says not to add a `Co-authored-by:` trailer for an assistant, because GitHub resolves it to a real account and lists it in the repo's Contributors sidebar. Person-to-person co-authoring is untouched. Convention only; no code changed |
 
+| #59 | 08-16 | Delivery log caught up with #58, and the co-author trailer question recorded as **weighed and declined** rather than left open — rewriting 94 of 126 commits to clear 41 trailers would hand new SHAs to two teammates who never had one. Docs only |
+
+| #60 | 08-16 | **A reload now checks the session instead of trusting it** — `AuthService.revalidateSession()` GETs `/api/auth/me` with the stored JWT on construction and signs out on 401/403, so an expired token or a deleted user stops looking signed in. `GET /api/auth/me` had been written for exactly this and had sat with no caller since #32. Three cases are deliberately left alone: the tokenless demo session, an unreachable backend, and an answer that arrives after the token changed. Both sign-in paths now map the backend user through one `toAuthUser()` helper. 782 → 798 tests |
+
 **In flight:** nothing.
 
 ---
@@ -255,9 +259,9 @@ In order. The first item is not first by preference.
 
 1. **Test the auth package.** It is the only code that decides who gets in, it is the only code with no test, and CI cannot catch a break in it. A `@WebMvcTest` over `AuthController` with the verifier stubbed covers the three branches that matter (valid + registered → 200, valid + unregistered → 403, unverified email → 401); a `JwtService` round-trip test covers the rest. Do this before the endpoints multiply.
 2. **First non-auth controller + DTOs**, following the packages-by-feature shape the entities already use. Expect a 401 on the first call — `anyRequest().authenticated()` is the rule, and that is deliberate now rather than accidental.
-3. **An HTTP interceptor**, in the same change as that controller, to attach `AuthService.token()` as `Authorization: Bearer …`. Nothing does this today.
+3. **An HTTP interceptor**, in the same change as that controller, to attach `AuthService.token()` as `Authorization: Bearer …`. One request does this by hand today — `revalidateSession()` — and should be moved onto the interceptor rather than left as a second way of doing it.
 4. **Replace the stand-ins one at a time.** They already return `Promise<{ok} | {ok:false, error}>`, so callers should not need reshaping — this is meant to be a change of data source. `signInWithGoogle()` is the worked example of the shape.
-5. **Close the auth loopholes** — call `GET /api/auth/me` on reload so a stale token cannot look signed-in, and decide when the demo `signIn(role)` path comes out.
+5. **Close the remaining auth loophole** — ~~call `GET /api/auth/me` on reload~~ done in #60; what is left is deciding when the demo `signIn(role)` path comes out. That one is not a code problem: the moment it goes, everybody needs a real `users` row, so it waits on the form import having run.
 6. ~~**Keep an eye on the bundle**~~ — done. #47 bought 47 kB of headroom and #49 made 500 kB a hard error, so CI now catches a breach instead of warning past it. Only participant and public pages are left eager; the fix when the error fires is `loadComponent`, as the three role-gated pages already do.
 7. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them, and note that `SecurityConfig`'s `hasAuthority("admin"/"judge")` is a third copy of the `users.role` literals.
 8. ~~**Add ESLint**~~ — done in #50, with the accessibility preset following in #51, and ~~the coverage gaps~~ closed in #52. **The one coverage gap left is item 1 on this list**: the frontend is evenly covered and the backend `auth/` package still has no test at all.
@@ -272,9 +276,10 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npm run lint` | **All files pass linting — exit 0** (accessibility preset included) | `test/frontend-auth-specs`, 2026-08-16 |
-| Frontend | `npx ng test --watch=false` | **61 files, 778 tests passed** | `test/frontend-auth-specs`, 2026-08-16 |
-| Frontend | `npm run build` | **452.82 kB initial — ✅ exit 0, 27 kB below the 480 kB warning** | `test/frontend-auth-specs`, 2026-08-16 |
+| Frontend | `npm run lint` | **All files pass linting — exit 0** (accessibility preset included) | `feature/revalidate-session-on-reload`, 2026-08-16 |
+| Frontend | `npm run format:check` | **All matched files use Prettier code style — exit 0** | `feature/revalidate-session-on-reload`, 2026-08-16 |
+| Frontend | `npx ng test --watch=false` | **61 files, 798 tests passed** | `feature/revalidate-session-on-reload`, 2026-08-16 |
+| Frontend | `npm run build` | **453.39 kB initial — ✅ exit 0, 27 kB below the 480 kB warning** | `feature/revalidate-session-on-reload`, 2026-08-16 |
 | Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
@@ -282,9 +287,11 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 **The bundle is under budget for the first time since #34, and the budget is now enforced.** The warning arrived with the HTTP layer (490.74 kB → 517.29 kB) and drifted down as pages shed dependencies — #40 dropped `FormsModule` from the two participant pages, #45 removed the sponsor tier machinery. #47 ended it outright: moving `JudgePortal` and `JudgeReview` behind `loadComponent` took 52.53 kB out of the initial chunk (505.35 kB → **452.82 kB**), into a 20.03 kB and a 23.14 kB lazy chunk. Note the two figures do not net: the judge pages shared code with the eager bundle that now travels with them.
 
-#49 then made 500 kB the *error* threshold rather than 1 MB. **This was verified by breaching it deliberately** — thresholds temporarily lowered to 400/420 kB, at which `npm run build` printed `✘ [ERROR]` and exited **1**, then restored. Under the real values it exits 0 at 452.82 kB. A budget nothing enforces is a comment, so it was worth proving the gate closes.
+#49 then made 500 kB the *error* threshold rather than 1 MB. **This was verified by breaching it deliberately** — thresholds temporarily lowered to 400/420 kB, at which `npm run build` printed `✘ [ERROR]` and exited **1**, then restored. Under the real values it exits 0 at **453.39 kB** — #60's revalidation added 0.57 kB, the only movement since. A budget nothing enforces is a comment, so it was worth proving the gate closes.
 
-**The spec count is 778 across 61 files**, the last 37 from #54's auth work — 23 on `AuthService.signInWithGoogle` and 14 on the sign-in page. They are the first frontend specs to use `provideHttpClientTesting()`, and they reach the credential handler through the paste-a-token form because jsdom cannot run Google Identity Services; the GIS callback and that form share the handler, so covering one covers both. Three mutations were checked: removing the `isRole` fallback so an unknown role passes through, moving the 403 branch to 409, and dropping `errorMessage.set(result.error)` — caught by 1, 3 and 3 tests respectively.
+**The spec count is 798 across 61 files**, the last 16 from #60's session revalidation — no new file, because they belong beside the auth specs they extend. They were held to the usual bar on four mutations, chosen as the four ways this feature could sign out somebody it should not: dropping the tokenless guard failed **24** tests (every real-session spec in the file, because a demo session then issues a request nothing answers); signing out on any error rather than 401/403 failed exactly the two that keep a session through an unreachable backend; and removing each of the two race guards in turn failed exactly one test each — the success-path guard is what stops a signed-out session being resurrected, the failure-path guard is what stops a stale 401 clobbering a fresh sign-in. Dropping the `Authorization` header failed the one spec that reads it, which matters more than it looks: without the header the backend's filter never populates the context, `/me` answers 401, and revalidation would sign out *every* session it was given rather than some.
+
+**Before that it was 778 across 61 files**, the 37 before these from #54's auth work — 23 on `AuthService.signInWithGoogle` and 14 on the sign-in page. They are the first frontend specs to use `provideHttpClientTesting()`, and they reach the credential handler through the paste-a-token form because jsdom cannot run Google Identity Services; the GIS callback and that form share the handler, so covering one covers both. Three mutations were checked: removing the `isRole` fallback so an unknown role passes through, moving the 403 branch to 409, and dropping `errorMessage.set(result.error)` — caught by 1, 3 and 3 tests respectively.
 
 **Before that it was 741 across 61 files, up from 502 across 40.** All 239 came from #52, which specced the last 21 frontend source files without one; #48 had done the same for the eight admin-dashboard components, and the two together take the untested count from 30 to zero. The build is unchanged at 452.82 kB across both, as it should be — specs are not bundled, so movement there would mean something had been imported into production code by mistake.
 

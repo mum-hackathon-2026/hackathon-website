@@ -328,6 +328,9 @@ describe('AuthService.signInWithGoogle', () => {
         expect(restored.isSignedIn()).toBe(true);
         expect(restored.role()).toBe('judge');
         expect(restored.token()).toBe('header.payload.signature');
+
+        // The restored session is checked against the backend on construction.
+        http.expectOne(`${API}/api/auth/me`).flush(RESPONSE.user);
       });
 
       it('clears the JWT as well as the session on sign out', async () => {
@@ -450,6 +453,299 @@ describe('AuthService.signInWithGoogle', () => {
       expect(result.ok).toBe(false);
       expect(auth.isSignedIn()).toBe(true);
       expect(auth.role()).toBe('judge');
+    });
+  });
+});
+
+/*
+ * Session revalidation on reload.
+ *
+ * A reload rebuilds the session from localStorage alone, so before this the UI
+ * had no way to notice a JWT that had expired or a user whose row had been
+ * deleted — `isSignedIn()` is what the guards read, and storage always said
+ * yes. `GET /api/auth/me` is the server's answer to that question and had sat
+ * with no caller since it was written.
+ *
+ * The interesting cases are not the happy one. They are the three sessions that
+ * must NOT be signed out: the tokenless demo session, the one where the backend
+ * is simply unreachable, and the one that was replaced while the check was in
+ * flight. Each is a way for this feature to log out somebody it should not.
+ */
+describe('AuthService session revalidation', () => {
+  const API = 'http://localhost:8080';
+  const ME = `${API}/api/auth/me`;
+
+  const STORED_USER = {
+    id: 42,
+    name: 'Priya Menon',
+    email: 'pmenon@student.monash.edu',
+    initials: 'PM',
+    role: 'judge',
+    token: 'header.payload.signature',
+  };
+
+  /** What `/api/auth/me` answers with: a bare UserInfo, not the login wrapper. */
+  const ME_RESPONSE = {
+    id: 42,
+    email: 'pmenon@student.monash.edu',
+    fullName: 'Priya Menon',
+    role: 'judge',
+  };
+
+  let auth: AuthService;
+  let http: HttpTestingController;
+
+  /** Stands up a service over a session already in storage, as a reload does. */
+  function reloadWith(stored: object | null): AuthService {
+    const seed: Record<string, string> = stored
+      ? { 'hackathon.demo-auth': JSON.stringify({ user: stored }) }
+      : {};
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: SESSION_STORAGE, useValue: memoryStorage(seed) },
+        { provide: API_BASE_URL, useValue: API },
+      ],
+    });
+    auth = TestBed.inject(AuthService);
+    http = TestBed.inject(HttpTestingController);
+    return auth;
+  }
+
+  afterEach(() => {
+    http.verify();
+  });
+
+  describe('the request', () => {
+    it('asks the backend about a restored session', () => {
+      reloadWith(STORED_USER);
+
+      const req = http.expectOne(ME);
+
+      expect(req.request.method).toBe('GET');
+      req.flush(ME_RESPONSE);
+    });
+
+    /*
+     * There is still no HTTP interceptor, so this request attaches its own
+     * header. Without it the backend's filter never populates the security
+     * context, `/me` answers 401, and revalidation would sign out every session
+     * it was given — the failure mode is total, not partial.
+     */
+    it('sends the stored JWT as a bearer token', () => {
+      reloadWith(STORED_USER);
+
+      const req = http.expectOne(ME);
+
+      expect(req.request.headers.get('Authorization')).toBe('Bearer header.payload.signature');
+      req.flush(ME_RESPONSE);
+    });
+
+    it('honours API_BASE_URL rather than a hardcoded host', () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          {
+            provide: SESSION_STORAGE,
+            useValue: memoryStorage({
+              'hackathon.demo-auth': JSON.stringify({ user: STORED_USER }),
+            }),
+          },
+          { provide: API_BASE_URL, useValue: 'https://api.example.edu' },
+        ],
+      });
+      TestBed.inject(AuthService);
+      http = TestBed.inject(HttpTestingController);
+
+      http.expectOne('https://api.example.edu/api/auth/me').flush(ME_RESPONSE);
+    });
+  });
+
+  describe('sessions it must not touch', () => {
+    // The demo path never had a token, so there is nothing to validate and
+    // nothing that could come back rejected. Asking anyway would sign the three
+    // role buttons out on every reload.
+    it('makes no request for a tokenless demo session', () => {
+      const stored = { ...STORED_USER, token: undefined };
+
+      const restored = reloadWith(stored);
+
+      http.expectNone(ME);
+      expect(restored.isSignedIn()).toBe(true);
+      expect(restored.role()).toBe('judge');
+    });
+
+    it('makes no request when nobody is signed in', () => {
+      const restored = reloadWith(null);
+
+      http.expectNone(ME);
+      expect(restored.isSignedIn()).toBe(false);
+    });
+  });
+
+  describe('when the backend rejects the session', () => {
+    // 401 is the token: expired, or signed with a secret the server no longer
+    // holds. This is the case the whole feature exists for.
+    it('signs out on a 401', async () => {
+      const restored = reloadWith(STORED_USER);
+
+      http.expectOne(ME).flush({}, { status: 401, statusText: 'Unauthorized' });
+      await restored.sessionCheck;
+
+      expect(restored.isSignedIn()).toBe(false);
+      expect(restored.user()).toBeNull();
+      expect(restored.token()).toBeNull();
+    });
+
+    // 403 is the user: the row is gone, or no longer admitted. Under V2 a
+    // deleted user is really deleted, so this is reachable.
+    it('signs out on a 403', async () => {
+      const restored = reloadWith(STORED_USER);
+
+      http.expectOne(ME).flush({}, { status: 403, statusText: 'Forbidden' });
+      await restored.sessionCheck;
+
+      expect(restored.isSignedIn()).toBe(false);
+    });
+
+    it('clears storage too, so the next reload does not restore it again', async () => {
+      const storage = memoryStorage({
+        'hackathon.demo-auth': JSON.stringify({ user: STORED_USER }),
+        'hackathon.jwt-token': 'header.payload.signature',
+      });
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          { provide: SESSION_STORAGE, useValue: storage },
+          { provide: API_BASE_URL, useValue: API },
+        ],
+      });
+      const restored = TestBed.inject(AuthService);
+      http = TestBed.inject(HttpTestingController);
+
+      http.expectOne(ME).flush({}, { status: 401, statusText: 'Unauthorized' });
+      await restored.sessionCheck;
+      TestBed.flushEffects();
+
+      expect(storage.getItem('hackathon.demo-auth')).toBeNull();
+      expect(storage.getItem('hackathon.jwt-token')).toBeNull();
+    });
+  });
+
+  /*
+   * The backend being unreachable is not evidence that the session is bad, and
+   * treating it as such would sign the whole site out whenever Spring Boot
+   * restarts — during development, constantly. Only the server actually saying
+   * no counts.
+   */
+  describe('when the backend cannot answer', () => {
+    it('keeps the session when the request fails outright', async () => {
+      const restored = reloadWith(STORED_USER);
+
+      http.expectOne(ME).error(new ProgressEvent('error'), { status: 0 });
+      await restored.sessionCheck;
+
+      expect(restored.isSignedIn()).toBe(true);
+      expect(restored.token()).toBe('header.payload.signature');
+    });
+
+    it('keeps the session on a 500', async () => {
+      const restored = reloadWith(STORED_USER);
+
+      http.expectOne(ME).flush({}, { status: 500, statusText: 'Server Error' });
+      await restored.sessionCheck;
+
+      expect(restored.isSignedIn()).toBe(true);
+    });
+  });
+
+  describe('when the backend confirms the session', () => {
+    it('keeps the caller signed in, token and all', async () => {
+      const restored = reloadWith(STORED_USER);
+
+      http.expectOne(ME).flush(ME_RESPONSE);
+      await restored.sessionCheck;
+
+      expect(restored.isSignedIn()).toBe(true);
+      expect(restored.token()).toBe('header.payload.signature');
+    });
+
+    /*
+     * The stored copy can be stale in ways that matter: an organiser can
+     * promote somebody to judge between one visit and the next. The server's
+     * answer is the current row, so it wins over what storage remembered.
+     */
+    it('takes the backend’s role over the stored one', async () => {
+      const restored = reloadWith(STORED_USER);
+
+      http.expectOne(ME).flush({ ...ME_RESPONSE, role: 'admin' });
+      await restored.sessionCheck;
+
+      expect(restored.role()).toBe('admin');
+    });
+
+    it('takes the backend’s name and re-derives the initials', async () => {
+      const restored = reloadWith(STORED_USER);
+
+      http.expectOne(ME).flush({ ...ME_RESPONSE, fullName: 'Nur Aisyah binti Rahman' });
+      await restored.sessionCheck;
+
+      expect(restored.user()?.name).toBe('Nur Aisyah binti Rahman');
+      expect(restored.user()?.initials).toBe('NR');
+    });
+
+    // Same guard the sign-in path has: an unrecognised role must not reach a
+    // Record<Role, …> lookup and land the user nowhere.
+    it('falls back to participant on a role it does not know', async () => {
+      const restored = reloadWith(STORED_USER);
+
+      http.expectOne(ME).flush({ ...ME_RESPONSE, role: 'superuser' });
+      await restored.sessionCheck;
+
+      expect(restored.role()).toBe('participant');
+    });
+  });
+
+  /*
+   * The check runs unawaited from the constructor, so anything can happen while
+   * it is in flight. Both of these would otherwise apply an answer about a
+   * session that is no longer the current one.
+   */
+  describe('racing with the session it was checking', () => {
+    it('does not sign out a session that has since signed in again', async () => {
+      const restored = reloadWith(STORED_USER);
+      const stale = http.expectOne(ME);
+
+      // A fresh sign-in lands before the stale check comes back.
+      const signingIn = restored.signInWithGoogle('google-id-token');
+      http.expectOne(`${API}/api/auth/google`).flush({
+        token: 'a.brand.new-token',
+        user: ME_RESPONSE,
+      });
+      await signingIn;
+
+      stale.flush({}, { status: 401, statusText: 'Unauthorized' });
+      await restored.sessionCheck;
+
+      expect(restored.isSignedIn()).toBe(true);
+      expect(restored.token()).toBe('a.brand.new-token');
+    });
+
+    it('does not resurrect a session the user signed out of', async () => {
+      const restored = reloadWith(STORED_USER);
+      const inFlight = http.expectOne(ME);
+
+      restored.signOut();
+      inFlight.flush(ME_RESPONSE);
+      await restored.sessionCheck;
+
+      expect(restored.isSignedIn()).toBe(false);
     });
   });
 });
