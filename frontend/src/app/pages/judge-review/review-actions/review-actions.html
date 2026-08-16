@@ -24,7 +24,7 @@
         class="button button--primary"
         [disabled]="busy() || !allScored()"
         [attr.title]="allScored() ? null : 'Score every criterion before submitting'"
-        (click)="submit.emit()"
+        (click)="submitted.emit()"
       >
         Submit review
       </button>

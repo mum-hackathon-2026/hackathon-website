@@ -19,5 +19,10 @@ export class ReviewActions {
   readonly savedAt = input<Date | null>(null);
 
   readonly save = output<void>();
-  readonly submit = output<void>();
+  /**
+   * Past tense, and deliberately not `submit`: that is a native DOM event name,
+   * so `(submit)` on the host would be ambiguous between this output and a real
+   * submit event bubbling out of the buttons inside it.
+   */
+  readonly submitted = output<void>();
 }

@@ -27,11 +27,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # No lint step: there is no ESLint config and no `lint` script in
-      # package.json. The previous `npm run lint --if-present` silently did
-      # nothing while reading as though the code was linted. Add a real step
-      # here when ESLint is configured — without `--if-present`, so that a
-      # missing script fails loudly instead of passing quietly.
+      # angular-eslint over src/**/*.ts and src/**/*.html, configured in
+      # frontend/eslint.config.js. Deliberately no `--if-present`: an earlier
+      # version of this step carried it, so when the `lint` script did not exist
+      # the step silently did nothing while reading as though the code had been
+      # linted. Without it, a missing script fails loudly.
+      - name: Lint
+        run: npm run lint
 
       # Vitest under jsdom via the @angular/build:unit-test builder, so no
       # browser is needed. `--watch=false` is explicit rather than left to the
