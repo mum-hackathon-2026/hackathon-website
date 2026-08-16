@@ -1,7 +1,7 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `041835f` (= `origin/main`, through PR #46) plus the lazy judge routes on `feature/lazy-judge-routes`, 2026-08-16.
+**As of:** `e8d74c5` (= `origin/main`, through PR #47) plus the admin section specs on `feature/admin-section-specs`, 2026-08-16.
 **Verified:** the frontend suite and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
@@ -174,7 +174,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 - [x] ~~**The initial bundle is over budget.**~~ Resolved in #47 — the two judge routes went lazy and the initial bundle fell to 452.82 kB, 47 kB clear of the 500 kB warning. **The mechanism that let it drift is still there**: `npm run build` only *warns* at 500 kB and exits 0, so CI stays green while over budget — only the 1 MB error threshold fails a build. The remaining eager routes are the public pages plus the four participant ones.
 - [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
 - [ ] **No linting.** No ESLint config and no lint script; Prettier is the only tool configured and it only formats. CI marks where the step goes.
-- [ ] **Uneven test coverage.** Every routed page has a spec, but `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts` have none, and most presentational pieces are untested — `page-header`, `profile-menu`, `state-locked`, `event-timeline`, `status-pill`, and the section components under `progress/`, `results/`, `judge-portal/`, `judge-review/`, `admin-dashboard/` and parts of `home/`.
+- [ ] **Uneven test coverage — 22 files still have no spec**, down from 30 in #48, which closed the admin workspace. Every routed page has a spec and every `admin-dashboard/` section now has one too; what remains is `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts`, the layout kit (`page-header`, `profile-menu`, `state-locked`, `event-timeline`, `status-pill`), and the section components under `progress/`, `results/`, `judge-portal/`, `judge-review/` and parts of `home/`. **The count was previously given here as "~10" and was never right** — it is read from the tree now.
 - [ ] **Six CHECK vocabularies remain unratified** — see [docs/README.md](README.md). Three are at least exercised by the frontend; three (`assignments.status`, `notifications_log.type`, `notifications_log.status`) had never been reviewed until the judge pages started consuming the first of them.
 - [ ] **Placeholder content.** `DEMO_USERS`, `DEFAULT_EVENT_CONFIG` dates and the service seeds are marked as placeholders in the source. Read the file header before treating any of it as a team decision.
 
@@ -223,6 +223,7 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 | #45 | 08-15 | **Averis sponsor section** — the nine placeholder sponsors and their dead Clearbit logo lookups replaced by one confirmed sponsor on a self-hosted asset; tiers removed, `SPONSORS` is an array of one |
 | #46 | 08-16 | Sponsor note reworded as a thank-you, and it now reads the event name from `EventSettingsService` instead of hardcoding it |
 | #47 | 08-16 | **Judge routes lazy-loaded** — `JudgePortal` and `JudgeReview` behind `loadComponent`, taking the initial bundle from 505.35 kB to 452.82 kB and ending the budget warning that had stood since #34 |
+| #48 | 08-16 | **Specs for the eight untested admin sections** — Assignments, Judges, Teams, Participants, Overview, Submissions, Sidebar and the workload panel. 425 → 499 tests; the cascade-confirm and constraint-refusal paths are now covered. No production code changed |
 
 **In flight:** nothing. `feature/admin-judges` (PR #37) merged as `86cb516`.
 
@@ -251,8 +252,8 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npx ng test --watch=false` | **32 files, 425 tests passed** | `feature/lazy-judge-routes`, 2026-08-16 |
-| Frontend | `npm run build` | **452.82 kB initial — ✅ under budget, no warning** | `feature/lazy-judge-routes`, 2026-08-16 |
+| Frontend | `npx ng test --watch=false` | **40 files, 499 tests passed** | `feature/admin-section-specs`, 2026-08-16 |
+| Frontend | `npm run build` | **452.82 kB initial — ✅ under budget, no warning** | `feature/admin-section-specs`, 2026-08-16 |
 | Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
 | Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
 
@@ -260,7 +261,9 @@ Running alongside, and not waiting on any of the above: **Judging Progress**, th
 
 **The bundle is under budget for the first time since #34.** The warning arrived with the HTTP layer (490.74 kB → 517.29 kB) and drifted down as pages shed dependencies — #40 dropped `FormsModule` from the two participant pages, #45 removed the sponsor tier machinery. #47 ended it outright: moving `JudgePortal` and `JudgeReview` behind `loadComponent` took 52.53 kB out of the initial chunk (505.35 kB → **452.82 kB**), into a 20.03 kB and a 23.14 kB lazy chunk. Note the two figures do not net: the judge pages shared code with the eager bundle that now travels with them.
 
-The spec count is 425 across 32 files. It has not moved on this branch: #46 changed copy only, and the two sponsor specs assert on `SPONSORS` and the logo fallback rather than on the note's wording.
+**The spec count is 499 across 40 files, up from 425 across 32.** All 74 came from #48, which specced the eight admin-dashboard components that had none. The build is unchanged at 452.82 kB, as it should be — specs are not bundled, so movement there would mean something had been imported into production code by mistake.
+
+Each new spec was checked by breaking the code it covers and confirming the right test failed — the cascade guard in Assignments, the competitor confirmation in Judges, and the `Math.max(1, …)` floor in the workload panel were each inverted in turn, and each was caught. A spec that passes either way tests nothing.
 
 The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
 
