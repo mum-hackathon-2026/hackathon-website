@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../../core/event/event-config';
 import { PhaseService } from '../../../core/event/phase';
 
@@ -15,7 +14,7 @@ function pad(value: number): string {
 
 @Component({
   selector: 'app-home-hero',
-  imports: [RouterLink, DatePipe],
+  imports: [DatePipe],
   templateUrl: './hero.html',
   styleUrl: './hero.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
