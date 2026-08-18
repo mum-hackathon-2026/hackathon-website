@@ -1018,9 +1018,8 @@ export class AdminService {
 
   constructor() {
     effect(() => {
-      const token = this.auth.token();
       const user = this.auth.user();
-      if (token && user?.role === 'admin' && this.http) {
+      if (user?.role === 'admin' && this.http) {
         void this.refreshAll();
       } else {
         this.liveTeams.set(null);
@@ -1034,22 +1033,22 @@ export class AdminService {
   }
 
   async refreshAll(): Promise<void> {
-    const token = this.auth.token();
-    if (!this.http || !token || this.auth.user()?.role !== 'admin') return;
+    if (!this.http || this.auth.user()?.role !== 'admin') return;
     try {
-      const headers = { Authorization: `Bearer ${token}` };
+      const token = this.auth.token();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const [overview, teams, participants, judges, assignments, audit] = await Promise.all([
         firstValueFrom(
           this.http.get<{ stats: AdminStats; recentAudit: any[] }>(
-            `${this.apiBaseUrl}/admin/overview`,
+            `${this.apiBaseUrl}/api/admin/overview`,
             { headers },
           ),
         ),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/admin/teams`, { headers })),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/admin/participants`, { headers })),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/admin/judges`, { headers })),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/admin/assignments`, { headers })),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/admin/audit`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/teams`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/participants`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/judges`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/assignments`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/audit`, { headers })),
       ]);
 
       if (overview?.stats) {
@@ -1099,7 +1098,7 @@ export class AdminService {
    * rather than seeded beside it.
    */
   readonly judges = computed<readonly AdminJudge[]>(() => {
-    if (this.liveJudges()) {
+    if (this.liveJudges() !== null) {
       return this.liveJudges()!;
     }
     const all = this.assignmentRows();
@@ -1145,7 +1144,7 @@ export class AdminService {
    * Every team in the event, newest concerns first.
    */
   readonly teams = computed<readonly AdminTeamRow[]>(() => {
-    if (this.liveTeams()) {
+    if (this.liveTeams() !== null) {
       return this.liveTeams()!;
     }
     const tracks = this.config.site.tracks;
@@ -1210,7 +1209,7 @@ export class AdminService {
   });
 
   readonly participants = computed<readonly AdminParticipantRow[]>(() => {
-    if (this.liveParticipants()) {
+    if (this.liveParticipants() !== null) {
       return this.liveParticipants()!;
     }
     const overrides = this.roleOverrides();
@@ -1233,7 +1232,7 @@ export class AdminService {
   });
 
   readonly assignments = computed<readonly AdminAssignmentRow[]>(() => {
-    if (this.liveAssignments()) {
+    if (this.liveAssignments() !== null) {
       return this.liveAssignments()!;
     }
     const byTeam = new Map<number, AdminAssignment[]>();
@@ -1323,7 +1322,7 @@ export class AdminService {
   );
 
   readonly stats = computed<AdminStats>(() => {
-    if (this.liveStats()) {
+    if (this.liveStats() !== null) {
       return this.liveStats()!;
     }
     const rows = this.teams();
@@ -1398,7 +1397,7 @@ export class AdminService {
         try {
           await firstValueFrom(
             this.http.patch(
-              `${this.apiBaseUrl}/admin/teams/${teamId}`,
+              `${this.apiBaseUrl}/api/admin/teams/${teamId}`,
               { teamName: trimmed },
               { headers: { Authorization: `Bearer ${token}` } },
             ),
@@ -1427,7 +1426,7 @@ export class AdminService {
         try {
           await firstValueFrom(
             this.http.patch(
-              `${this.apiBaseUrl}/admin/teams/${teamId}`,
+              `${this.apiBaseUrl}/api/admin/teams/${teamId}`,
               { status },
               { headers: { Authorization: `Bearer ${token}` } },
             ),
@@ -1461,7 +1460,7 @@ export class AdminService {
         try {
           await firstValueFrom(
             this.http.post(
-              `${this.apiBaseUrl}/admin/assignments`,
+              `${this.apiBaseUrl}/api/admin/assignments`,
               { teamId, judgeId },
               { headers: { Authorization: `Bearer ${token}` } },
             ),
@@ -1498,7 +1497,7 @@ export class AdminService {
       if (this.http && token && this.auth.user()?.role === 'admin') {
         try {
           await firstValueFrom(
-            this.http.delete(`${this.apiBaseUrl}/admin/assignments/${assignmentId}`, {
+            this.http.delete(`${this.apiBaseUrl}/api/admin/assignments/${assignmentId}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
           );
@@ -1533,7 +1532,7 @@ export class AdminService {
         try {
           await firstValueFrom(
             this.http.post(
-              `${this.apiBaseUrl}/admin/judges/${userId}`,
+              `${this.apiBaseUrl}/api/admin/judges/${userId}`,
               {},
               { headers: { Authorization: `Bearer ${token}` } },
             ),
@@ -1567,7 +1566,7 @@ export class AdminService {
       if (this.http && token && this.auth.user()?.role === 'admin') {
         try {
           await firstValueFrom(
-            this.http.delete(`${this.apiBaseUrl}/admin/judges/${userId}`, {
+            this.http.delete(`${this.apiBaseUrl}/api/admin/judges/${userId}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
           );
@@ -1594,7 +1593,7 @@ export class AdminService {
         try {
           await firstValueFrom(
             this.http.patch(
-              `${this.apiBaseUrl}/admin/teams/${teamId}`,
+              `${this.apiBaseUrl}/api/admin/teams/${teamId}`,
               { shortlisted },
               { headers: { Authorization: `Bearer ${token}` } },
             ),

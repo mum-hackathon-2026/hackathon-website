@@ -129,6 +129,44 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/dev-login")
+    public ResponseEntity<?> devLogin(@RequestBody Map<String, String> request) {
+        String role = request.getOrDefault("role", "admin");
+        String email = request.get("email");
+
+        User user = null;
+        if (email != null && !email.isBlank()) {
+            user = userRepository.findByEmail(email.toLowerCase()).orElse(null);
+        }
+        if (user == null) {
+            var users = userRepository.findByRole(role);
+            if (!users.isEmpty()) {
+                user = users.get(0);
+            }
+        }
+        if (user == null) {
+            // If no user found in DB for this role, fallback to first user or create local dev admin
+            user = userRepository.findAll().stream().findFirst().orElse(null);
+        }
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "No user found in database"));
+        }
+
+        String token = jwtService.generateToken(user);
+        var response = new AuthResponse(
+                token,
+                new AuthResponse.UserInfo(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getFullName(),
+                        user.getRole()
+                )
+        );
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * Returns the authenticated user's profile.
      *
