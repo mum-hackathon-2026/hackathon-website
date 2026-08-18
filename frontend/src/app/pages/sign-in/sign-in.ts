@@ -29,6 +29,7 @@ declare global {
           initialize(config: {
             client_id: string;
             callback: (response: { credential: string }) => void;
+            auto_select?: boolean;
             itp_support?: boolean;
             use_fedcm_for_prompt?: boolean;
           }): void;
@@ -107,8 +108,9 @@ export class SignIn implements AfterViewInit, OnDestroy {
         window.google.accounts.id.initialize({
           client_id: this.googleClientId,
           callback: (res: { credential: string }) => this.handleGoogleCredential(res.credential),
-          itp_support: true,
-          use_fedcm_for_prompt: false,
+          auto_select: false,
+          use_fedcm_for_prompt: true,
+          itp_support: false,
         });
         window.__googleGisInitialized = true;
       }
