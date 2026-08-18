@@ -234,7 +234,9 @@ public class AdminBackendService {
 
     @Transactional(readOnly = true)
     public List<AdminParticipantDto> getParticipants() {
-        var allUsers = userRepository.findAll();
+        var allUsers = userRepository.findAll().stream()
+                .filter(u -> !"admin".equalsIgnoreCase(u.getRole()))
+                .toList();
         var allMembers = teamMemberRepository.findAll();
         var allTeams = teamRepository.findAll();
 
