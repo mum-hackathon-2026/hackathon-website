@@ -59,7 +59,7 @@ public final class FormRegistrationImporter {
             """;
 
     private static final String INSERT_TEAM =
-            "insert into teams (name, join_code, created_by) values (?, ?, ?)";
+            "insert into teams (name, join_code, created_by, status) values (?, ?, ?, 'complete')";
 
     private static final String INSERT_TEAM_MEMBER =
             "insert into team_members (user_id, team_id) values (?, ?)";
