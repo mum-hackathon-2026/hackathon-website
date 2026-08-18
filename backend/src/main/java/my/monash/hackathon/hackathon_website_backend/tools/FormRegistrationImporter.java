@@ -107,6 +107,48 @@ public final class FormRegistrationImporter {
     /** Join codes minted in this run — a dry run rolls them back, so the DB cannot see them. */
     private final Set<String> joinCodesMinted = new HashSet<>();
 
+    public record ImportSummary(
+            boolean success,
+            int totalRows,
+            int imported,
+            int skipped,
+            int rejected,
+            List<String> logMessages
+    ) {}
+
+    /**
+     * Programmatic entry point to import registrations from Google Sheets directly using a SQL Connection.
+     */
+    public static ImportSummary importFromSheet(Connection connection, String sheetId, String tab,
+                                                Path credentialsPath, boolean dryRun) throws Exception {
+        CsvReader.Sheet sheet = GoogleSheetsReader.read(sheetId, tab, credentialsPath);
+        if (!reportColumnMapping(sheet)) {
+            return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(),
+                    List.of("Column mapping failed - incomplete member block or disallowed repository question"));
+        }
+        if (sheet.rows().isEmpty()) {
+            return new ImportSummary(true, 0, 0, 0, 0, List.of("The sheet has no data rows"));
+        }
+
+        FormRegistrationImporter importer = new FormRegistrationImporter();
+        List<Outcome> outcomes = new ArrayList<>();
+        List<String> logMessages = new ArrayList<>();
+
+        for (CsvReader.Row row : sheet.rows()) {
+            Outcome outcome = importer.processRow(connection, row, dryRun);
+            outcomes.add(outcome);
+            logMessages.add("line " + row.lineNumber() + " " + outcome.status().label + " " + outcome.detail());
+        }
+
+        int imported = (int) outcomes.stream()
+                .filter(o -> o.status() == Status.IMPORTED || o.status() == Status.WOULD_IMPORT)
+                .count();
+        int skipped = (int) outcomes.stream().filter(o -> o.status() == Status.ALREADY_PRESENT).count();
+        int rejected = (int) outcomes.stream().filter(o -> o.status() == Status.REJECTED).count();
+
+        return new ImportSummary(rejected == 0, outcomes.size(), imported, skipped, rejected, logMessages);
+    }
+
     private enum Status {
         IMPORTED("IMPORTED"),
         WOULD_IMPORT("WOULD IMPORT"),

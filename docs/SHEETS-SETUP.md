@@ -88,3 +88,56 @@ cd backend
 cd backend
 .\mvnw.cmd compile exec:java "-Dexec.args=--sheet-id=1kdANBJLmrnc8s5enGOohfW7X80bnqKaM_Dr_uwxEOV4 --tab=\"Form responses 1\" --credentials=backend/credentials/sheets-key.json --dry-run"
 ```
+
+---
+
+## 7. Instant Push Execution (Google Apps Script Webhook)
+
+To automatically trigger registration import the moment a user submits the Google Form, set up an `onFormSubmit` Apps Script webhook:
+
+1. Open your linked Google Sheet (`1kdANBJLmrnc8s5enGOohfW7X80bnqKaM_Dr_uwxEOV4`).
+2. Click **Extensions** > **Apps Script**.
+3. Replace any default code in `Code.gs` with the following script:
+
+```javascript
+/**
+ * Triggers backend registration sync immediately upon form submission.
+ */
+function onFormSubmit(e) {
+  // Replace with your deployed backend server URL (or ngrok/tunnel for local testing)
+  var WEBHOOK_URL = "https://your-server-domain.com/api/webhooks/forms/registration";
+  var WEBHOOK_SECRET = "dev_webhook_secret_2026"; // matches app.webhook.secret
+
+  var payload = {
+    eventType: "form_submission",
+    timestamp: new Date().toISOString()
+  };
+
+  var options = {
+    method: "post",
+    contentType: "application/json",
+    headers: {
+      "X-Webhook-Secret": WEBHOOK_SECRET
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(WEBHOOK_URL, options);
+    Logger.log("Webhook response code: " + response.getResponseCode());
+    Logger.log("Webhook response body: " + response.getContentText());
+  } catch (err) {
+    Logger.log("Error sending webhook: " + err);
+  }
+}
+```
+
+4. Set up the Installable Trigger:
+   - In Apps Script, click the **Triggers** icon (clock icon) in the left sidebar.
+   - Click **Add Trigger** (bottom right).
+   - Choose function to run: `onFormSubmit`
+   - Select event source: **From spreadsheet** (or **From form**)
+   - Select event type: **On form submit**
+   - Click **Save** and grant permissions.
+

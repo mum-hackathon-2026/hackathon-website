@@ -26,7 +26,12 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties({JwtProperties.class, GoogleAuthProperties.class})
+@EnableConfigurationProperties({
+        JwtProperties.class,
+        GoogleAuthProperties.class,
+        my.monash.hackathon.hackathon_website_backend.webhook.WebhookProperties.class,
+        my.monash.hackathon.hackathon_website_backend.webhook.SheetsProperties.class
+})
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -43,6 +48,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/webhooks/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("admin")
                         .requestMatchers("/api/judge/**").hasAuthority("judge")
                         .anyRequest().authenticated()
