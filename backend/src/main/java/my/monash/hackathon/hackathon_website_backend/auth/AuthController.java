@@ -37,13 +37,16 @@ public class AuthController {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService;
 
     public AuthController(GoogleTokenVerifier googleTokenVerifier,
                           JwtService jwtService,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService) {
         this.googleTokenVerifier = googleTokenVerifier;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.registrationImportService = registrationImportService;
     }
 
     /**
@@ -73,6 +76,17 @@ public class AuthController {
 
         // 2. Check if the email exists in the users table (whitelist check)
         var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty() && registrationImportService != null) {
+            // Attempt on-demand sync from Google Sheets in case the form was just submitted
+            try {
+                log.info("Email {} not yet in local DB. Checking Google Sheets on-demand...", email);
+                registrationImportService.syncFromSheets(false);
+                userOpt = userRepository.findByEmail(email);
+            } catch (Exception e) {
+                log.warn("On-demand sheet sync check failed during login for {}: {}", email, e.getMessage());
+            }
+        }
+
         if (userOpt.isEmpty()) {
             log.info("Login denied: email not registered — {}", email);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)

@@ -41,6 +41,23 @@ public class RegistrationImportService {
         }
     }
 
+    @org.springframework.scheduling.annotation.Scheduled(
+            fixedDelayString = "${app.sheets.poll-interval-ms:15000}",
+            initialDelay = 3000)
+    public void scheduledSync() {
+        if (sheetsProperties.sheetId() == null || sheetsProperties.sheetId().isBlank()) {
+            return;
+        }
+        try {
+            var summary = syncFromSheets(false);
+            if (summary.imported() > 0) {
+                log.info("Scheduled sync imported {} new registration(s)", summary.imported());
+            }
+        } catch (Exception e) {
+            log.debug("Scheduled sync poll check: {}", e.getMessage());
+        }
+    }
+
     private Path resolveCredentialsPath(String configuredPath) {
         if (configuredPath != null && !configuredPath.isBlank()) {
             Path p = Path.of(configuredPath);
