@@ -109,7 +109,7 @@ export const EXTRA_FAQS: readonly Faq[] = [
   {
     question: 'What happens if my team has an eligibility issue?',
     answer:
-      'Contact the participant experience lead below before registration closes. Teams with an ' +
+      'Contact the hackathon directors below before registration closes. Teams with an ' +
       'unresolved eligibility issue are locked from submitting until it is cleared.',
   },
 ];
@@ -151,57 +151,21 @@ const STUDENT_EXPERIENCE = 'Student Experience Office';
  */
 export const ORGANIZERS: readonly Organizer[] = [
   {
-    name: 'Mei-Lin Zhao',
-    role: 'Event Director',
-    initials: 'MZ',
+    name: 'Ang Ling',
+    role: 'Hackathon Director',
+    initials: 'AL',
     accent: 'blue',
     department: site.faculty,
-    email: 'mei-lin.zhao@monash.edu',
-    bio: 'Oversees the hackathon programme end to end, from the challenge tracks through to the awards ceremony.',
+    email: 'ang.ling@monash.edu',
+    bio: 'Oversees the hackathon programme end to end, coordinating planning, partner engagements, and event execution.',
   },
   {
-    name: 'Rohan Patel',
-    role: 'Sponsorship Lead',
-    initials: 'RP',
+    name: 'Ming Dong',
+    role: 'Hackathon Director',
+    initials: 'MD',
     accent: 'green',
-    department: 'Industry Engagement Office',
-    email: 'rohan.patel@monash.edu',
-    bio: 'Looks after partner and sponsor relationships. Contact him about sponsoring the event or running a workshop.',
-  },
-  {
-    name: 'Sofia Andersen',
-    role: 'Logistics',
-    initials: 'SA',
-    accent: 'red',
-    department: STUDENT_EXPERIENCE,
-    email: 'sofia.andersen@monash.edu',
-    bio: 'Runs the venue, catering and equipment. Contact her about accessibility needs or anything you need on site.',
-  },
-  {
-    name: 'Kwame Asante',
-    role: 'Judging Coordinator',
-    initials: 'KA',
-    accent: 'yellow',
     department: site.faculty,
-    email: 'kwame.asante@monash.edu',
-    bio: 'Recruits the judging panel and administers scoring. Contact him with questions about the judging criteria.',
-  },
-  {
-    name: 'Yuki Tanaka',
-    role: 'Marketing',
-    initials: 'YT',
-    accent: 'blue',
-    department: STUDENT_EXPERIENCE,
-    email: 'yuki.tanaka@monash.edu',
-    bio: 'Handles announcements, social channels and press. Contact her about media enquiries or promoting the event.',
-  },
-  {
-    name: 'Caitlin Murphy',
-    role: 'Participant Experience',
-    initials: 'CM',
-    accent: 'green',
-    department: STUDENT_EXPERIENCE,
-    email: 'caitlin.murphy@monash.edu',
-    bio: 'First point of contact for participants — registration, team eligibility and account problems.',
+    email: 'ming.dong@monash.edu',
+    bio: 'Co-directs the hackathon, managing technical challenge design, judging operations, and participant experience.',
   },
 ];

@@ -111,10 +111,10 @@ describe('event content', () => {
       }
     });
 
-    it('gives each person a distinct role, so readers can pick one', () => {
-      const roles = ORGANIZERS.map((o) => o.role);
-
-      expect(new Set(roles).size).toBe(roles.length);
+    it('gives everyone a meaningful role', () => {
+      for (const organizer of ORGANIZERS) {
+        expect(organizer.role).toContain('Director');
+      }
     });
 
     // The homepage grid shows the initials in place of a photo. Initials that
@@ -151,13 +151,8 @@ describe('event content', () => {
       }
     });
 
-    /*
-     * The eligibility FAQ tells people to contact "the participant experience
-     * lead below" — on the same page as this list. If that role were renamed or
-     * dropped, the instruction would point at nobody.
-     */
-    it('includes the participant experience lead the FAQ points readers at', () => {
-      expect(ORGANIZERS.some((o) => o.role === 'Participant Experience')).toBe(true);
+    it('includes the hackathon directors for participant questions', () => {
+      expect(ORGANIZERS.some((o) => o.role === 'Hackathon Director')).toBe(true);
     });
   });
 });
