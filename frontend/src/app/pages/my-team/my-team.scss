@@ -159,7 +159,9 @@
   border: 1px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-surface);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:hover {
     border-color: var(--color-blue);
@@ -193,12 +195,16 @@
   font-size: 14px;
   font-weight: 700;
   color: var(--color-blue-ink);
-  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-border);
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 3px var(--color-border);
 
   &--leader {
     background: var(--color-amber-tint);
     color: var(--color-amber-ink);
-    box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-yellow);
+    box-shadow:
+      0 0 0 2px var(--color-surface),
+      0 0 0 3px var(--color-yellow);
   }
 }
 
