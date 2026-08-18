@@ -108,16 +108,16 @@ final class TeamRow {
 
     /** The six values collected per person, with the header spellings each will match. */
     enum Field {
-        NAME("Name", "name", "fullname"),
+        NAME("Name", "name", "fullname", "fullnamefirstfamilyname"),
         EMAIL("Email", "email", "emailaddress"),
-        PHONE("Phone", "phone", "phonenumber", "contactnumber", "mobile"),
-        RESUME("Resume", "resume", "resumeurl", "resumelink", "cv", "cvlink"),
-        LINKEDIN("LinkedIn", "linkedin", "linkedinurl", "linkedinlink", "linkedinprofile"),
+        PHONE("Phone", "phone", "phonenumber", "contactnumber", "mobile", "phonewhatsappnumber"),
+        RESUME("Resume", "resume", "resumeurl", "resumelink", "cv", "cvlink", "resumecvpdf"),
+        LINKEDIN("LinkedIn", "linkedin", "linkedinurl", "linkedinlink", "linkedinprofile", "linkedinprofileurl"),
         // The person's own account. Nothing here matches a "project"/"repo" spelling on
         // purpose — submissions.github_url is a different column with a different meaning,
         // and a header called "Project GitHub" must not silently land in users.github_url.
         GITHUB("GitHub", "github", "githuburl", "githublink", "githubprofile",
-                "githubaccount", "githubusername");
+                "githubaccount", "githubusername", "githubprofileurl");
 
         private final String label;
         private final List<String> suffixes;
@@ -140,6 +140,21 @@ final class TeamRow {
         String canonicalHeader(int block) {
             return "Member " + block + " " + label;
         }
+    }
+
+    /** Whether a normalised header name corresponds to any mapped field or team name. */
+    static boolean isMappedHeader(String normalisedHeader) {
+        if (TEAM_NAME_HEADERS.contains(normalisedHeader)) {
+            return true;
+        }
+        for (int block = 1; block <= BLOCK_SCAN_LIMIT; block++) {
+            for (Field field : Field.values()) {
+                if (field.aliases(block).contains(normalisedHeader)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Every field's label, in form order: Name, Email, Phone, Resume, LinkedIn, GitHub. */

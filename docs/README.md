@@ -56,11 +56,18 @@ Because deletion is now real, **the `ON DELETE` rules are live behaviour rather 
 
 ```powershell
 cd backend
-# validate without writing anything
+# validate without writing anything (CSV mode)
 .\mvnw.cmd compile exec:java "-Dexec.args=--file=../scripts/sample-form-registration.csv --dry-run"
-# and for real
+# and for real (CSV mode)
 .\mvnw.cmd compile exec:java "-Dexec.args=--file=../scripts/registrations.csv"
+
+# read directly from Google Sheets API
+.\mvnw.cmd compile exec:java "-Dexec.args=--sheet-id=1kdANBJLmrnc8s5enGOohfW7X80bnqKaM_Dr_uwxEOV4 --dry-run"
+# live import directly from Google Sheets API
+.\mvnw.cmd compile exec:java "-Dexec.args=--sheet-id=1kdANBJLmrnc8s5enGOohfW7X80bnqKaM_Dr_uwxEOV4"
 ```
+
+For Google Sheets API setup, service account creation, and sheet permissions, see [SHEETS-SETUP.md](SHEETS-SETUP.md).
 
 Expected columns, matched **case- and punctuation-insensitively**, with unrecognised columns (Google's `Timestamp`, consent checkboxes) ignored:
 

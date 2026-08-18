@@ -40,3 +40,7 @@ backend/application-local.yml
 # ===== Docker =====
 *.pid
 docker-compose.override.yml
+
+# ===== Credentials =====
+credentials/
+backend/credentials/

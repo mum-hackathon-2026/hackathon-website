@@ -186,20 +186,27 @@ Windows/PowerShell needs `.\mvnw.cmd` and quoted `-D` args; Mac/Linux uses `./mv
 
 ### Importing Google Form registrations
 
-`tools/FormRegistrationImporter` reads a CSV exported from the registration form's Google Sheet into `users`, `teams` and `team_members`. It is a plain `main` on raw JDBC — not a Spring bean — so it neither boots the context nor needs the Google client id, and it controls its own transactions. `exec-maven-plugin` is declared in `pom.xml` with the main class preconfigured; it has no `<executions>`, so it never runs as part of a build.
+`tools/FormRegistrationImporter` reads registrations from a CSV or directly from Google Sheets API into `users`, `teams` and `team_members`. It is a plain `main` on raw JDBC — not a Spring bean — so it neither boots the context nor needs the Google OAuth web client id, and it controls its own transactions. `exec-maven-plugin` is declared in `pom.xml` with the main class preconfigured; it has no `<executions>`, so it never runs as part of a build.
 
 ```powershell
+# CSV mode
 .\mvnw.cmd compile exec:java "-Dexec.args=--file=../scripts/sample-form-registration.csv --dry-run"
 .\mvnw.cmd compile exec:java "-Dexec.args=--file=../scripts/registrations.csv"
+
+# Google Sheets direct mode (via service account in backend/credentials/sheets-key.json)
+.\mvnw.cmd compile exec:java "-Dexec.args=--sheet-id=1kdANBJLmrnc8s5enGOohfW7X80bnqKaM_Dr_uwxEOV4 --dry-run"
+.\mvnw.cmd compile exec:java "-Dexec.args=--sheet-id=1kdANBJLmrnc8s5enGOohfW7X80bnqKaM_Dr_uwxEOV4"
 ```
 
-Headers are matched case- and punctuation-insensitively (`Team Name`, `Member 1 Name`, `Member 1 Email`, `Member 1 Phone`, `Member 1 Resume`, `Member 1 LinkedIn`, `Member 1 GitHub`, and the same six for members 2–4); unknown columns such as Google's `Timestamp` are ignored. The tool prints the column mapping it derived and **refuses to run unless every member block that appears at all appears whole** — all six columns or none — because silently importing null resumes is the worst failure available to it. Member 1 is always required; members 2–4 may be absent entirely (a form that only collects pairs), but a block with *some* of its columns is a mis-titled question rather than a smaller team and halts the run. **Two columns with the same title halt it too** — Forms permits duplicate question titles and the later column would silently win.
+For Google Cloud service account setup and sheet sharing permissions, see `docs/SHEETS-SETUP.md`.
 
-**It is idempotent** — the form keeps collecting, so it gets re-run. A team already present with exactly the CSV's members is skipped; a team whose name is taken but whose members differ is rejected rather than merged. **Each team is one transaction**, so nothing is ever half-written. `--dry-run` performs the real inserts and rolls back, so the constraints genuinely fire rather than being approximated.
+Headers are matched case- and punctuation-insensitively (`Team Name`, `Member 1 Name`, `Member 1 Email`, `Member 1 Phone`, `Member 1 Resume`, `Member 1 LinkedIn`, `Member 1 GitHub`, and the same six for members 2–4); unknown columns such as Google's `Timestamp`, primary contact info, and consent checkboxes are ignored. The tool prints the column mapping it derived and **refuses to run unless every member block that appears at all appears whole** — all six columns or none — because silently importing null resumes is the worst failure available to it. Member 1 is always required; members 2–4 may be absent entirely (a form that only collects pairs), but a block with *some* of its columns is a mis-titled question rather than a smaller team and halts the run. **Two columns with the same title halt it too** for mapped columns. Additionally, any GitHub question titled with "Repository" or "repo" aborts with a message directing the admin to rename the question to `Member N: GitHub Profile URL`.
+
+**It is idempotent** — the form keeps collecting, so it gets re-run. A team already present with exactly the sheet's members is skipped; a team whose name is taken but whose members differ is rejected rather than merged. **Each team is one transaction**, so nothing is ever half-written. `--dry-run` performs the real inserts and rolls back, so the constraints genuinely fire rather than being approximated.
 
 Rejections (duplicate email, a person on two teams, duplicate team name, size outside 1–4, malformed email, non-URL resume/LinkedIn/GitHub) are reported per row with a readable reason and never stop the run — every other row still imports and a human chases the rest. The final line is machine-readable with stable keys — `RESULT mode=live rows=8 imported=2 skipped=0 rejected=6` — and `mode` is included so a dry run can never be mistaken for a live one.
 
-**Exit codes are `0` clean, `1` completed with rejections, `2` aborted before importing anything** (bad arguments, unreadable or malformed CSV, an incomplete member block, duplicate column titles, no data rows, unreachable database). A `RESULT` line is printed for `0` and `1` and never for `2`, so an unattended caller can branch on the exit code alone. The `1`/`2` split is the one that matters: after a `1` the database has changed, after a `2` nothing happened. Connection defaults are the local container as `hackathon_app`; override with `IMPORT_DB_URL` / `IMPORT_DB_USER` / `IMPORT_DB_PASSWORD` in preference to `--password`.
+**Exit codes are `0` clean, `1` completed with rejections, `2` aborted before importing anything** (bad arguments, missing/invalid credentials or unreachable sheet, an incomplete member block, duplicate column titles, no data rows, unreachable database). A `RESULT` line is printed for `0` and `1` and never for `2`, so an unattended caller can branch on the exit code alone. The `1`/`2` split is the one that matters: after a `1` the database has changed, after a `2` nothing happened. Connection defaults are the local container as `hackathon_app`; override with `IMPORT_DB_URL` / `IMPORT_DB_USER` / `IMPORT_DB_PASSWORD` in preference to `--password`.
 
 `scripts/sample-form-registration.csv` is a worked example covering one valid 4-member team, a valid solo team, and one of each rejection.
 
