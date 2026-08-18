@@ -209,7 +209,7 @@ export class TeamService {
   constructor() {
     effect(() => {
       const user = this.auth.user();
-      if (user?.token) {
+      if (user?.token && user?.role === 'participant') {
         this.refreshMyTeam();
       } else {
         this.apiTeam.set(null);
@@ -220,11 +220,11 @@ export class TeamService {
 
   async refreshMyTeam(): Promise<void> {
     const token = this.auth.token();
-    if (!token) return;
+    if (!token || this.auth.user()?.role !== 'participant') return;
 
     try {
       const res = await firstValueFrom(
-        this.http.get<BackendMyTeamResponse>(`${this.apiBaseUrl}/api/teams/my`, {
+        this.http.get<BackendMyTeamResponse | null>(`${this.apiBaseUrl}/api/teams/my`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       );
