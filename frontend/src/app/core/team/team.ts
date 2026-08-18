@@ -1,35 +1,9 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { AuthService } from '../auth/auth';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { API_BASE_URL, AuthService } from '../auth/auth';
 import { EventSettingsService } from '../event/event-settings';
 
-/**
- * DEMO TEAM DATA — NOT PERSISTED.
- *
- * There is no teams endpoint yet: the backend has Team and TeamMember entities
- * and their repositories, but no controller. This service stands in for that
- * API so the participant pages can be built and reviewed.
- *
- * The shapes below mirror the `teams` and `team_members` columns in V1, so
- * replacing this with HTTP calls is a change of data source rather than a
- * reshape. State lives in memory and resets on reload — deliberately, so nobody
- * mistakes it for storage.
- *
- * The mutations below no longer have a caller in the UI. Teams are formed on a
- * Google Form and imported by `tools/FormRegistrationImporter`, so My Team only
- * reads. They are kept because the progress and results specs seed their
- * fixtures through `createTeam` / `joinTeam`, and because a real endpoint will
- * want the same async boundary. Do not build a page on them.
- */
-
-/**
- * Mirrors the `teams_status_check` CHECK constraint on `teams.status`, verbatim.
- * The two must stay in sync: nothing at build or test time compares them, so a
- * migration that changes the vocabulary has to change this union in the same
- * change, or the database will reject a value the type still permits.
- *
- * V2 removed `'submitted'` — submission state lives on `submissions.status`
- * alone. To know whether a team submitted, read the submission, not the team.
- */
 export type TeamStatus = 'forming' | 'complete' | 'disqualified' | 'withdrawn';
 
 export interface Team {
@@ -51,26 +25,51 @@ export interface TeamMember {
   readonly joinedAt: Date;
 }
 
-/** Someone on a team, joined to the little we know about them. */
+/** Someone on a team, joined to the info we know about them. */
 export interface TeamMemberView extends TeamMember {
   readonly name: string;
   readonly email: string;
   readonly initials: string;
+  readonly phone?: string;
+  readonly resumeUrl?: string;
+  readonly linkedinUrl?: string;
+  readonly githubUrl?: string;
   readonly isLeader: boolean;
   readonly isYou: boolean;
+}
+
+export interface BackendTeamMemberDto {
+  readonly userId: number;
+  readonly name: string;
+  readonly email: string;
+  readonly initials: string;
+  readonly phone?: string;
+  readonly resumeUrl?: string;
+  readonly linkedinUrl?: string;
+  readonly githubUrl?: string;
+  readonly isLeader: boolean;
+  readonly isYou: boolean;
+  readonly joinedAt: string;
+}
+
+export interface BackendMyTeamResponse {
+  readonly id: number;
+  readonly name: string;
+  readonly joinCode: string;
+  readonly status: string;
+  readonly shortlisted: boolean;
+  readonly createdBy: number;
+  readonly createdAt: string;
+  readonly members: readonly BackendTeamMemberDto[];
 }
 
 export type TeamActionResult = { ok: true } | { ok: false; error: string };
 
 const NAME_MIN = 1;
 const NAME_MAX = 120;
-const CODE_LENGTH = 6; // Inside V1's 4–32 constraint.
-const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // No I/L/O/0/1.
+const CODE_LENGTH = 6;
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
-/**
- * People who aren't the signed-in user. Real member names come from the users
- * table; until there is one, seeded teams need somebody to be made of.
- */
 const DIRECTORY: Record<number, { name: string; email: string; initials: string }> = {
   1: { name: 'Priya Menon', email: 'pmenon@student.monash.edu', initials: 'PM' },
   2: { name: 'Dr. Sofia Lindqvist', email: 's.lindqvist@monash.edu', initials: 'SL' },
@@ -108,7 +107,6 @@ function seedTeams(): Team[] {
       version: 0,
       createdAt,
     },
-    // Seeded at capacity so the "team is full" path is reachable.
     {
       id: 103,
       name: 'Full House',
@@ -140,19 +138,29 @@ function seedMembers(): TeamMember[] {
 export class TeamService {
   private readonly auth = inject(AuthService);
   private readonly settings = inject(EventSettingsService);
+  private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(API_BASE_URL);
 
   private readonly teams = signal<readonly Team[]>(seedTeams());
   private readonly members = signal<readonly TeamMember[]>(seedMembers());
+  private readonly apiMembers = signal<readonly TeamMemberView[]>([]);
+  private readonly apiTeam = signal<Team | null>(null);
   private nextTeamId = 200;
 
   /** The signed-in user's membership, if they have one. */
   readonly myMembership = computed<TeamMember | null>(() => {
+    const apiT = this.apiTeam();
     const me = this.auth.user();
+    if (apiT && me) {
+      return { userId: me.id, teamId: apiT.id, joinedAt: apiT.createdAt };
+    }
     if (!me) return null;
     return this.members().find((m) => m.userId === me.id) ?? null;
   });
 
   readonly myTeam = computed<Team | null>(() => {
+    const apiT = this.apiTeam();
+    if (apiT) return apiT;
     const membership = this.myMembership();
     if (!membership) return null;
     return this.teams().find((t) => t.id === membership.teamId) ?? null;
@@ -165,6 +173,11 @@ export class TeamService {
   });
 
   readonly myTeamMembers = computed<readonly TeamMemberView[]>(() => {
+    const apiList = this.apiMembers();
+    if (apiList.length > 0) {
+      return apiList;
+    }
+
     const team = this.myTeam();
     const me = this.auth.user();
     if (!team) return [];
@@ -193,13 +206,72 @@ export class TeamService {
   private readonly inFlight = signal(0);
   readonly pending = computed(() => this.inFlight() > 0);
 
-  /**
-   * Runs a mutation the way a real endpoint will: asynchronously, with pending
-   * tracked around it. The bodies stay synchronous because the data is local —
-   * only the boundary is async, which is the part callers have to cope with.
-   * No artificial delay; resolving on a microtask is enough for a caller to
-   * observe the pending state.
-   */
+  constructor() {
+    effect(() => {
+      const user = this.auth.user();
+      if (user?.token) {
+        this.refreshMyTeam();
+      } else {
+        this.apiTeam.set(null);
+        this.apiMembers.set([]);
+      }
+    });
+  }
+
+  async refreshMyTeam(): Promise<void> {
+    const token = this.auth.token();
+    if (!token) return;
+
+    try {
+      const res = await firstValueFrom(
+        this.http.get<BackendMyTeamResponse>(`${this.apiBaseUrl}/api/teams/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+
+      if (res) {
+        const statusVal: TeamStatus =
+          res.status === 'complete' || res.status === 'disqualified' || res.status === 'withdrawn'
+            ? res.status
+            : 'forming';
+
+        const team: Team = {
+          id: res.id,
+          name: res.name,
+          joinCode: res.joinCode,
+          status: statusVal,
+          shortlisted: res.shortlisted,
+          createdBy: res.createdBy,
+          version: 0,
+          createdAt: new Date(res.createdAt),
+        };
+
+        const memberViews: TeamMemberView[] = res.members.map((m) => ({
+          userId: m.userId,
+          teamId: res.id,
+          name: m.name,
+          email: m.email,
+          initials: m.initials,
+          phone: m.phone,
+          resumeUrl: m.resumeUrl,
+          linkedinUrl: m.linkedinUrl,
+          githubUrl: m.githubUrl,
+          isLeader: m.isLeader,
+          isYou: m.isYou,
+          joinedAt: new Date(m.joinedAt),
+        }));
+
+        this.apiTeam.set(team);
+        this.apiMembers.set(memberViews);
+      }
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.status === 404) {
+        this.apiTeam.set(null);
+        this.apiMembers.set([]);
+      }
+    }
+  }
+
   private async run(operation: () => TeamActionResult): Promise<TeamActionResult> {
     this.inFlight.update((n) => n + 1);
     try {
@@ -301,7 +373,6 @@ export class TeamService {
     });
   }
 
-  /** Moves teams.created_by. There is no member role column to move as well. */
   transferLeadership(userId: number): Promise<TeamActionResult> {
     return this.run(() => {
       const team = this.myTeam();
@@ -327,10 +398,8 @@ export class TeamService {
       this.members.update((members) => members.filter((m) => m.userId !== me.id));
 
       if (remaining.length === 0) {
-        // Last one out: the team goes with them rather than lingering empty.
         this.teams.update((teams) => teams.filter((t) => t.id !== team.id));
       } else if (team.createdBy === me.id) {
-        // Leadership can't be left vacant, so it passes to the longest-serving member.
         const next = [...remaining].sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())[0];
         this.teams.update((teams) =>
           teams.map((t) => (t.id === team.id ? { ...t, createdBy: next.userId } : t)),
@@ -345,7 +414,6 @@ export class TeamService {
     if (trimmed.length < NAME_MIN || trimmed.length > NAME_MAX) {
       return { ok: false, error: `Team name must be 1 to ${NAME_MAX} characters.` };
     }
-    // teams_name_key is unique, so the database would reject a duplicate too.
     const taken = this.teams().some(
       (t) => t.id !== ignoreTeamId && t.name.toLowerCase() === trimmed.toLowerCase(),
     );
@@ -360,11 +428,10 @@ export class TeamService {
         { length: CODE_LENGTH },
         () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)],
       ).join('');
-    } while (existing.has(code)); // teams_join_code_key is unique.
+    } while (existing.has(code));
     return code;
   }
 
-  /** Bumps `version` alongside the change, as the @Version column would. */
   private patchMyTeam(patch: Partial<Team>): void {
     const team = this.myTeam();
     if (!team) return;

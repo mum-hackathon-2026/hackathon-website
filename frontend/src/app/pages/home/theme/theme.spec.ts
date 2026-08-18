@@ -3,9 +3,7 @@ import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../../../core/e
 import { EventSettingsService } from '../../../core/event/event-settings';
 import { ThemeSection } from './theme';
 
-async function render(
-  overrides: Partial<EventConfig['settings']> = {},
-) {
+async function render(overrides: Partial<EventConfig['settings']> = {}) {
   TestBed.resetTestingModule();
   await TestBed.configureTestingModule({
     imports: [ThemeSection],

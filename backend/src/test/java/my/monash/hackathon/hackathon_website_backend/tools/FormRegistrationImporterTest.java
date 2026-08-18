@@ -329,11 +329,84 @@ class FormRegistrationImporterTest {
     }
 
     @Test
-    void exitCodeIsTwoWhenTheFileArgumentIsMissing() {
+    void exitCodeIsTwoWhenTheSourceArgumentsAreMissing() {
         Run run = runImporter();
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
-        assertThat(run.output()).contains("error: --file is required");
+        assertThat(run.output()).contains("error: either --file or --sheet-id is required");
+    }
+
+    @Test
+    void exitCodeIsTwoWhenBothFileAndSheetIdAreGiven() {
+        Run run = runImporter("--file=some.csv", "--sheet-id=some-id");
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
+        assertThat(run.output()).contains("error: cannot specify both --file and --sheet-id");
+    }
+
+    @Test
+    void githubHeaderContainingRepositoryAbortsWithRenameMessage() throws IOException {
+        Path file = csv("repo-header.csv",
+                "Timestamp,Team Name,"
+                        + "Member 1 Name,Member 1 Email,Member 1 Phone,Member 1 Resume,"
+                        + "Member 1 LinkedIn,Member 1: GitHub Profile / Repository Link",
+                "2026/08/01 9:00:00 AM GMT+8," + team("Repo Header") + ","
+                        + "Leader One," + email("Leader One") + ",+60 12-000 0000,"
+                        + "https://drive.google.com/file/d/leader/view,"
+                        + "https://www.linkedin.com/in/leader,https://github.com/leader");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
+        assertThat(run.output())
+                .contains("STOPPING: GitHub question is titled 'Member 1: GitHub Profile / Repository Link'. "
+                        + "A project repository must not be imported into users.github_url. "
+                        + "Rename the form question to 'Member 1: GitHub Profile URL'.");
+    }
+
+    @Test
+    void sheetModeAbortsWhenCredentialsAreMissing() {
+        Path nonExistent = tempDir.resolve("missing.json");
+        Run run = runImporter("--sheet-id=fake-sheet-id", "--credentials=" + nonExistent);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
+        assertThat(run.output()).contains("STOPPING: Credentials missing");
+    }
+
+    @Test
+    void sheetModeAbortsWhenCredentialsAreInvalid() throws IOException {
+        Path invalid = tempDir.resolve("invalid.json");
+        Files.writeString(invalid, "{ \"not_a_key\": true }");
+        Run run = runImporter("--sheet-id=fake-sheet-id", "--credentials=" + invalid);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
+        assertThat(run.output()).contains("STOPPING: Credentials invalid");
+    }
+
+    @Test
+    void unknownColumnsAreSilentlyIgnoredInImporter() throws IOException, SQLException {
+        Path file = csv("unknown-columns.csv",
+                "Timestamp,Your Full Name,Your Email Address,Phone,Gender,Institute,Team Name,"
+                        + "Member 1: Full Name (First & Family Name),Member 1: Email Address,"
+                        + "Member 1: Phone / WhatsApp Number,Member 1: Resume / CV (PDF),"
+                        + "Member 1: LinkedIn Profile URL,Member 1: GitHub Profile URL,"
+                        + "Do you want to add another team member?,Member 1: University,Member 1: Major,"
+                        + "Member 1: Year of Study,Member 1: Semester,Member 1: Dietary Restrictions,"
+                        + "Do you want to add another team member?",
+                "2026/08/01 9:00:00 AM GMT+8,Primary Guy,primary@" + EMAIL_DOMAIN + ",+60 11-111 1111,Male,Monash,"
+                        + team("Unknown Cols") + ",Real Leader," + email("Real Leader") + ",+60 12-000 0000,"
+                        + "https://drive.google.com/file/d/real/view,https://www.linkedin.com/in/real,"
+                        + "https://github.com/real,No,Monash,CS,Y2,S1,None,No");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
+        assertThat(run.output()).contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0");
+        assertThat(countUsers()).isEqualTo(1);
+
+        // Ensure leader's phone was stored, not primary contact's phone
+        assertThat(queryString("select phone from users where email = ?", email("Real Leader")))
+                .isEqualTo("+60 12-000 0000");
     }
 
     @Test
@@ -485,6 +558,19 @@ class FormRegistrationImporterTest {
             try (ResultSet results = statement.executeQuery()) {
                 results.next();
                 return results.getInt(1);
+            }
+        }
+    }
+
+    private String queryString(String sql, String... parameters) throws SQLException {
+        try (Connection connection = testConnection();
+                var statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < parameters.length; i++) {
+                statement.setString(i + 1, parameters[i]);
+            }
+            try (ResultSet results = statement.executeQuery()) {
+                results.next();
+                return results.getString(1);
             }
         }
     }

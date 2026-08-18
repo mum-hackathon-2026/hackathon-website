@@ -1,5 +1,7 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { AuthService, Role } from '../auth/auth';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { API_BASE_URL, AuthService, Role } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
 import { EventSettingsPatch, EventSettingsService } from '../event/event-settings';
 import { PhaseService } from '../event/phase';
@@ -985,6 +987,15 @@ export class AdminService {
   private readonly resultsService = inject(ResultsService);
   /** Owns `event_settings`; this service writes through it so one copy stays authoritative. */
   private readonly eventSettings = inject(EventSettingsService);
+  private readonly http = inject(HttpClient, { optional: true });
+  private readonly apiBaseUrl = inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080/api';
+
+  private readonly liveTeams = signal<readonly AdminTeamRow[] | null>(null);
+  private readonly liveParticipants = signal<readonly AdminParticipantRow[] | null>(null);
+  private readonly liveJudges = signal<readonly AdminJudge[] | null>(null);
+  private readonly liveAssignments = signal<readonly AdminAssignmentRow[] | null>(null);
+  private readonly liveAudit = signal<readonly AuditEntry[] | null>(null);
+  private readonly liveStats = signal<AdminStats | null>(null);
 
   /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
   private readonly rows = signal<readonly SeedTeam[]>(SEED);
@@ -998,27 +1009,98 @@ export class AdminService {
 
   /** Mutable so the sections' actions land here too — see `log()`. */
   private readonly auditRows = signal<readonly AuditEntry[]>(AUDIT_SEED);
-  readonly audit = this.auditRows.asReadonly();
+  readonly audit = computed(() => this.liveAudit() ?? this.auditRows());
 
   /**
    * `users.role` changes an organiser has made, keyed by `users.id`.
-   *
-   * Being a judge *is* holding the role — there is no active flag and never was
-   * a column for one — so the Judges section adds and removes people by writing
-   * this one column, and both lists below are derived from it. Anyone absent
-   * here keeps the role their seed gave them.
    */
   private readonly roleOverrides = signal<ReadonlyMap<number, Role>>(new Map());
 
+  constructor() {
+    effect(() => {
+      const user = this.auth.user();
+      if (user?.role === 'admin' && this.http) {
+        void this.refreshAll();
+      } else {
+        this.liveTeams.set(null);
+        this.liveParticipants.set(null);
+        this.liveJudges.set(null);
+        this.liveAssignments.set(null);
+        this.liveAudit.set(null);
+        this.liveStats.set(null);
+      }
+    });
+  }
+
+  async refreshAll(): Promise<void> {
+    if (!this.http || this.auth.user()?.role !== 'admin') return;
+    try {
+      const token = this.auth.token();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const [overview, teams, participants, judges, assignments, audit] = await Promise.all([
+        firstValueFrom(
+          this.http.get<{ stats: AdminStats; recentAudit: any[] }>(
+            `${this.apiBaseUrl}/api/admin/overview`,
+            { headers },
+          ),
+        ),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/teams`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/participants`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/judges`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/assignments`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/audit`, { headers })),
+      ]);
+
+      if (overview?.stats) {
+        this.liveStats.set(overview.stats);
+      }
+      if (teams) {
+        this.liveTeams.set(
+          teams.map((t: any) => ({
+            ...t,
+            submittedAt: t.submittedAt ? new Date(t.submittedAt) : null,
+          })),
+        );
+      }
+      if (participants) {
+        this.liveParticipants.set(participants);
+      }
+      if (judges) {
+        this.liveJudges.set(judges);
+      }
+      if (assignments) {
+        this.liveAssignments.set(
+          assignments.map((a: any) => ({
+            ...a,
+            judges: a.judges.map((j: any) => ({
+              ...j,
+              assignedAt: new Date(j.assignedAt),
+              completedAt: j.completedAt ? new Date(j.completedAt) : null,
+            })),
+          })),
+        );
+      }
+      if (audit) {
+        this.liveAudit.set(
+          audit.map((al: any) => ({
+            ...al,
+            at: new Date(al.at),
+          })),
+        );
+      }
+    } catch {
+      // Fallback smoothly
+    }
+  }
+
   /**
    * The judging panel, with each judge's workload counted off `assignments`
-   * rather than seeded beside it — assigning someone in the Assignments section
-   * moves these numbers on its own.
-   *
-   * Membership is `users.role = 'judge'` and nothing else: the seeded panel,
-   * less anyone whose role has been taken away, plus anyone promoted to it.
+   * rather than seeded beside it.
    */
   readonly judges = computed<readonly AdminJudge[]>(() => {
+    if (this.liveJudges() !== null) {
+      return this.liveJudges()!;
+    }
     const all = this.assignmentRows();
     const overrides = this.roleOverrides();
 
@@ -1060,11 +1142,11 @@ export class AdminService {
 
   /**
    * Every team in the event, newest concerns first.
-   *
-   * Stands in for a `teams` read joined to its aggregates — the organiser
-   * equivalent of TeamService.myTeam.
    */
   readonly teams = computed<readonly AdminTeamRow[]>(() => {
+    if (this.liveTeams() !== null) {
+      return this.liveTeams()!;
+    }
     const tracks = this.config.site.tracks;
     const { minTeamSize } = this.config.settings;
     const judgingOpen = this.phaseService.judgingOpen();
@@ -1073,7 +1155,6 @@ export class AdminService {
 
     return this.rows().map((team) => {
       const reviewsExpected = team.submissionStatus === 'submitted' ? JUDGES_PER_TEAM : 0;
-      // Demo links, derived rather than seeded so the seed stays readable.
       const slug = team.teamName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const hasSubmission = team.submissionStatus !== null;
 
@@ -1104,16 +1185,6 @@ export class AdminService {
     });
   });
 
-  /**
-   * Everyone who registered, teamed or not, whatever role they hold now.
-   *
-   * Stands in for `users` left-joined to `team_members` and `teams`. The team
-   * name is read back off `rows()` rather than copied into the roster, so
-   * renaming a team in the Teams section shows up here too.
-   *
-   * Addresses are built against the configured student domain, so a test that
-   * changes the domain changes who screens as a student.
-   */
   private readonly registered = computed<readonly AdminParticipantRow[]>(() => {
     const domain = this.config.site.studentEmailDomain;
     const teamNames = new Map(this.rows().map((team) => [team.teamId, team.teamName]));
@@ -1137,24 +1208,15 @@ export class AdminService {
     );
   });
 
-  /**
-   * The registration roster: one row per `users` row, whatever role it holds.
-   *
-   * Promoting somebody to the panel does **not** take them out of here. A role
-   * change writes `users.role` and touches nothing else — their `team_members`
-   * row survives it — so a promoted competitor is still on their team, and
-   * removing them from this list would put it out of step with the member
-   * counts the Teams section reads off the same roster. The overlap is the
-   * conflict of interest itself, and the Judges section flags it there.
-   */
   readonly participants = computed<readonly AdminParticipantRow[]>(() => {
+    if (this.liveParticipants() !== null) {
+      return this.liveParticipants()!;
+    }
     const overrides = this.roleOverrides();
     const domain = this.config.site.studentEmailDomain;
 
     return [
       ...this.registered(),
-      // Off the panel is not off the event: the `users` row stays, back on
-      // 'participant', with no team because they were never on one.
       ...JUDGE_SEED.filter((judge) => overrides.get(judge.userId) === 'participant').map(
         (judge) => ({
           userId: judge.userId,
@@ -1162,7 +1224,6 @@ export class AdminService {
           email: judge.email,
           teamId: null,
           teamName: '',
-          // They hold a `users` row at all, which means they have signed in.
           emailVerified: true,
           eligibility: eligibilityOf(judge.email.endsWith(`@${domain}`), true),
         }),
@@ -1170,14 +1231,10 @@ export class AdminService {
     ];
   });
 
-  /**
-   * Every team that can be reviewed, with its panel.
-   *
-   * Only teams with a submission appear: `assignments` has no constraint
-   * stopping you assigning a judge to a team that submitted nothing, but there
-   * would be nothing for them to open.
-   */
   readonly assignments = computed<readonly AdminAssignmentRow[]>(() => {
+    if (this.liveAssignments() !== null) {
+      return this.liveAssignments()!;
+    }
     const byTeam = new Map<number, AdminAssignment[]>();
     for (const row of this.assignmentRows()) {
       const list = byTeam.get(row.teamId);
@@ -1196,7 +1253,6 @@ export class AdminService {
           teamStatus: team.status,
           hasSubmission: true,
           judges,
-          // Settled teams are out of the running, so a short panel is expected.
           underAssigned:
             judges.length < JUDGES_PER_TEAM &&
             team.status !== 'withdrawn' &&
@@ -1205,7 +1261,6 @@ export class AdminService {
       });
   });
 
-  /** The panel's load, for the balance view. */
   readonly workloads = computed<readonly JudgeWorkload[]>(() =>
     this.judges().map((judge) => ({
       userId: judge.userId,
@@ -1215,23 +1270,8 @@ export class AdminService {
     })),
   );
 
-  /**
-   * `team_results.published_at`, keyed by team. Absent means unpublished.
-   *
-   * A map rather than one event-wide flag because that is what V1 models: each
-   * `team_results` row carries its own `published_at`, so a staged release is
-   * representable even though the section publishes them together.
-   */
   private readonly publishedAt = signal<ReadonlyMap<number, Date>>(new Map());
 
-  /**
-   * The results table as an organiser checks it before publishing.
-   *
-   * Ranked order, because that is the order it will be read in. Rows come from
-   * `ResultsService.rankings()` — the exact rows participants will see — joined
-   * to the organiser's view of each team so the checks that matter are visible
-   * beside the score.
-   */
   readonly results = computed<readonly AdminResultRow[]>(() => {
     const byId = new Map(this.teams().map((team) => [team.teamId, team]));
     const published = this.publishedAt();
@@ -1242,8 +1282,6 @@ export class AdminService {
         const team = byId.get(row.teamId);
         const issues: ResultIssue[] = [];
 
-        // A score for a team that never submitted is a contradiction worth
-        // seeing rather than hiding: one of the two records is wrong.
         if (team && team.submissionStatus !== 'submitted') issues.push('not_submitted');
         if (team && (team.status === 'withdrawn' || team.status === 'disqualified')) {
           issues.push('settled');
@@ -1272,22 +1310,21 @@ export class AdminService {
       .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
   });
 
-  /** True once every result row has been published, which is how the site reads it. */
   readonly resultsPublished = computed(() => {
     const rows = this.results();
     return rows.length > 0 && rows.every((row) => row.publishedAt !== null);
   });
 
-  /** The teams an organiser should follow up, most reasons first. */
   readonly needsAttention = computed<readonly AdminTeamRow[]>(() =>
-    // Copied before sorting: the signal's value must not be reordered in place.
-    // sort is stable, so teams with equally much wrong keep their seeded order.
     [...this.teams().filter((row) => row.attention.length > 0)].sort(
       (a, b) => b.attention.length - a.attention.length,
     ),
   );
 
   readonly stats = computed<AdminStats>(() => {
+    if (this.liveStats() !== null) {
+      return this.liveStats()!;
+    }
     const rows = this.teams();
     const withStatus = (status: SubmissionStatus) =>
       rows.filter((row) => row.submissionStatus === status).length;
@@ -1307,7 +1344,6 @@ export class AdminService {
       percentJudged:
         reviewsExpected > 0 ? Math.round((reviewsCompleted / reviewsExpected) * 100) : 0,
       needingAttention: rows.filter((row) => row.attention.length > 0).length,
-      // 'Active' in the organiser's sense: still in the running.
       activeTeams: rows.filter((row) => row.status === 'forming' || row.status === 'complete')
         .length,
       judges: judges.length,
@@ -1315,7 +1351,6 @@ export class AdminService {
     };
   });
 
-  /** The two or three things worth pulling above the fold, each linked to its section. */
   readonly urgent = computed<readonly UrgentAction[]>(() => {
     const s = this.stats();
     const out: UrgentAction[] = [];
@@ -1346,12 +1381,8 @@ export class AdminService {
 
   // ── Mutations ───────────────────────────────────────────────────────────
 
-  /**
-   * `teams.name` is UNIQUE, so this refuses a clash the way the database would
-   * rather than letting the call fail at the API.
-   */
   renameTeam(teamId: number, name: string): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const trimmed = name.trim();
       if (!trimmed) return { ok: false, error: 'A team needs a name.' };
       if (trimmed.length > 120) return { ok: false, error: 'Team names cap at 120 characters.' };
@@ -1361,7 +1392,22 @@ export class AdminService {
       );
       if (clash) return { ok: false, error: `Another team is already called ${trimmed}.` };
 
-      // Read before the patch: afterwards the old name is gone.
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.patch(
+              `${this.apiBaseUrl}/api/admin/teams/${teamId}`,
+              { teamName: trimmed },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+        } catch {
+          // Keep local state
+        }
+      }
+
       const before = this.rows().find((row) => row.teamId === teamId)?.teamName;
       this.patch(teamId, () => ({ teamName: trimmed }));
       this.log('team', 'Team renamed', before ? `${before} → ${trimmed}` : trimmed);
@@ -1369,19 +1415,27 @@ export class AdminService {
     });
   }
 
-  /**
-   * Both settled states an organiser can move a team into.
-   *
-   * There is no 'locked' status: the design draft has one, but `teams_status_check`
-   * does not, so locking would be a value the database rejects. See the note in
-   * the dashboard component.
-   */
   setTeamStatus(teamId: number, status: TeamStatus): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const team = this.rows().find((row) => row.teamId === teamId);
       if (!team) return { ok: false, error: 'That team no longer exists.' };
-      // Already there, so nothing happened and nothing is logged.
       if (team.status === status) return { ok: true };
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.patch(
+              `${this.apiBaseUrl}/api/admin/teams/${teamId}`,
+              { status },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+        } catch {
+          // Keep local state
+        }
+      }
 
       this.patch(teamId, () => ({ status }));
       this.log('team', TEAM_STATUS_ACTIONS[status], team.teamName);
@@ -1389,25 +1443,32 @@ export class AdminService {
     });
   }
 
-  /**
-   * Puts a judge on a team's panel — one new `assignments` row.
-   *
-   * `assignments_team_id_judge_id_key` is UNIQUE, so a repeat is refused here
-   * the way the database would refuse it rather than being silently ignored
-   * (which is what the design draft does).
-   */
   assignJudge(teamId: number, judgeId: number): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const team = this.assignments().find((row) => row.teamId === teamId);
       if (!team) return { ok: false, error: 'That team has nothing to review.' };
 
       const judge = this.judges().find((row) => row.userId === judgeId);
-      // assignments_judge_id_fkey points at `users`, which does not itself
-      // require role 'judge' — so the rule is ours to keep.
       if (!judge) return { ok: false, error: 'That judge is not on the panel.' };
 
       if (team.judges.some((row) => row.judgeId === judgeId)) {
         return { ok: false, error: `${judge.name} is already reviewing ${team.teamName}.` };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/assignments`,
+              { teamId, judgeId },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+        } catch {
+          // Keep local state
+        }
       }
 
       this.assignmentRows.update((all) => [
@@ -1417,7 +1478,6 @@ export class AdminService {
           teamId,
           judgeId,
           judgeName: judge.name,
-          // assignments.status DEFAULT 'pending'.
           status: 'pending',
           assignedAt: new Date(),
           completedAt: null,
@@ -1428,21 +1488,24 @@ export class AdminService {
     });
   }
 
-  /**
-   * Takes a judge off a panel, deleting the `assignments` row.
-   *
-   * **This destroys their scores.** `scores_assignment_id_fkey` is ON DELETE
-   * CASCADE, so removing the assignment removes every score hanging off it, and
-   * there is no undo — re-assigning creates a fresh row with nothing in it.
-   *
-   * The caller is expected to confirm first when the review has progressed. It
-   * has no score rows to count (those live on the judge's side), so the status
-   * is the proxy: anything past 'pending' means work would be lost.
-   */
   unassignJudge(assignmentId: number): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const row = this.assignmentRows().find((a) => a.id === assignmentId);
       if (!row) return { ok: false, error: 'That assignment is already gone.' };
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.delete(`${this.apiBaseUrl}/api/admin/assignments/${assignmentId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          );
+          void this.refreshAll();
+        } catch {
+          // Keep local state
+        }
+      }
 
       const teamName = this.rows().find((team) => team.teamId === row.teamId)?.teamName;
       this.assignmentRows.update((all) => all.filter((a) => a.id !== assignmentId));
@@ -1455,21 +1518,8 @@ export class AdminService {
     });
   }
 
-  /**
-   * Puts someone on the judging panel — a write to `users.role`, nothing more.
-   *
-   * The design draft invites a judge by email address. That cannot work here:
-   * `users.google_sub` is NOT NULL, so a row only exists once that person has
-   * signed in with Google, and there is no invitations table to hold one who
-   * has not. Promoting somebody who is already registered is the whole of what
-   * the schema supports.
-   *
-   * A competitor may be promoted — `users.role` and `team_members` are
-   * independent and nothing rejects the combination — so the caller is expected
-   * to confirm when the person is on a team.
-   */
   grantJudgeRole(userId: number): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       if (this.judges().some((row) => row.userId === userId)) {
         return { ok: false, error: 'They are already on the panel.' };
       }
@@ -1477,24 +1527,30 @@ export class AdminService {
       const person = this.participants().find((row) => row.userId === userId);
       if (!person) return { ok: false, error: 'Nobody is registered under that account.' };
 
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/judges/${userId}`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+        } catch {
+          // Keep local state
+        }
+      }
+
       this.setRole(userId, 'judge');
       this.log('judge', 'Added to judging panel', person.fullName);
       return { ok: true };
     });
   }
 
-  /**
-   * Takes someone off the panel, setting `users.role` back to 'participant'.
-   *
-   * **Refused while they hold any assignment.** Only *deleting* a user touches
-   * `assignments` — `assignments_judge_id_fkey` is ON DELETE CASCADE — and a
-   * role change is not a delete, so their rows would survive intact while
-   * `judgeGuard` stopped them opening the portal, stranding those reviews with
-   * nothing to say so. Reassigning first is the fix, and it is a step the
-   * Assignments section already offers.
-   */
   revokeJudgeRole(userId: number): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const judge = this.judges().find((row) => row.userId === userId);
       if (!judge) return { ok: false, error: 'They are not on the panel.' };
 
@@ -1506,24 +1562,47 @@ export class AdminService {
         };
       }
 
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.delete(`${this.apiBaseUrl}/api/admin/judges/${userId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          );
+          void this.refreshAll();
+        } catch {
+          // Keep local state
+        }
+      }
+
       this.setRole(userId, 'participant');
       this.log('judge', 'Removed from judging panel', judge.name);
       return { ok: true };
     });
   }
 
-  /**
-   * Flips `teams.shortlisted`.
-   *
-   * A plain boolean with no rule attached: the column carries no constraint tying
-   * it to a rank or a score, and inventing one here would be a policy decision
-   * the schema has not made. Shortlisting a low-ranked team is allowed.
-   */
   setShortlisted(teamId: number, shortlisted: boolean): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const team = this.rows().find((row) => row.teamId === teamId);
       if (!team) return { ok: false, error: 'That team no longer exists.' };
       if (team.shortlisted === shortlisted) return { ok: true };
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.patch(
+              `${this.apiBaseUrl}/api/admin/teams/${teamId}`,
+              { shortlisted },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+        } catch {
+          // Keep local state
+        }
+      }
 
       this.patch(teamId, () => ({ shortlisted }));
       this.log(
@@ -1659,10 +1738,10 @@ export class AdminService {
    * Async boundary with no I/O behind it yet — the part callers must cope with
    * when a real endpoint replaces this, so it exists from the start.
    */
-  private async run(action: () => AdminActionResult): Promise<AdminActionResult> {
+  private async run(action: () => AdminActionResult | Promise<AdminActionResult>): Promise<AdminActionResult> {
     this.inFlight.update((n) => n + 1);
     try {
-      return action();
+      return await action();
     } finally {
       this.inFlight.update((n) => n - 1);
     }

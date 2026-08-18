@@ -98,10 +98,10 @@ final class CsvReader {
                 continue;
             }
             String existing = headersByNormalisedName.putIfAbsent(normalised, trimmed);
-            if (existing != null) {
-                // Exact duplicates are refused as firmly as near-duplicates. Google Forms lets
-                // two questions carry the same title, and the row reader keys values by
-                // normalised header, so the second column would silently overwrite the first
+            if (existing != null && TeamRow.isMappedHeader(normalised)) {
+                // Exact duplicates are refused as firmly as near-duplicates for mapped columns.
+                // Google Forms lets two questions carry the same title, and the row reader keys
+                // values by normalised header, so the second column would silently overwrite the first
                 // and the value stored would be whichever happened to come last.
                 if (existing.equals(trimmed)) {
                     throw new MalformedCsvException(

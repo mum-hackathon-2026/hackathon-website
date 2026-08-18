@@ -2,7 +2,7 @@
   <app-page-header
     eyebrow="Participant"
     title="My team"
-    subtitle="Register your team on the form, then check who's on it here."
+    subtitle="Your registered hackathon team and teammate profiles."
   />
 
   @if (isLocked()) {
@@ -24,48 +24,178 @@
       }
     </app-state-locked>
   } @else if (team(); as current) {
-    <!-- ── Registered ─────────────────────────────────────────────────────── -->
-    <section class="my-team__card">
-      <div class="my-team__title-row">
-        <h2 class="my-team__name">{{ current.name }}</h2>
-        <span class="my-team__status">{{ current.status }}</span>
-      </div>
-    </section>
-
-    <section class="my-team__card">
-      <div class="my-team__members-head">
-        <h3 class="my-team__subheading">Members</h3>
-        <span class="my-team__count"> {{ members().length }} of {{ maxTeamSize() }} </span>
-      </div>
-
-      <ul class="my-team__members">
-        @for (member of members(); track member.userId) {
-          <li class="my-team__member">
-            <span class="my-team__avatar" aria-hidden="true">{{ member.initials }}</span>
-            <span class="my-team__member-text">
-              <span class="my-team__member-name">
-                {{ member.name }}
-                @if (member.isYou) {
-                  <span class="my-team__you">You</span>
-                }
-                @if (member.isLeader) {
-                  <span class="my-team__leader">Leader</span>
-                }
+    <!-- ── Registered Team Card ──────────────────────────────────────────────── -->
+    <div class="my-team__container">
+      <section class="my-team__hero-card">
+        <div class="my-team__hero-main">
+          <div class="my-team__hero-header">
+            <span class="my-team__badge my-team__badge--team">Team</span>
+            <span class="my-team__status my-team__status--{{ current.status }}">{{
+              current.status
+            }}</span>
+          </div>
+          <h2 class="my-team__team-name my-team__name">{{ current.name }}</h2>
+          <div class="my-team__meta-row">
+            <div class="my-team__meta-item">
+              <span class="my-team__meta-label">Team Capacity</span>
+              <span class="my-team__capacity-pill">
+                {{ members().length }} of {{ maxTeamSize() }} Members
               </span>
-              <span class="my-team__member-email">{{ member.email }}</span>
-            </span>
-          </li>
-        }
-      </ul>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <p class="my-team__hint">
-        Everyone on your team was named on the registration form. If something here is wrong, email
-        <a [href]="'mailto:' + config.site.contactEmail">{{ config.site.contactEmail }}</a> — it
-        can't be changed from this page.
-      </p>
-    </section>
+      <!-- ── Members Roster ────────────────────────────────────────────────── -->
+      <section class="my-team__members-section">
+        <div class="my-team__section-header">
+          <h3 class="my-team__subheading">Team Members</h3>
+          <span class="my-team__roster-badge">{{ members().length }} Registered</span>
+        </div>
+
+        <div class="my-team__cards-grid my-team__members">
+          @for (member of members(); track member.userId) {
+            <article
+              class="my-team__member-card my-team__member"
+              [class.my-team__member-card--you]="member.isYou"
+            >
+              <div class="my-team__member-card-header">
+                <div class="my-team__avatar-container">
+                  <div class="my-team__avatar" [class.my-team__avatar--leader]="member.isLeader">
+                    {{ member.initials }}
+                  </div>
+                </div>
+
+                <div class="my-team__member-info">
+                  <div class="my-team__name-row">
+                    <h4 class="my-team__member-title">{{ member.name }}</h4>
+                    <div class="my-team__badges-group">
+                      @if (member.isLeader) {
+                        <span class="my-team__tag my-team__tag--leader my-team__leader"
+                          >Leader</span
+                        >
+                      }
+                      @if (member.isYou) {
+                        <span class="my-team__tag my-team__tag--you my-team__you">You</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="my-team__member-email">
+                    <svg
+                      class="my-team__icon-small"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                    <span>{{ member.email }}</span>
+                  </div>
+                  @if (member.phone) {
+                    <div class="my-team__member-phone">
+                      <svg
+                        class="my-team__icon-small"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                        />
+                      </svg>
+                      <span>{{ member.phone }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Profile & Portfolio Links -->
+              @if (member.githubUrl || member.linkedinUrl || member.resumeUrl) {
+                <div class="my-team__links-bar">
+                  @if (member.githubUrl) {
+                    <a
+                      [href]="member.githubUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="my-team__profile-link my-team__profile-link--github"
+                      title="GitHub Profile"
+                    >
+                      <svg class="my-team__link-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                          d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
+                        />
+                      </svg>
+                      <span>GitHub</span>
+                    </a>
+                  }
+
+                  @if (member.linkedinUrl) {
+                    <a
+                      [href]="member.linkedinUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="my-team__profile-link my-team__profile-link--linkedin"
+                      title="LinkedIn Profile"
+                    >
+                      <svg class="my-team__link-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                          d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"
+                        />
+                      </svg>
+                      <span>LinkedIn</span>
+                    </a>
+                  }
+
+                  @if (member.resumeUrl) {
+                    <a
+                      [href]="member.resumeUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="my-team__profile-link my-team__profile-link--resume"
+                      title="Resume / CV PDF"
+                    >
+                      <svg
+                        class="my-team__link-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                        />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      <span>Resume</span>
+                    </a>
+                  }
+                </div>
+              }
+            </article>
+          }
+        </div>
+
+        <div class="my-team__support-box">
+          <p class="my-team__hint">
+            Team details were imported from your official Google Form registration. Need to make
+            adjustments? Contact the protocol committee at
+            <a [href]="'mailto:' + config.site.contactEmail">{{ config.site.contactEmail }}</a
+            >.
+          </p>
+        </div>
+      </section>
+    </div>
   } @else {
-    <!-- ── Not registered yet ─────────────────────────────────────────────── -->
+    <!-- ── Fallback: Only if unregistered user opens page directly ─────────── -->
     <app-form-link-card
       heading="Register your team"
       description="One person fills the form in for the whole team — up to
@@ -73,8 +203,7 @@
         nobody needs to sign up separately."
       [href]="formUrl"
       buttonLabel="Open the registration form"
-      note="Your team won't appear here the moment you submit the form. Registrations are
-        imported in batches, so give it a while, then check back."
+      note="Your team will appear here automatically as soon as the form submission is received."
     />
   }
 </div>
