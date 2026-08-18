@@ -16,6 +16,9 @@ target/
 .env
 application-local.properties
 
+# Google service account key for the registration importer — see docs/SHEETS-SETUP.md
+credentials/
+
 
 ### IntelliJ IDEA ###
 .idea

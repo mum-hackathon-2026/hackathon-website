@@ -37,6 +37,10 @@ backend/HELP.md
 backend/application-local.properties
 backend/application-local.yml
 
+# Google service account key for the registration importer. Never commit this —
+# see docs/SHEETS-SETUP.md for how to obtain one and where to put it.
+backend/credentials/
+
 # ===== Docker =====
 *.pid
 docker-compose.override.yml
