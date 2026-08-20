@@ -52,10 +52,14 @@ export interface SiteCopy {
   readonly teamRegistrationFormUrl: string;
   readonly projectSubmissionFormUrl: string;
   /**
-   * The address domain a student registers with. There is no eligibility column
-   * on `users`, so this is what the roster screens against — see AdminService.
+   * The one address domain students register with, when the event is limited to
+   * a single university. `null` when it is open to students from any
+   * university, which is the case here — there is then no domain to screen on,
+   * and the roster falls back to the address being confirmed. There is no
+   * eligibility column on `users`, so this is the only automated check there
+   * is; see AdminService.
    */
-  readonly studentEmailDomain: string;
+  readonly studentEmailDomain: string | null;
   readonly tracks: readonly string[];
   /** Judging criteria and their weights. Should total 100. */
   readonly judgingCriteria: readonly { readonly name: string; readonly weight: number }[];
@@ -115,7 +119,8 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     discordUrl: 'https://discord.gg/monashhack',
     teamRegistrationFormUrl: 'https://forms.gle/PLACEHOLDER-team-registration',
     projectSubmissionFormUrl: 'https://forms.gle/PLACEHOLDER-project-submission',
-    studentEmailDomain: 'student.monash.edu',
+    // Open to students from any university, so no single domain identifies one.
+    studentEmailDomain: null,
     tracks: ['Open Innovation', 'Sustainability', 'HealthTech'],
     judgingCriteria: [
       { name: 'Innovation', weight: 30 },

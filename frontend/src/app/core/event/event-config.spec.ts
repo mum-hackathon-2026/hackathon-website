@@ -126,9 +126,17 @@ describe('EVENT_CONFIG', () => {
 
     // There is no eligibility column on `users`; this domain is what the admin
     // roster screens against, so it has to be the bare domain, not an address.
-    it('screens students on a bare domain', () => {
-      expect(site.studentEmailDomain).not.toContain('@');
-      expect(site.studentEmailDomain).toContain('.');
+    /**
+     * Null is the open-to-any-university case and carries no domain to check.
+     * When one is set it has to be bare, because AdminService pastes it after
+     * an '@' rather than parsing it.
+     */
+    it('screens students on a bare domain, when it screens at all', () => {
+      const domain = site.studentEmailDomain;
+      if (domain === null) return;
+
+      expect(domain).not.toContain('@');
+      expect(domain).toContain('.');
     });
   });
 });

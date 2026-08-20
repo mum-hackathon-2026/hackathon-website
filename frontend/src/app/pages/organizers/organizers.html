@@ -21,9 +21,9 @@
             {{ entry.label }}
           </dt>
           <dd class="key-dates__value">
-            {{ entry.start | date: 'd MMM y, h:mm a' : myt }}
+            {{ entry.start | date: 'd MMM y' : myt }}
             @if (entry.end) {
-              — {{ entry.end | date: 'd MMM y, h:mm a' : myt }}
+              — {{ entry.end | date: 'd MMM y' : myt }}
             }
           </dd>
         </div>

@@ -393,6 +393,13 @@ const NON_STUDENT = new Set(['Ryan Teoh', 'Terence Sim']);
 
 const NON_STUDENT_DOMAIN = 'gmail.com';
 
+/**
+ * Stands in when no single student domain is configured, which is the case
+ * whenever the event is open to more than one university. Only ever used to
+ * spell the seeded roster's addresses — nothing screens on it.
+ */
+const STUDENT_DEMO_DOMAIN = 'student.example.edu';
+
 /** First initial and family name, the same shape as the judge seed's addresses. */
 function addressFor(fullName: string, domain: string): string {
   const parts = fullName
@@ -1191,7 +1198,7 @@ export class AdminService {
   });
 
   private readonly registered = computed<readonly AdminParticipantRow[]>(() => {
-    const domain = this.config.site.studentEmailDomain;
+    const domain = this.config.site.studentEmailDomain ?? STUDENT_DEMO_DOMAIN;
     const teamNames = new Map(this.rows().map((team) => [team.teamId, team.teamName]));
     let nextId = FIRST_PARTICIPANT_ID;
 
@@ -1218,7 +1225,7 @@ export class AdminService {
       return this.liveParticipants()!;
     }
     const overrides = this.roleOverrides();
-    const domain = this.config.site.studentEmailDomain;
+    const domain = this.config.site.studentEmailDomain ?? STUDENT_DEMO_DOMAIN;
 
     return [
       ...this.registered(),

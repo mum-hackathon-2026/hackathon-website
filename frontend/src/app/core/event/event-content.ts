@@ -28,8 +28,9 @@ export const FAQS: readonly Faq[] = [
   {
     question: 'Who can participate?',
     answer:
-      `All currently enrolled ${site.university} students — undergraduate and ` +
-      `postgraduate — are eligible. ${teamSizeSentence}`,
+      'Any currently enrolled university student — undergraduate or postgraduate, and not ' +
+      `only ${site.university}. Register with your university address so we can confirm you ` +
+      `are enrolled. ${teamSizeSentence}`,
   },
   {
     question: 'Do I need to know how to code?',
