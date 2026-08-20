@@ -64,6 +64,21 @@ public class Submission {
     @Column(name = "deployed_url")
     private String deployedUrl;
 
+    @Column(name = "slide_deck_url")
+    private String slideDeckUrl;
+
+    @Column(name = "video_demo_url")
+    private String videoDemoUrl;
+
+    @Column(name = "representative_name")
+    private String representativeName;
+
+    @Column(name = "representative_phone")
+    private String representativePhone;
+
+    @Column(name = "representative_email")
+    private String representativeEmail;
+
     @Column(name = "track_label")
     private String trackLabel;
 
@@ -136,6 +151,46 @@ public class Submission {
 
     public void setDeployedUrl(String deployedUrl) {
         this.deployedUrl = deployedUrl;
+    }
+
+    public String getSlideDeckUrl() {
+        return slideDeckUrl;
+    }
+
+    public void setSlideDeckUrl(String slideDeckUrl) {
+        this.slideDeckUrl = slideDeckUrl;
+    }
+
+    public String getVideoDemoUrl() {
+        return videoDemoUrl;
+    }
+
+    public void setVideoDemoUrl(String videoDemoUrl) {
+        this.videoDemoUrl = videoDemoUrl;
+    }
+
+    public String getRepresentativeName() {
+        return representativeName;
+    }
+
+    public void setRepresentativeName(String representativeName) {
+        this.representativeName = representativeName;
+    }
+
+    public String getRepresentativePhone() {
+        return representativePhone;
+    }
+
+    public void setRepresentativePhone(String representativePhone) {
+        this.representativePhone = representativePhone;
+    }
+
+    public String getRepresentativeEmail() {
+        return representativeEmail;
+    }
+
+    public void setRepresentativeEmail(String representativeEmail) {
+        this.representativeEmail = representativeEmail;
     }
 
     public String getTrackLabel() {

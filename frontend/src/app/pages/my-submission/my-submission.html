@@ -74,8 +74,26 @@
         <dl class="submission__facts">
           <dt>Project</dt>
           <dd>{{ record.projectTitle || '—' }}</dd>
-          <dt>Track</dt>
-          <dd>{{ record.trackLabel || '—' }}</dd>
+          @if (record.description) {
+            <dt>Summary</dt>
+            <dd>{{ record.description }}</dd>
+          }
+          @if (record.representativeName) {
+            <dt>Representative</dt>
+            <dd>
+              {{ record.representativeName }}
+              @if (record.representativeEmail) {
+                <span class="submission__contact-meta">({{ record.representativeEmail }})</span>
+              }
+              @if (record.representativePhone) {
+                <span class="submission__contact-meta">· {{ record.representativePhone }}</span>
+              }
+            </dd>
+          }
+          @if (record.trackLabel) {
+            <dt>Track</dt>
+            <dd>{{ record.trackLabel }}</dd>
+          }
           <dt>Repository</dt>
           <dd>
             @if (record.githubUrl) {
@@ -91,6 +109,22 @@
             <dd>
               <a [href]="record.deployedUrl" target="_blank" rel="noopener noreferrer">
                 {{ record.deployedUrl }}
+              </a>
+            </dd>
+          }
+          @if (record.slideDeckUrl) {
+            <dt>Slide Deck</dt>
+            <dd>
+              <a [href]="record.slideDeckUrl" target="_blank" rel="noopener noreferrer">
+                {{ record.slideDeckUrl }}
+              </a>
+            </dd>
+          }
+          @if (record.videoDemoUrl) {
+            <dt>Video Demo</dt>
+            <dd>
+              <a [href]="record.videoDemoUrl" target="_blank" rel="noopener noreferrer">
+                {{ record.videoDemoUrl }}
               </a>
             </dd>
           }
