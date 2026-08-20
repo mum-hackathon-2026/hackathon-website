@@ -42,7 +42,7 @@ public class TeamController {
 
         Optional<TeamMember> membership = teamMemberRepository.findById(currentUser.getId());
         if (membership.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.noContent().build();
         }
 
         Team team = membership.get().getTeam();

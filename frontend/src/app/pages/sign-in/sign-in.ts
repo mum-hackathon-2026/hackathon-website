@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  OnDestroy,
   ViewChild,
   inject,
   signal,
@@ -21,14 +22,19 @@ import {
 
 declare global {
   interface Window {
+    __googleGisInitialized?: boolean;
     google?: {
       accounts?: {
         id?: {
           initialize(config: {
             client_id: string;
             callback: (response: { credential: string }) => void;
+            auto_select?: boolean;
+            itp_support?: boolean;
+            use_fedcm_for_prompt?: boolean;
           }): void;
           renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
+          cancel?(): void;
         };
       };
     };
@@ -42,7 +48,7 @@ declare global {
   styleUrl: './sign-in.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SignIn implements AfterViewInit {
+export class SignIn implements AfterViewInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -61,6 +67,14 @@ export class SignIn implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.loadGoogleGisScript();
+  }
+
+  ngOnDestroy(): void {
+    try {
+      window.google?.accounts?.id?.cancel?.();
+    } catch {
+      // Ignored
+    }
   }
 
   private loadGoogleGisScript(): void {
@@ -90,11 +104,18 @@ export class SignIn implements AfterViewInit {
     }
 
     try {
-      window.google.accounts.id.initialize({
-        client_id: this.googleClientId,
-        callback: (res: { credential: string }) => this.handleGoogleCredential(res.credential),
-      });
+      if (!window.__googleGisInitialized) {
+        window.google.accounts.id.initialize({
+          client_id: this.googleClientId,
+          callback: (res: { credential: string }) => this.handleGoogleCredential(res.credential),
+          auto_select: false,
+          use_fedcm_for_prompt: true,
+          itp_support: false,
+        });
+        window.__googleGisInitialized = true;
+      }
 
+      this.googleBtnContainer.nativeElement.innerHTML = '';
       window.google.accounts.id.renderButton(this.googleBtnContainer.nativeElement, {
         theme: 'outline',
         size: 'large',

@@ -88,7 +88,8 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
     teamRegistrationFormUrl: 'https://forms.gle/PLACEHOLDER-team-registration',
-    projectSubmissionFormUrl: 'https://forms.gle/PLACEHOLDER-project-submission',
+    projectSubmissionFormUrl:
+      'https://docs.google.com/forms/d/e/1FAIpQLSfCQhQtxsp6J1vMzayBDNzYIpZD-cN-YD2DB1dUbHPAep0RlA/viewform?usp=header',
     studentEmailDomain: 'student.monash.edu',
     tracks: ['Open Innovation', 'Sustainability', 'HealthTech'],
     judgingCriteria: [
