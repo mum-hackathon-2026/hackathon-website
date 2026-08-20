@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { AuthService, SESSION_STORAGE } from '../auth/auth';
 import { DEFAULT_EVENT_CONFIG } from '../event/event-config';
@@ -25,7 +27,11 @@ describe('SubmissionService', () => {
   beforeEach(async () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [{ provide: SESSION_STORAGE, useValue: null }],
+      providers: [
+        { provide: SESSION_STORAGE, useValue: null },
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     });
     auth = TestBed.inject(AuthService);
     teams = TestBed.inject(TeamService);

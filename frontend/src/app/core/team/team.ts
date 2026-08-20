@@ -224,7 +224,7 @@ export class TeamService {
 
     try {
       const res = await firstValueFrom(
-        this.http.get<BackendMyTeamResponse>(`${this.apiBaseUrl}/api/teams/my`, {
+        this.http.get<BackendMyTeamResponse | null>(`${this.apiBaseUrl}/api/teams/my`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       );

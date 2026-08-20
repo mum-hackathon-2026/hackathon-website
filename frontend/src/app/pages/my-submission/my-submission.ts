@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../core/event/event-config';
@@ -33,10 +33,14 @@ function pad(value: number): string {
   styleUrl: './my-submission.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MySubmission {
+export class MySubmission implements OnInit {
   private readonly submissions = inject(SubmissionService);
   private readonly teams = inject(TeamService);
   private readonly phaseService = inject(PhaseService);
+
+  ngOnInit(): void {
+    void this.submissions.refreshMySubmission();
+  }
 
   protected readonly config = inject(EVENT_CONFIG);
   private readonly settings = inject(EventSettingsService);
@@ -48,12 +52,9 @@ export class MySubmission {
   protected readonly submission = this.submissions.submission;
   protected readonly isSubmitted = this.submissions.isSubmitted;
 
-  /** Submissions open when registration closes and shut at the deadline. */
-  protected readonly isOpen = computed(() => this.phaseService.phase() === 'submission');
-  protected readonly isBeforeWindow = computed(() => {
-    const phase = this.phaseService.phase();
-    return phase === 'before-registration' || phase === 'registration';
-  });
+  /** Always treat submissions as open for now (date check removed). */
+  protected readonly isOpen = computed(() => true);
+  protected readonly isBeforeWindow = computed(() => false);
 
   /** Time left to submit, sharing PhaseService's clock rather than starting another. */
   protected readonly countdown = computed(() => {

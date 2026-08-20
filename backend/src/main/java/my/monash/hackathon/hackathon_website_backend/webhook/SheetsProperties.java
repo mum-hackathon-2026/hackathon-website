@@ -6,5 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record SheetsProperties(
         String sheetId,
         String tab,
+        String submissionSheetId,
+        String submissionTab,
         String credentialsPath
 ) {}

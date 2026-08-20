@@ -65,8 +65,8 @@ class FlywayBaselineMigrationTests {
 
         MigrateResult result = flyway.migrate();
 
-        assertThat(result.migrationsExecuted).isEqualTo(4);
-        assertThat(result.targetSchemaVersion).isEqualTo("4");
+        assertThat(result.migrationsExecuted).isEqualTo(5);
+        assertThat(result.targetSchemaVersion).isEqualTo("5");
 
         Map<String, Object> baselineRow = jdbcTemplate.queryForMap(
                 "select version, description, success from flyway_schema_history where version = ?",
@@ -103,6 +103,15 @@ class FlywayBaselineMigrationTests {
                 .as("V4 must be recorded as successfully applied")
                 .isEqualTo(Boolean.TRUE);
         assertThat(githubUrlRow.get("description")).isEqualTo("add user github url");
+
+        Map<String, Object> submissionFieldsRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "5");
+
+        assertThat(submissionFieldsRow.get("success"))
+                .as("V5 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(submissionFieldsRow.get("description")).isEqualTo("submission additional fields");
 
         List<String> actualTables = jdbcTemplate.queryForList(
                 """

@@ -47,6 +47,7 @@ describe('SignIn', () => {
   // would otherwise leak into the next.
   afterEach(() => {
     delete window.google;
+    delete window.__googleGisInitialized;
   });
 
   it('offers one button per demo account', async () => {
@@ -260,6 +261,7 @@ describe('SignIn — signing in with a Google credential', () => {
     http.verify();
     document.getElementById('google-gis-script')?.remove();
     delete window.google;
+    delete window.__googleGisInitialized;
   });
 
   it('keeps the token form hidden until asked for', async () => {

@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
@@ -48,6 +50,8 @@ describe('MySubmission', () => {
       providers: [
         { provide: SESSION_STORAGE, useValue: null },
         { provide: EVENT_CONFIG, useValue: DEFAULT_EVENT_CONFIG },
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([]),
       ],
     }).compileComponents();
@@ -74,16 +78,8 @@ describe('MySubmission', () => {
     expect(host().querySelector('a[href="/participant/team"]')).toBeTruthy();
   });
 
-  it('says submissions are not open yet during registration', async () => {
+  it('links to the submission form immediately when user has a team', async () => {
     await setUp(DURING_REGISTRATION);
-
-    expect(host().querySelector('app-state-locked')).toBeTruthy();
-    expect(text()).toContain("Submissions aren't open yet");
-    expect(formLink()).toBeNull();
-  });
-
-  it('links to the submission form once the window opens', async () => {
-    await setUp(DURING_SUBMISSION);
 
     expect(formLink()?.getAttribute('href')).toBe(
       DEFAULT_EVENT_CONFIG.site.projectSubmissionFormUrl,
@@ -102,18 +98,10 @@ describe('MySubmission', () => {
     expect(host().querySelector('app-confirm-dialog')).toBeNull();
   });
 
-  it('goes read-only once the deadline passes', async () => {
-    await setUp(AFTER_DEADLINE);
-
-    expect(host().querySelector('app-state-locked')).toBeTruthy();
-    expect(text()).toContain('Submissions are closed');
-    expect(formLink()).toBeNull();
-  });
-
   it('shows nothing on file until an entry arrives', async () => {
     await setUp(DURING_SUBMISSION);
 
-    expect(text()).not.toContain('What we have on file');
+    expect(host().querySelector('.submission-showcase')).toBeNull();
   });
 
   it('reads back the entry once it has been imported', async () => {
@@ -127,15 +115,15 @@ describe('MySubmission', () => {
     });
     await fixture.whenStable();
 
-    expect(text()).toContain('What we have on file');
+    expect(host().querySelector('.submission-showcase')).toBeTruthy();
     expect(text()).toContain('EduPath');
     expect(text()).toContain(DEFAULT_EVENT_CONFIG.site.tracks[1]);
     expect(
-      host().querySelector<HTMLAnchorElement>('.submission__facts a')?.getAttribute('href'),
+      host().querySelector<HTMLAnchorElement>('.deliverable-card__link')?.getAttribute('href'),
     ).toBe('https://github.com/example/edupath');
   });
 
-  it('flips the pill and the card heading once submitted', async () => {
+  it('flips the pill to submitted and hides the submit form once submitted', async () => {
     await setUp(DURING_SUBMISSION);
     await submissions.submit({
       projectTitle: 'EduPath',
@@ -147,7 +135,8 @@ describe('MySubmission', () => {
     await fixture.whenStable();
 
     expect(host().querySelector('.submission__pill--submitted')).toBeTruthy();
-    expect(text()).toContain('Update your submission');
+    expect(formLink()).toBeNull();
+    expect(text()).toContain('Submission Finalized');
   });
 });
 
