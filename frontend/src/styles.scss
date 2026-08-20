@@ -39,10 +39,17 @@
   --color-surface: #ffffff;
   --color-surface-alt: #fafafa;
 
-  /* 'Google Sans' is not publicly hosted — it renders for people who have it
-     installed, everyone else falls back to Roboto. */
+  /* Two voices, one hierarchy. Titles are set in the serif; everything a reader
+     actually reads through — body copy, labels, controls, data — stays sans.
+     Roboto Serif is Roboto's companion face, so the pairing reads as one family
+     in two registers rather than two fonts bolted together. */
   --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Google Sans', 'Roboto', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Roboto Serif', ui-serif, Georgia, 'Times New Roman', serif;
+
+  /* Numbers are content, not titles: scores, KPI values, ranks and countdowns
+     stay sans so tabular figures keep lining up in columns. Aliased rather than
+     inlined so a numeric readout is never mistaken for a title at a glance. */
+  --font-numeric: var(--font-sans);
 }
 
 *,
@@ -65,10 +72,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Every heading level, so a title is serif wherever it appears without each
+   component having to opt in. Titles that are not headings — empty-state
+   headings, card names, the wordmark — set --font-serif themselves. */
 h1,
 h2,
-h3 {
-  font-family: var(--font-display);
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+  /* Roboto Serif is variable on the optical-size axis: fine at a 13px panel
+     title, open enough at a 60px hero. */
+  font-optical-sizing: auto;
 }
 
 html {
@@ -98,14 +114,16 @@ html {
   max-width: 720px;
 }
 
-/* Form controls. Shared because every page with a form needs the same ones. */
+/* Form controls. Shared because every page with a form needs the same ones.
+   Controls are interface, never titles, so they name the sans outright instead
+   of inheriting — a button nested inside a heading must not turn serif. */
 .button {
   align-self: flex-start;
   padding: 9px 16px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-surface);
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
   color: var(--color-body);
@@ -158,7 +176,7 @@ html {
   padding: 0;
   border: none;
   background: none;
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--color-blue);
@@ -181,6 +199,7 @@ html {
 }
 
 .field-label {
+  font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
   color: var(--color-body);
@@ -190,7 +209,7 @@ html {
   padding: 9px 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: 14px;
   color: var(--color-ink);
 }
@@ -199,9 +218,12 @@ html {
   border-color: var(--color-blue);
 }
 
-/* Shared section headings — repeated across every homepage section. */
+/* Shared section headings — repeated across every homepage section. The eyebrow
+   is a label rather than a title, so it stays sans: the uppercase sans kicker
+   above a serif heading is what makes the pairing read as deliberate. */
 .section-eyebrow {
   margin: 0 0 16px;
+  font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -209,8 +231,11 @@ html {
   color: var(--color-subtle);
 }
 
+/* Sits on h1, h2 and h3 depending on the page, so the face is stated here
+   rather than relying on one particular heading level. */
 .section-heading {
   margin: 0 0 40px;
+  font-family: var(--font-serif);
   font-size: 26px;
   font-weight: 700;
   line-height: 1.2;

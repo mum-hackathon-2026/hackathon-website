@@ -31,7 +31,10 @@
   min-width: 0;
 }
 
+/* A <p> rather than a heading so it does not enter the page outline, but it is
+   the title of the notice and is set like one. */
 .state-locked__heading {
+  font-family: var(--font-serif);
   margin: 0;
   font-size: 14px;
   font-weight: 700;

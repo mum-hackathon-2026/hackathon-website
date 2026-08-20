@@ -31,13 +31,14 @@
   object-fit: contain;
 }
 
-/* Shown only when the logo file is missing. Google Sans has to be named
-   explicitly — styles.scss only applies --font-display to h1-h3. */
+/* Shown only when the logo file is missing. A wordmark is a title, but this one
+   is a <span> rather than a heading, so it names the serif itself. */
 .sponsors__wordmark {
-  font-family: var(--font-display);
+  font-family: var(--font-serif);
   font-size: clamp(28px, 5vw, 38px);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  /* Serifs need the extra air the sans did not: tracking relaxed to 0. */
+  letter-spacing: 0;
   color: var(--color-ink);
 }
 

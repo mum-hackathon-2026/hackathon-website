@@ -45,7 +45,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   background: none;
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
   color: var(--color-muted);
@@ -180,7 +180,7 @@
 }
 
 .done__score {
-  font-family: var(--font-display);
+  font-family: var(--font-numeric);
   font-size: 20px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -233,7 +233,9 @@
   text-align: center;
 }
 
+/* The empty state's title. Not a heading element, still a title. */
 .empty__heading {
+  font-family: var(--font-serif);
   margin: 0 0 6px;
   font-size: 15px;
   font-weight: 700;

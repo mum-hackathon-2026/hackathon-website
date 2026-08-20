@@ -3,7 +3,7 @@
   margin-bottom: 20px;
   border: none;
   background: none;
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--color-blue);
@@ -107,7 +107,9 @@
   color: var(--color-subtle);
 }
 
+/* Lives inside the <h2>, but it is a count rather than part of the title. */
 .section-title__aside {
+  font-family: var(--font-sans);
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -213,7 +215,9 @@
   text-align: center;
 }
 
+/* The empty state's title. Not a heading element, still a title. */
 .empty__heading {
+  font-family: var(--font-serif);
   margin: 0 0 6px;
   font-size: 15px;
   font-weight: 700;
