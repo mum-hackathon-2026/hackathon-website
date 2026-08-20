@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ORGANIZERS } from '../../../core/event/event-content';
+import { ORGANIZERS, PARTNERS } from '../../../core/event/event-content';
 import { OrganizersSection } from './organizers';
 
 describe('OrganizersSection', () => {
@@ -76,5 +76,32 @@ describe('OrganizersSection', () => {
   it('marks the people up as a list under one heading', () => {
     expect(host().querySelector('ul.organizers__grid')).toBeTruthy();
     expect(host().querySelector('h2')!.textContent).toContain('The team making it happen.');
+  });
+
+  // Walks PARTNERS rather than naming the three bodies, so the proposal's
+  // collaboration table changing shows up here rather than going unnoticed.
+  describe('partners', () => {
+    function partnerCards(): HTMLElement[] {
+      return Array.from(host().querySelectorAll<HTMLElement>('.organizers__partner'));
+    }
+
+    it('names every partner with its role and what it does', () => {
+      expect(partnerCards().length).toBe(PARTNERS.length);
+
+      partnerCards().forEach((card, i) => {
+        expect(textOf(card, '.organizers__partner-role')).toBe(PARTNERS[i].role);
+        expect(textOf(card, '.organizers__partner-name')).toBe(PARTNERS[i].name);
+        expect(textOf(card, '.organizers__partner-does')).toBe(PARTNERS[i].responsibility);
+      });
+    });
+
+    it('puts the organising bodies above the individual people', () => {
+      const partners = host().querySelector('.organizers__partners')!;
+      const grid = host().querySelector('.organizers__grid')!;
+
+      expect(
+        partners.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
   });
 });

@@ -48,16 +48,18 @@ export const FAQS: readonly Faq[] = [
   {
     question: 'How are submissions judged?',
     answer:
-      'A panel of faculty judges scores each submission against ' +
+      'In two stages. Judges from Averis score every eligible submission against ' +
       site.judgingCriteria.map((c) => `${c.name} (${c.weight}%)`).join(', ') +
-      '. Scores are averaged across judges.',
+      ', working asynchronously over the two days after the deadline, and the ten ' +
+      'highest-scoring teams are shortlisted as finalists. Those ten then pitch live on ' +
+      'Final Pitch Day, and that round decides the winners.',
   },
   {
     question: 'Are there prizes?',
     answer:
-      'Overall 1st, 2nd and 3rd place prizes, plus a winner for each challenge track and special ' +
-      'awards for Best Presentation and Most Impactful. Prize details are announced at the ' +
-      'results ceremony.',
+      'Three cash prizes — RM 5,000 for first place, RM 3,000 for second and RM 1,000 for ' +
+      'third — presented at the end of Final Pitch Day. Every finalist team also presents to ' +
+      'the Averis panel, which is worth having on your record whatever the result.',
   },
 ];
 
@@ -86,12 +88,6 @@ export const EXTRA_FAQS: readonly Faq[] = [
       'account they gave and see the team on the My Team page.',
   },
   {
-    question: 'What challenge tracks are available?',
-    answer:
-      `${site.tracks.length} tracks: ${site.tracks.join(', ')}. You pick one when you submit, ` +
-      'and it decides which track prize you are considered for.',
-  },
-  {
     question: 'Can we use external APIs or libraries?',
     answer:
       'Yes — any publicly available library, framework or free-tier API is fair game. All code ' +
@@ -102,9 +98,9 @@ export const EXTRA_FAQS: readonly Faq[] = [
     question: 'Where do I submit?',
     answer:
       'On the submission form, linked from the My Submission page. You need a project title, a ' +
-      'challenge track, a description and a link to your repository; a live demo link is ' +
-      'optional but strongly recommended. Anyone on the team can send it, and sending it again ' +
-      'before the deadline replaces your earlier entry.',
+      'description and a link to your repository; a live demo link is optional but strongly ' +
+      'recommended. Anyone on the team can send it, and sending it again before the deadline ' +
+      'replaces your earlier entry.',
   },
   {
     question: 'What happens if my team has an eligibility issue?',
@@ -198,6 +194,35 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
   },
 ];
 
+export interface Partner {
+  readonly name: string;
+  /** What they are to the event: organiser, club partner, sponsor. */
+  readonly role: string;
+  readonly responsibility: string;
+}
+
+/**
+ * The proposal's collaboration table. Distinct from SPONSORS, which is only
+ * about who pays and carries a logo — this says who runs the thing.
+ */
+export const PARTNERS: readonly Partner[] = [
+  {
+    name: 'GDGoC Monash University Malaysia',
+    role: 'Organiser',
+    responsibility: 'Plans and runs the event',
+  },
+  {
+    name: 'MUMTEC',
+    role: 'Club partner',
+    responsibility: 'Publicity, and oversees event execution',
+  },
+  {
+    name: 'Averis',
+    role: 'Sponsor',
+    responsibility: 'Sets the problem statement and provides the judges',
+  },
+];
+
 export interface Sponsor {
   readonly name: string;
   /**
@@ -223,8 +248,6 @@ export interface Organizer {
   /** One line on what this person actually handles, so readers pick the right inbox. */
   readonly bio: string;
 }
-
-const STUDENT_EXPERIENCE = 'Student Experience Office';
 
 /**
  * The homepage grid shows name, role and initials; the organisers page adds the

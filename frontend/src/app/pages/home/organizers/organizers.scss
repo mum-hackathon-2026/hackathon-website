@@ -10,6 +10,49 @@
   align-items: center;
 }
 
+/* Three roles across a row, stacking on narrow screens. Sits above the people
+   grid: the bodies first, then who staffs them. */
+.organizers__partners {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0 0 32px;
+  padding: 0;
+  list-style: none;
+}
+
+.organizers__partner {
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  text-align: left;
+}
+
+.organizers__partner-role {
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-blue-ink);
+}
+
+.organizers__partner-name {
+  margin: 0 0 4px;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.organizers__partner-does {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
 .organizers__grid {
   display: flex;
   flex-wrap: wrap;
