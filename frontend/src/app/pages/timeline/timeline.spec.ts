@@ -108,10 +108,18 @@ describe('Timeline', () => {
     expect(first).toContain(`up to ${DEFAULT_EVENT_CONFIG.settings.maxTeamSize} members`);
   });
 
+  /**
+   * The spine prints days, not times, so the zone only shows up at a day
+   * boundary. Opening at 00:30 MYT is 16:30 UTC the day before, so a render
+   * that ignored the offset would name the wrong day outright.
+   */
   it('renders dates in MYT regardless of the local zone', async () => {
-    const host = await renderAt(BEFORE_REGISTRATION);
+    const host = await renderAt(BEFORE_REGISTRATION, {
+      registrationOpensAt: new Date('2026-09-02T00:30:00+08:00'),
+    });
 
-    // Registration opens 09:00 MYT; a local-zone render would show another hour.
-    expect(host.querySelector('.timeline__date')?.textContent).toContain('9:00 AM');
+    const date = host.querySelector('.timeline__date')?.textContent ?? '';
+    expect(date).toContain('2 Sep 2026');
+    expect(date).not.toContain('1 Sep 2026');
   });
 });
