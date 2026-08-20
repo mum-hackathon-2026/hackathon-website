@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { SESSION_STORAGE } from '../auth/auth';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from './event-config';
+import { DURING_REGISTRATION } from './event-config.testing';
 import { EventSettingsService } from './event-settings';
 import { PhaseService } from './phase';
 
@@ -10,6 +11,15 @@ function configWith(overrides: Partial<EventConfig['settings']> = {}): EventConf
     settings: { ...DEFAULT_EVENT_CONFIG.settings, ...overrides },
   };
 }
+
+/**
+ * A close instant that sits after registration opens but before
+ * DURING_REGISTRATION, so setting it moves the phase on without tripping the
+ * service's "closes after it opens" rule.
+ */
+const CLOSES_BEFORE_NOW = new Date(
+  DEFAULT_EVENT_CONFIG.settings.registrationOpensAt!.getTime() + 60_000,
+);
 
 function serviceWith(overrides: Partial<EventConfig['settings']> = {}): EventSettingsService {
   TestBed.resetTestingModule();
@@ -42,7 +52,7 @@ describe('EventSettingsService', () => {
      */
     it('lets a provided config still decide the phase', () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
-      vi.setSystemTime(new Date('2026-09-23T12:00:00+08:00'));
+      vi.setSystemTime(new Date(DURING_REGISTRATION));
       serviceWith();
 
       expect(TestBed.inject(PhaseService).phase()).toBe('registration');
@@ -137,14 +147,14 @@ describe('EventSettingsService', () => {
   describe('reactivity', () => {
     it('moves the phase when a date changes', () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
-      vi.setSystemTime(new Date('2026-09-23T12:00:00+08:00'));
+      vi.setSystemTime(new Date(DURING_REGISTRATION));
       const settings = serviceWith();
       const phase = TestBed.inject(PhaseService);
 
       expect(phase.phase()).toBe('registration');
 
       // Close registration in the past; the phase must follow.
-      settings.update({ registrationClosesAt: new Date('2026-09-22T00:00:00+08:00') });
+      settings.update({ registrationClosesAt: CLOSES_BEFORE_NOW });
 
       expect(phase.phase()).toBe('submission');
     });
@@ -161,13 +171,13 @@ describe('EventSettingsService', () => {
 
     it('moves the next milestone label with the dates', () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
-      vi.setSystemTime(new Date('2026-09-23T12:00:00+08:00'));
+      vi.setSystemTime(new Date(DURING_REGISTRATION));
       const settings = serviceWith();
       const phase = TestBed.inject(PhaseService);
 
       expect(phase.nextMilestone()?.label).toBe('Registration closes');
 
-      settings.update({ registrationClosesAt: new Date('2026-09-22T00:00:00+08:00') });
+      settings.update({ registrationClosesAt: CLOSES_BEFORE_NOW });
 
       expect(phase.nextMilestone()?.label).toBe('Submissions close');
     });

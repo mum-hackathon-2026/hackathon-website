@@ -30,7 +30,13 @@ export interface EventSettings {
 
 export interface SiteCopy {
   readonly university: string;
-  readonly faculty: string;
+  /**
+   * Who runs the event, as printed in the footer and shown as each organiser's
+   * affiliation. This is a club-run event, not a faculty one — the proposal has
+   * GDGoC MUM organising and MUMTEC as club partner — so the field is named for
+   * the organising bodies rather than a faculty.
+   */
+  readonly organisedBy: string;
   readonly tagline: string;
   readonly contactEmail: string;
   readonly discordUrl: string;
@@ -61,20 +67,38 @@ export interface EventConfig {
 }
 
 /**
- * PLACEHOLDER DATES — not the real schedule.
+ * Dates come from `docs/EVENT-PROPOSAL.md` (EMS Ref. E-202610796), except the
+ * registration window.
  *
- * Chosen only so every phase sits ahead of today and nothing reads as expired.
- * They keep the cadence of the design draft. Replace with the team's actual
- * dates; `event_settings` is the eventual owner of all of them.
+ * The event runs 18–26 September 2026. `submissionDeadlineAt` and
+ * `resultsPublishedAt` are the proposal's submission cut-off and finalist
+ * announcement respectively — see the proposal's own mapping table.
+ *
+ * PARTLY PLACEHOLDER: the proposal states no registration window.
+ * `registrationClosesAt` is pinned to the opening ceremony because the phase
+ * machine requires it to precede the submission deadline — put it after, and
+ * `PhaseService` skips the `submission` phase entirely. `registrationOpensAt`
+ * is invented outright. Replace both before the site goes public.
+ *
+ * `event_settings` is the eventual owner of all of these.
  */
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   settings: {
     eventName: 'Monash Hackathon 2026',
-    registrationOpensAt: new Date('2026-09-21T09:00:00+08:00'),
-    registrationClosesAt: new Date('2026-09-25T23:59:00+08:00'),
-    submissionDeadlineAt: new Date('2026-10-09T23:59:00+08:00'),
+    // Not in the proposal. The close is pinned to the opening ceremony, since
+    // that is when the problem statement drops and the build period starts —
+    // and it has to precede the submission deadline or the `submission` phase
+    // becomes unreachable. The open date is a placeholder.
+    registrationOpensAt: new Date('2026-09-01T09:00:00+08:00'),
+    registrationClosesAt: new Date('2026-09-18T18:00:00+08:00'),
+    // Proposal: submissions due 22 September, 12:00, then the committee checks
+    // eligibility.
+    submissionDeadlineAt: new Date('2026-09-22T12:00:00+08:00'),
     judgingOpen: false,
-    resultsPublishedAt: new Date('2026-10-19T10:00:00+08:00'),
+    // Proposal: the top 10 finalists are announced 25 September, 12:00. Final
+    // Pitch Day (26 September) decides the winners, but the site has no column
+    // for that instant — `resultsPublishedAt` is what gates the results page.
+    resultsPublishedAt: new Date('2026-09-25T12:00:00+08:00'),
     // V1's defaults. Changing these means a V2 migration too, or the site and
     // the database disagree about who may enter.
     minTeamSize: 1,
@@ -83,8 +107,10 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   },
   site: {
     university: 'Monash University Malaysia',
-    faculty: 'Faculty of Information Technology',
-    tagline: '48 hours. One campus. Build something that matters.',
+    organisedBy: 'GDGoC Monash University Malaysia & MUMTEC',
+    // The proposal runs eight days, not a weekend, and draws students from
+    // several universities — so neither "48 hours" nor "one campus" was true.
+    tagline: 'Eight days. One industry challenge. Build something that matters.',
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
     teamRegistrationFormUrl: 'https://forms.gle/PLACEHOLDER-team-registration',

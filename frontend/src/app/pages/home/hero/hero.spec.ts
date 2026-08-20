@@ -1,7 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { EVENT_CONFIG, EventConfig, DEFAULT_EVENT_CONFIG } from '../../../core/event/event-config';
+import {
+  AFTER_RESULTS,
+  DURING_REGISTRATION,
+  DURING_SUBMISSION,
+} from '../../../core/event/event-config.testing';
 import { Hero } from './hero';
+
+const REGISTRATION_OPENS = DEFAULT_EVENT_CONFIG.settings.registrationOpensAt!;
+const HOUR_MS = 3_600_000;
+const DAY_MS = 86_400_000;
+
+/** An instant offset from registration opening, for the boundary assertions. */
+function fromRegistrationOpen(offsetMs: number): string {
+  return new Date(REGISTRATION_OPENS.getTime() + offsetMs).toISOString();
+}
 
 function configAt(overrides: Partial<EventConfig['settings']> = {}): EventConfig {
   return {
@@ -43,8 +57,8 @@ describe('Hero', () => {
   });
 
   it('counts down to registration opening before the event starts', async () => {
-    // Registration opens 2026-09-21T09:00+08:00; this is a day and 30s earlier.
-    const host = await renderAt('2026-09-20T08:59:30+08:00');
+    // A day and 30 seconds before registration opens, whenever that is.
+    const host = await renderAt(fromRegistrationOpen(-(DAY_MS + 30_000)));
 
     expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
       'Registration opens in',
@@ -54,7 +68,7 @@ describe('Hero', () => {
   });
 
   it('switches to the registration deadline once registration opens', async () => {
-    const host = await renderAt('2026-09-23T12:00:00+08:00');
+    const host = await renderAt(DURING_REGISTRATION);
 
     expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
       'Registration closes in',
@@ -63,7 +77,7 @@ describe('Hero', () => {
   });
 
   it('switches to the submission deadline once registration closes', async () => {
-    const host = await renderAt('2026-09-30T12:00:00+08:00');
+    const host = await renderAt(DURING_SUBMISSION);
 
     expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
       'Submissions close in',
@@ -72,7 +86,7 @@ describe('Hero', () => {
   });
 
   it('drops the countdown entirely once results are out', async () => {
-    const host = await renderAt('2026-10-25T12:00:00+08:00');
+    const host = await renderAt(AFTER_RESULTS);
 
     expect(host.querySelector('.hero__countdown')).toBeNull();
     expect(badge(host)).toContain('Results are out');
@@ -82,16 +96,17 @@ describe('Hero', () => {
   });
 
   it('reads dates as MYT rather than the local zone', async () => {
-    // Registration opens at 01:00 UTC. An hour before, it has not opened yet.
-    const host = await renderAt('2026-09-21T00:00:00Z');
+    // The configured instant is MYT. An hour before it, in UTC, it has not
+    // opened yet; an hour after, it has.
+    const host = await renderAt(fromRegistrationOpen(-HOUR_MS));
     expect(badge(host)).toContain('Registrations open soon');
 
-    const later = await renderAt('2026-09-21T02:00:00Z');
+    const later = await renderAt(fromRegistrationOpen(HOUR_MS));
     expect(badge(later)).toContain('Registrations open');
   });
 
   it('takes its tagline from the config', async () => {
-    const host = await renderAt('2026-09-23T12:00:00+08:00');
+    const host = await renderAt(DURING_REGISTRATION);
     expect(host.querySelector('.hero__tagline')?.textContent?.trim()).toBe(
       DEFAULT_EVENT_CONFIG.site.tagline,
     );

@@ -1,14 +1,24 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthService, Role, SESSION_STORAGE } from '../../core/auth/auth';
-import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG } from '../../core/event/event-config';
+import { formatDate } from '@angular/common';
+import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, MYT_OFFSET } from '../../core/event/event-config';
+import { AFTER_RESULTS, DURING_JUDGING } from '../../core/event/event-config.testing';
 import { TeamService } from '../../core/team/team';
 import { Results } from './results';
 
 /** Before the configured publication date. */
-const BEFORE = '2026-10-12T12:00:00+08:00';
+const BEFORE = DURING_JUDGING;
 /** After it. */
-const AFTER = '2026-11-01T12:00:00+08:00';
+const AFTER = AFTER_RESULTS;
+
+/**
+ * The page's own rendering, so the assertion cannot drift from it on a locale
+ * detail — Intl's `short` month gives "Sept" where DatePipe gives "Sep".
+ */
+function formatMyt(date: Date): string {
+  return formatDate(date, 'd MMM y', 'en-US', MYT_OFFSET);
+}
 
 interface Options {
   readonly when?: string;
@@ -82,7 +92,9 @@ describe('Results', () => {
 
       const text = host.textContent ?? '';
       expect(text).toContain('not published yet');
-      expect(text).toContain('19 Oct 2026');
+      // Derived, so moving the schedule cannot leave this asserting a date the
+      // page no longer prints.
+      expect(text).toContain(formatMyt(DEFAULT_EVENT_CONFIG.settings.resultsPublishedAt!));
     });
   });
 

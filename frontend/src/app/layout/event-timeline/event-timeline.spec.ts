@@ -17,7 +17,7 @@ const BASE: EventConfig = {
   },
   site: {
     university: 'Monash University Malaysia',
-    faculty: 'Faculty of Information Technology',
+    organisedBy: 'Faculty of Information Technology',
     tagline: 'tagline',
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',

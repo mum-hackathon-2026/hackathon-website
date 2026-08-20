@@ -3,6 +3,12 @@ import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { AuthService, SESSION_STORAGE } from '../../core/auth/auth';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../../core/event/event-config';
+import {
+  AFTER_RESULTS,
+  DURING_JUDGING,
+  DURING_REGISTRATION,
+  DURING_SUBMISSION,
+} from '../../core/event/event-config.testing';
 import { SubmissionService } from '../../core/submission/submission';
 import { TeamService } from '../../core/team/team';
 import { Progress, ProgressTab } from './progress';
@@ -18,7 +24,7 @@ interface Options {
 }
 
 async function render({
-  when = '2026-09-23T12:00:00+08:00',
+  when = DURING_REGISTRATION,
   tab = 'team',
   settings = {},
   withTeam = false,
@@ -104,7 +110,7 @@ describe('Progress', () => {
   describe('stage sequence', () => {
     it('marks the team formed and waits on registration closing', async () => {
       // Registration is open on this date.
-      const host = await render({ withTeam: true, when: '2026-09-23T12:00:00+08:00' });
+      const host = await render({ withTeam: true, when: DURING_REGISTRATION });
 
       expect(stageStates(host)).toEqual([
         'done',
@@ -118,7 +124,7 @@ describe('Progress', () => {
     });
 
     it('moves to submission once registration has closed', async () => {
-      const host = await render({ withTeam: true, when: '2026-10-01T12:00:00+08:00' });
+      const host = await render({ withTeam: true, when: DURING_SUBMISSION });
 
       expect(stageStates(host)).toEqual([
         'done',
@@ -134,7 +140,7 @@ describe('Progress', () => {
     it('advances to review once the project is submitted and judging starts', async () => {
       const host = await render({
         submitted: true,
-        when: '2026-10-12T12:00:00+08:00',
+        when: DURING_JUDGING,
         settings: { judgingOpen: true },
       });
 
@@ -145,7 +151,7 @@ describe('Progress', () => {
     it('reaches judging complete once scoring is closed but results are not out', async () => {
       const host = await render({
         submitted: true,
-        when: '2026-10-12T12:00:00+08:00',
+        when: DURING_JUDGING,
         settings: { judgingOpen: false },
       });
 
@@ -154,7 +160,7 @@ describe('Progress', () => {
     });
 
     it('completes every stage once results are published', async () => {
-      const host = await render({ submitted: true, when: '2026-11-01T12:00:00+08:00' });
+      const host = await render({ submitted: true, when: AFTER_RESULTS });
 
       expect(stageStates(host)).toEqual(['done', 'done', 'done', 'done', 'done', 'current']);
       expect(currentStageLabel(host)).toBe('Results announced');
@@ -162,7 +168,7 @@ describe('Progress', () => {
 
     it('does not claim a team is under review when it never submitted', async () => {
       // Judging has started, but this team has no submission.
-      const host = await render({ withTeam: true, when: '2026-10-12T12:00:00+08:00' });
+      const host = await render({ withTeam: true, when: DURING_JUDGING });
 
       expect(stageStates(host)).toEqual([
         'done',
@@ -177,14 +183,14 @@ describe('Progress', () => {
 
   describe('next action', () => {
     it('is not urgent while registration is still open', async () => {
-      const host = await render({ withTeam: true, when: '2026-09-23T12:00:00+08:00' });
+      const host = await render({ withTeam: true, when: DURING_REGISTRATION });
 
       expect(host.querySelector('.action--urgent')).toBeNull();
       expect(actionText(host)).toContain('Registration is still open');
     });
 
     it('urges submitting once the window opens', async () => {
-      const host = await render({ withTeam: true, when: '2026-10-01T12:00:00+08:00' });
+      const host = await render({ withTeam: true, when: DURING_SUBMISSION });
 
       expect(host.querySelector('.action--urgent')).toBeTruthy();
       const cta = host.querySelector<HTMLAnchorElement>('.action a');
@@ -192,7 +198,7 @@ describe('Progress', () => {
     });
 
     it('says plainly when the deadline passed with nothing submitted', async () => {
-      const host = await render({ withTeam: true, when: '2026-10-12T12:00:00+08:00' });
+      const host = await render({ withTeam: true, when: DURING_JUDGING });
 
       expect(host.querySelector('.action--urgent')).toBeTruthy();
       expect(actionText(host)).toContain('deadline has passed');
@@ -203,7 +209,7 @@ describe('Progress', () => {
     it('asks for nothing while judging is under way', async () => {
       const host = await render({
         submitted: true,
-        when: '2026-10-12T12:00:00+08:00',
+        when: DURING_JUDGING,
         settings: { judgingOpen: true },
       });
 
