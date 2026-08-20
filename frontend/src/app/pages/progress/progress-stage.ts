@@ -7,7 +7,7 @@
  */
 
 export type ProgressStageId =
-  'team-formed' | 'registration' | 'submission' | 'under-review' | 'judging-complete' | 'results';
+  'team-formed' | 'submission' | 'under-review' | 'judging-complete' | 'results';
 
 export type ProgressStageState = 'done' | 'current' | 'pending';
 

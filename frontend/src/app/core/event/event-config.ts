@@ -117,8 +117,10 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     tagline: 'Eight days. One industry challenge. Build something that matters.',
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
-    teamRegistrationFormUrl: 'https://forms.gle/PLACEHOLDER-team-registration',
-    projectSubmissionFormUrl: 'https://forms.gle/PLACEHOLDER-project-submission',
+    teamRegistrationFormUrl:
+      'https://docs.google.com/forms/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/viewform',
+    projectSubmissionFormUrl:
+      'https://docs.google.com/forms/d/e/1FAIpQLSfCQhQtxsp6J1vMzayBDNzYIpZD-cN-YD2DB1dUbHPAep0RlA/viewform?usp=header',
     // Open to students from any university, so no single domain identifies one.
     studentEmailDomain: null,
     tracks: ['Open Innovation', 'Sustainability', 'HealthTech'],

@@ -12,18 +12,18 @@ const STAGES: readonly ProgressStage[] = [
     state: 'done',
   },
   {
-    id: 'registration',
-    label: 'Registration',
-    accent: 'blue',
-    description: 'Registration is still open.',
+    id: 'submission',
+    label: 'Project submission',
+    accent: 'red',
+    description: 'Submissions are open.',
     at: null,
     state: 'current',
   },
   {
-    id: 'submission',
-    label: 'Project submission',
-    accent: 'red',
-    description: 'Nothing submitted yet.',
+    id: 'under-review',
+    label: 'Under review',
+    accent: 'amber',
+    description: 'Judges are scoring.',
     at: null,
     state: 'pending',
   },
@@ -60,8 +60,8 @@ describe('StageList', () => {
 
     expect(steps().map((s) => s.querySelector('.stages__label')!.textContent!.trim())).toEqual([
       'Team formed',
-      'Registration',
       'Project submission',
+      'Under review',
     ]);
   });
 
@@ -87,7 +87,7 @@ describe('StageList', () => {
     await render();
 
     expect(steps()[0].classList.contains('stages__step--green')).toBe(true);
-    expect(steps()[2].classList.contains('stages__step--red')).toBe(true);
+    expect(steps()[1].classList.contains('stages__step--red')).toBe(true);
   });
 
   describe('the node on the spine', () => {

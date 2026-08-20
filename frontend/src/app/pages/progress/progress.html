@@ -2,35 +2,11 @@
   <app-page-header
     [eyebrow]="eventName()"
     title="Progress"
-    subtitle="Where your team stands, and what the event is doing next."
+    subtitle="Where your team stands, and what comes next."
   />
 
-  <nav class="tabs" aria-label="Progress views">
-    <a
-      class="tabs__tab"
-      routerLink="/participant/progress/team"
-      routerLinkActive="tabs__tab--active"
-      #teamTab="routerLinkActive"
-      [attr.aria-current]="teamTab.isActive ? 'page' : null"
-    >
-      My team
-    </a>
-    <a
-      class="tabs__tab"
-      routerLink="/participant/progress/event"
-      routerLinkActive="tabs__tab--active"
-      #eventTab="routerLinkActive"
-      [attr.aria-current]="eventTab.isActive ? 'page' : null"
-    >
-      Event timeline
-    </a>
-  </nav>
-
-  @if (tab() === 'event') {
-    <app-event-timeline />
-  } @else if (team(); as myTeam) {
+  @if (team(); as myTeam) {
     <!-- ── Summary ──────────────────────────────────────────────────────── -->
-
     @if (currentStage(); as stage) {
       <div class="summary summary--{{ stage.accent }}">
         <div class="summary__item">
@@ -52,12 +28,11 @@
     }
 
     <!-- ── Next action ──────────────────────────────────────────────────── -->
-
     @if (nextAction(); as action) {
       <div class="action" [class.action--urgent]="action.urgent">
         <p class="action__text"><strong>Next action:</strong> {{ action.message }}</p>
         @if (action.cta; as cta) {
-          <a class="button" [routerLink]="cta.link">{{ cta.label }}</a>
+          <a class="button button--primary" [routerLink]="cta.link">{{ cta.label }}</a>
         }
       </div>
     }
@@ -65,7 +40,6 @@
     <app-stage-list [stages]="stages()" />
 
     <!-- ── Team card ────────────────────────────────────────────────────── -->
-
     <section class="team-card" aria-labelledby="team-card-heading">
       <div class="team-card__heading">
         <div>
@@ -91,7 +65,6 @@
     </section>
   } @else {
     <!-- ── No team yet ──────────────────────────────────────────────────── -->
-
     <div class="empty">
       <p class="empty__heading">You are not on a team yet</p>
       <p class="empty__body">

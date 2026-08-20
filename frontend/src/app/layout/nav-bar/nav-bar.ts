@@ -31,7 +31,7 @@ const NAV_LINKS: readonly NavLink[] = [
   { path: '/organizers', label: 'Organisers' },
   { path: '/participant/team', label: 'My Team', roles: ['participant'] },
   { path: '/participant/submission', label: 'My Submission', roles: ['participant'] },
-  { path: '/participant/progress/team', label: 'Progress', roles: ['participant'] },
+  { path: '/participant/progress', label: 'Progress', roles: ['participant'] },
   { path: '/judge/portal', label: 'Judge Portal', roles: ['judge'] },
   { path: '/admin/dashboard', label: 'Dashboard', roles: ['admin'] },
   { path: '/results', label: 'Results', roles: ['participant', 'judge', 'admin'] },
