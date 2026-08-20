@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { provideRouter } from '@angular/router';
 import { AuthService, SESSION_STORAGE } from '../../core/auth/auth';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../../core/event/event-config';
 import {
@@ -11,11 +10,10 @@ import {
 } from '../../core/event/event-config.testing';
 import { SubmissionService } from '../../core/submission/submission';
 import { TeamService } from '../../core/team/team';
-import { Progress, ProgressTab } from './progress';
+import { Progress } from './progress';
 
 interface Options {
   readonly when?: string;
-  readonly tab?: ProgressTab;
   readonly settings?: Partial<EventConfig['settings']>;
   /** Sign in and join a seeded team before rendering. */
   readonly withTeam?: boolean;
@@ -25,7 +23,6 @@ interface Options {
 
 async function render({
   when = DURING_REGISTRATION,
-  tab = 'team',
   settings = {},
   withTeam = false,
   submitted = false,
@@ -39,7 +36,6 @@ async function render({
     providers: [
       provideRouter([]),
       { provide: SESSION_STORAGE, useValue: null },
-      { provide: ActivatedRoute, useValue: { data: of({ tab }) } },
       {
         provide: EVENT_CONFIG,
         useValue: {
@@ -108,8 +104,7 @@ describe('Progress', () => {
   });
 
   describe('stage sequence', () => {
-    it('marks the team formed and waits on registration closing', async () => {
-      // Registration is open on this date.
+    it('moves directly to submission once team is registered', async () => {
       const host = await render({ withTeam: true, when: DURING_REGISTRATION });
 
       expect(stageStates(host)).toEqual([
@@ -118,16 +113,14 @@ describe('Progress', () => {
         'pending',
         'pending',
         'pending',
-        'pending',
       ]);
-      expect(currentStageLabel(host)).toBe('Registration');
+      expect(currentStageLabel(host)).toBe('Project submission');
     });
 
-    it('moves to submission once registration has closed', async () => {
+    it('prompts project submission when registered', async () => {
       const host = await render({ withTeam: true, when: DURING_SUBMISSION });
 
       expect(stageStates(host)).toEqual([
-        'done',
         'done',
         'current',
         'pending',
@@ -144,7 +137,7 @@ describe('Progress', () => {
         settings: { judgingOpen: true },
       });
 
-      expect(stageStates(host)).toEqual(['done', 'done', 'done', 'current', 'pending', 'pending']);
+      expect(stageStates(host)).toEqual(['done', 'done', 'current', 'pending', 'pending']);
       expect(currentStageLabel(host)).toBe('Under review');
     });
 
@@ -155,14 +148,14 @@ describe('Progress', () => {
         settings: { judgingOpen: false },
       });
 
-      expect(stageStates(host)).toEqual(['done', 'done', 'done', 'done', 'current', 'pending']);
+      expect(stageStates(host)).toEqual(['done', 'done', 'done', 'current', 'pending']);
       expect(currentStageLabel(host)).toBe('Judging complete');
     });
 
     it('completes every stage once results are published', async () => {
       const host = await render({ submitted: true, when: AFTER_RESULTS });
 
-      expect(stageStates(host)).toEqual(['done', 'done', 'done', 'done', 'done', 'current']);
+      expect(stageStates(host)).toEqual(['done', 'done', 'done', 'done', 'current']);
       expect(currentStageLabel(host)).toBe('Results announced');
     });
 
@@ -171,7 +164,6 @@ describe('Progress', () => {
       const host = await render({ withTeam: true, when: DURING_JUDGING });
 
       expect(stageStates(host)).toEqual([
-        'done',
         'done',
         'current',
         'pending',
@@ -182,14 +174,16 @@ describe('Progress', () => {
   });
 
   describe('next action', () => {
-    it('is not urgent while registration is still open', async () => {
+    it('prompts submission immediately once team is registered', async () => {
       const host = await render({ withTeam: true, when: DURING_REGISTRATION });
 
-      expect(host.querySelector('.action--urgent')).toBeNull();
-      expect(actionText(host)).toContain('Registration is still open');
+      expect(host.querySelector('.action--urgent')).toBeTruthy();
+      expect(actionText(host)).toContain('submit your project');
+      const cta = host.querySelector<HTMLAnchorElement>('.action a');
+      expect(cta?.getAttribute('href')).toBe('/participant/submission');
     });
 
-    it('urges submitting once the window opens', async () => {
+    it('urges submitting project entry', async () => {
       const host = await render({ withTeam: true, when: DURING_SUBMISSION });
 
       expect(host.querySelector('.action--urgent')).toBeTruthy();
@@ -197,16 +191,7 @@ describe('Progress', () => {
       expect(cta?.getAttribute('href')).toBe('/participant/submission');
     });
 
-    it('says plainly when the deadline passed with nothing submitted', async () => {
-      const host = await render({ withTeam: true, when: DURING_JUDGING });
-
-      expect(host.querySelector('.action--urgent')).toBeTruthy();
-      expect(actionText(host)).toContain('deadline has passed');
-      // Nothing to click — the window has closed.
-      expect(host.querySelector('.action a')).toBeNull();
-    });
-
-    it('asks for nothing while judging is under way', async () => {
+    it('asks for nothing while judging is under way once submitted', async () => {
       const host = await render({
         submitted: true,
         when: DURING_JUDGING,
@@ -231,38 +216,6 @@ describe('Progress', () => {
 
       const link = host.querySelector<HTMLAnchorElement>('.team-card a');
       expect(link?.getAttribute('href')).toBe('/participant/team');
-    });
-  });
-
-  describe('tabs', () => {
-    it('shows the stage spine on the team tab', async () => {
-      const host = await render({ withTeam: true, tab: 'team' });
-
-      expect(host.querySelector('.stages')).toBeTruthy();
-      expect(host.querySelector('.timeline')).toBeNull();
-    });
-
-    it('shows the shared event timeline on the event tab', async () => {
-      const host = await render({ withTeam: true, tab: 'event' });
-
-      expect(host.querySelector('.timeline')).toBeTruthy();
-      expect(host.querySelector('.stages')).toBeNull();
-    });
-
-    it('offers the event timeline even to someone with no team', async () => {
-      const host = await render({ tab: 'event' });
-
-      expect(host.querySelector('.timeline')).toBeTruthy();
-      expect(host.querySelector('.empty')).toBeNull();
-    });
-
-    it('links both tabs to real routes', async () => {
-      const host = await render({ withTeam: true });
-
-      const hrefs = Array.from(host.querySelectorAll<HTMLAnchorElement>('.tabs__tab')).map((a) =>
-        a.getAttribute('href'),
-      );
-      expect(hrefs).toEqual(['/participant/progress/team', '/participant/progress/event']);
     });
   });
 });

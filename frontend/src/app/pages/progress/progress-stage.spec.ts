@@ -27,11 +27,10 @@ import { ProgressStage, ProgressStageId, ProgressStageState } from './progress-s
  */
 const STAGE_ORDER: Record<ProgressStageId, number> = {
   'team-formed': 0,
-  registration: 1,
-  submission: 2,
-  'under-review': 3,
-  'judging-complete': 4,
-  results: 5,
+  submission: 1,
+  'under-review': 2,
+  'judging-complete': 3,
+  results: 4,
 };
 
 const IDS = (Object.keys(STAGE_ORDER) as ProgressStageId[]).sort(
@@ -50,7 +49,6 @@ async function renderProgress() {
     providers: [
       provideRouter([]),
       { provide: SESSION_STORAGE, useValue: null },
-      { provide: ActivatedRoute, useValue: { data: of({ tab: 'team' }) } },
       { provide: EVENT_CONFIG, useValue: DEFAULT_EVENT_CONFIG },
     ],
   }).compileComponents();
@@ -72,7 +70,6 @@ describe('ProgressStage', () => {
   it('runs from forming a team to results, in one fixed order', () => {
     expect(IDS).toEqual([
       'team-formed',
-      'registration',
       'submission',
       'under-review',
       'judging-complete',

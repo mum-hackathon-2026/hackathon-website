@@ -117,7 +117,7 @@ describe('MyTeam', () => {
     expect(text()).not.toContain(teams.myTeam()!.joinCode);
   });
 
-  it('locks once registration has closed', async () => {
+  it('locks once registration has closed when you have no team', async () => {
     // Registration closes 25 Sep; this is after it.
     await setUp(DURING_SUBMISSION);
 
@@ -126,7 +126,7 @@ describe('MyTeam', () => {
     expect(text()).toContain('Registration is closed');
   });
 
-  it('summarises the team inside the locked state', async () => {
+  it('keeps the registered team visible even after registration closes', async () => {
     await setUp();
     await teams.createTeam('Locked Out');
     await fixture.whenStable();
@@ -136,8 +136,8 @@ describe('MyTeam', () => {
     await vi.advanceTimersByTimeAsync(1100);
     await fixture.whenStable();
 
-    expect(host().querySelector('.my-team__locked-summary')?.textContent).toContain('Locked Out');
-    expect(host().querySelector('.my-team__locked-summary')?.textContent).toContain('1 member');
+    expect(host().querySelector('.my-team__name')?.textContent?.trim()).toBe('Locked Out');
+    expect(host().querySelector('.my-team__members')).toBeTruthy();
   });
 });
 

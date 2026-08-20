@@ -26,20 +26,21 @@ export const routes: Routes = [
     canActivate: [participantGuard],
     title: 'My submission · Monash Hackathon 2026',
   },
-  // Two paths, one component: `tab` picks the view so each is linkable.
   {
-    path: 'participant/progress/team',
+    path: 'participant/progress',
     component: Progress,
     canActivate: [participantGuard],
-    data: { tab: 'team' },
     title: 'Progress · Monash Hackathon 2026',
   },
   {
+    path: 'participant/progress/team',
+    redirectTo: 'participant/progress',
+    pathMatch: 'full',
+  },
+  {
     path: 'participant/progress/event',
-    component: Progress,
-    canActivate: [participantGuard],
-    data: { tab: 'event' },
-    title: 'Progress · Monash Hackathon 2026',
+    redirectTo: 'participant/progress',
+    pathMatch: 'full',
   },
   // Lazy for the same reason as the admin dashboard below: both pages are behind
   // a role guard, so every participant was downloading judging code they can
