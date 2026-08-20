@@ -1,0 +1,67 @@
+.purpose {
+  padding: 72px 0;
+}
+
+.purpose__inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+}
+
+.purpose__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A rule rather than a bullet or a number: these are three reasons, not a
+   sequence, so nothing should imply an order. */
+.purpose__item {
+  padding-top: 14px;
+  border-top: 2px solid var(--color-blue);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-body);
+}
+
+.purpose__item:nth-child(2) {
+  border-top-color: var(--color-red);
+}
+
+.purpose__item:nth-child(3) {
+  border-top-color: var(--color-yellow);
+}
+
+.purpose__scale {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px 56px;
+  margin: 48px 0 0;
+  padding: 28px 0 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.purpose__figure {
+  text-align: center;
+}
+
+/* A count, not a title — sans with tabular figures, per the type roles. */
+.purpose__value {
+  font-family: var(--font-numeric);
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.purpose__label {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-muted);
+}

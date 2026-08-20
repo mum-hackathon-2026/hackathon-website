@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { AuthService, SESSION_STORAGE } from '../../core/auth/auth';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../../core/event/event-config';
+import { DURING_REGISTRATION, DURING_SUBMISSION } from '../../core/event/event-config.testing';
 import { TeamService } from '../../core/team/team';
 import { participantGuard } from '../../core/auth/role-guard';
 import { MyTeam } from './my-team';
@@ -35,7 +36,7 @@ describe('MyTeam', () => {
    * clock in its constructor, so moving the system time afterwards would not
    * reach it until its next tick.
    */
-  async function setUp(now = '2026-09-23T12:00:00+08:00') {
+  async function setUp(now = DURING_REGISTRATION) {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date(now));
 
@@ -118,7 +119,7 @@ describe('MyTeam', () => {
 
   it('locks once registration has closed', async () => {
     // Registration closes 25 Sep; this is after it.
-    await setUp('2026-10-01T12:00:00+08:00');
+    await setUp(DURING_SUBMISSION);
 
     expect(host().querySelector('app-state-locked')).toBeTruthy();
     expect(host().querySelector('app-form-link-card')).toBeNull();
@@ -131,7 +132,7 @@ describe('MyTeam', () => {
     await fixture.whenStable();
 
     // Move past the close date; the shared clock ticks once a second.
-    vi.setSystemTime(new Date('2026-10-01T12:00:00+08:00'));
+    vi.setSystemTime(new Date(DURING_SUBMISSION));
     await vi.advanceTimersByTimeAsync(1100);
     await fixture.whenStable();
 

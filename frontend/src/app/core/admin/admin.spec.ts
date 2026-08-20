@@ -159,7 +159,9 @@ describe('AdminService', () => {
 
       expect(eligible.length).toBeGreaterThan(0);
       expect(eligible.every((p) => p.emailVerified)).toBe(true);
-      expect(eligible.every((p) => p.email.endsWith('@student.monash.edu'))).toBe(true);
+      // Asserted as "not a personal address" rather than against one campus
+      // domain: the event takes students from any university.
+      expect(eligible.every((p) => !p.email.endsWith('@gmail.com'))).toBe(true);
     });
 
     it('separates an unconfirmed address from a non-student one', () => {
@@ -167,12 +169,12 @@ describe('AdminService', () => {
 
       const unverified = rows.filter((p) => p.eligibility === 'unverified');
       expect(unverified.length).toBeGreaterThan(0);
-      expect(unverified.every((p) => p.email.endsWith('@student.monash.edu'))).toBe(true);
+      expect(unverified.every((p) => !p.email.endsWith('@gmail.com'))).toBe(true);
       expect(unverified.every((p) => !p.emailVerified)).toBe(true);
 
       const notStudent = rows.filter((p) => p.eligibility === 'not_student');
       expect(notStudent.length).toBeGreaterThan(0);
-      expect(notStudent.every((p) => !p.email.endsWith('@student.monash.edu'))).toBe(true);
+      expect(notStudent.every((p) => p.email.endsWith('@gmail.com'))).toBe(true);
     });
 
     it('screens against the configured domain, not a hardcoded one', () => {

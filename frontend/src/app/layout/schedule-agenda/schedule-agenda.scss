@@ -1,0 +1,74 @@
+.agenda {
+  margin-top: 56px;
+}
+
+.agenda__title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.agenda__intro {
+  margin: 0 0 28px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.agenda__phases {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.agenda__phase {
+  padding: 18px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+/* Name and dates share a row until the phase name needs the width to itself. */
+.agenda__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.agenda__name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.agenda__dates {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-blue-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.agenda__venue {
+  margin: 8px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+.agenda__summary {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-body);
+}

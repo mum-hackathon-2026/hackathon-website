@@ -3,6 +3,16 @@
     <p class="section-eyebrow section-eyebrow--center">Organizers</p>
     <h2 class="section-heading section-heading--center">The team making it happen.</h2>
 
+    <ul class="organizers__partners">
+      @for (partner of partners; track partner.name) {
+        <li class="organizers__partner">
+          <p class="organizers__partner-role">{{ partner.role }}</p>
+          <p class="organizers__partner-name">{{ partner.name }}</p>
+          <p class="organizers__partner-does">{{ partner.responsibility }}</p>
+        </li>
+      }
+    </ul>
+
     <ul class="organizers__grid">
       @for (person of organizers; track person.name) {
         <li class="organizers__card">

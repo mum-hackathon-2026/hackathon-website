@@ -17,7 +17,7 @@ const BASE: EventConfig = {
   },
   site: {
     university: 'Monash University Malaysia',
-    faculty: 'Faculty of Information Technology',
+    organisedBy: 'Faculty of Information Technology',
     tagline: 'tagline',
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
@@ -145,8 +145,20 @@ describe('EventTimeline', () => {
     const date = steps()[0].querySelector('.timeline__date')!.textContent!;
 
     expect(date).toContain('21 Sep 2026');
-    expect(date).toContain('9:00');
     expect(date).toContain('MYT');
+  });
+
+  /**
+   * The spine gives the shape of the schedule, not the clock. Pages that hang
+   * on an exact instant — the submission deadline on My Submission, the hero
+   * countdown — still print the time; this does not.
+   */
+  it('states the day without a time of day', async () => {
+    await renderAt('2026-09-23T12:00:00+08:00');
+
+    for (const step of steps()) {
+      expect(step.querySelector('.timeline__date')!.textContent).not.toMatch(/\d{1,2}:\d{2}/);
+    }
   });
 
   it('renders a span as a range and a point in time as one date', async () => {

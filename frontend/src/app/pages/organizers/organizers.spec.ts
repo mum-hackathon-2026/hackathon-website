@@ -61,11 +61,19 @@ describe('Organizers', () => {
       expect(judging).toContain('—');
     });
 
+    /**
+     * Key dates print days, not times, so the zone only shows at a day
+     * boundary. 00:30 MYT is 16:30 UTC the day before, so a render that
+     * ignored the offset would name the wrong day.
+     */
     it('renders dates in MYT regardless of the local zone', async () => {
-      const host = await render();
+      const host = await render({
+        registrationOpensAt: new Date('2026-09-02T00:30:00+08:00'),
+      });
 
-      // Registration opens 09:00 MYT; a local-zone render would show another hour.
-      expect(texts(host, '.key-dates__value')[0]).toContain('9:00 AM');
+      const first = texts(host, '.key-dates__value')[0];
+      expect(first).toContain('2 Sep 2026');
+      expect(first).not.toContain('1 Sep 2026');
     });
   });
 

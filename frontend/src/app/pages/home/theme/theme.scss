@@ -116,7 +116,9 @@
   border-top-color: var(--color-yellow);
 }
 
+/* Card title, with .theme__pillar-desc as its body. */
 .theme__pillar-name {
+  font-family: var(--font-serif);
   margin: 0 0 6px;
   font-size: 14px;
   font-weight: 700;

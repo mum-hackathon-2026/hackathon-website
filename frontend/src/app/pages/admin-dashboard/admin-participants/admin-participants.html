@@ -98,8 +98,13 @@
 
 <p class="note">
   Eligibility is worked out from the address and <code>users.email_verified</code>, not stored:
-  anything on <code>&#64;{{ studentDomain }}</code> that has confirmed itself is eligible. The
-  design draft instead shows a student ID behind a reveal toggle and offers Verify and Flag per
+  @if (studentDomain) {
+    anything on <code>&#64;{{ studentDomain }}</code> that has confirmed itself is eligible.
+  } @else {
+    the event is open to students from any university, so no domain identifies one and a confirmed
+    address is the only part that checks itself — whether someone is a student is a manual call.
+  }
+  The design draft instead shows a student ID behind a reveal toggle and offers Verify and Flag per
   person. <code>users</code> has neither a student ID column nor an eligibility one, so both would
   need a migration first — and until then a stored answer could only disagree with the address it
   was meant to check.

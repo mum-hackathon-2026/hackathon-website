@@ -46,14 +46,14 @@ describe('event content', () => {
       }
     });
 
-    it('names every track, and counts them correctly', () => {
-      const tracks = EXTRA_FAQS.find(
-        (faq) => faq.question === 'What challenge tracks are available?',
-      )!;
-
-      expect(tracks.answer).toContain(`${site.tracks.length} tracks`);
-      for (const track of site.tracks) {
-        expect(tracks.answer).toContain(track);
+    /**
+     * Averis sets one problem statement; the site does not offer a choice of
+     * tracks. `site.tracks` still exists because submission, judging, results
+     * and the admin dashboard all read it — but no public copy promises it.
+     */
+    it('promises no challenge tracks', () => {
+      for (const faq of ALL_FAQS) {
+        expect(faq.answer).not.toMatch(/challenge tracks?/i);
       }
     });
 

@@ -41,9 +41,9 @@
         </div>
 
         <p class="timeline__date">
-          {{ step.start | date: 'd MMM y, h:mm a' : myt }}
+          {{ step.start | date: 'd MMM y' : myt }}
           @if (step.end) {
-            — {{ step.end | date: 'd MMM y, h:mm a' : myt }}
+            — {{ step.end | date: 'd MMM y' : myt }}
           }
           <span class="timeline__zone">MYT</span>
         </p>

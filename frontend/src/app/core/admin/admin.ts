@@ -393,6 +393,13 @@ const NON_STUDENT = new Set(['Ryan Teoh', 'Terence Sim']);
 
 const NON_STUDENT_DOMAIN = 'gmail.com';
 
+/**
+ * Stands in when no single student domain is configured, which is the case
+ * whenever the event is open to more than one university. Only ever used to
+ * spell the seeded roster's addresses — nothing screens on it.
+ */
+const STUDENT_DEMO_DOMAIN = 'student.example.edu';
+
 /** First initial and family name, the same shape as the judge seed's addresses. */
 function addressFor(fullName: string, domain: string): string {
   const parts = fullName
@@ -988,7 +995,8 @@ export class AdminService {
   /** Owns `event_settings`; this service writes through it so one copy stays authoritative. */
   private readonly eventSettings = inject(EventSettingsService);
   private readonly http = inject(HttpClient, { optional: true });
-  private readonly apiBaseUrl = inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080/api';
+  private readonly apiBaseUrl =
+    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080/api';
 
   private readonly liveTeams = signal<readonly AdminTeamRow[] | null>(null);
   private readonly liveParticipants = signal<readonly AdminParticipantRow[] | null>(null);
@@ -1045,9 +1053,13 @@ export class AdminService {
           ),
         ),
         firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/teams`, { headers })),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/participants`, { headers })),
+        firstValueFrom(
+          this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/participants`, { headers }),
+        ),
         firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/judges`, { headers })),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/assignments`, { headers })),
+        firstValueFrom(
+          this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/assignments`, { headers }),
+        ),
         firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/audit`, { headers })),
       ]);
 
@@ -1186,7 +1198,7 @@ export class AdminService {
   });
 
   private readonly registered = computed<readonly AdminParticipantRow[]>(() => {
-    const domain = this.config.site.studentEmailDomain;
+    const domain = this.config.site.studentEmailDomain ?? STUDENT_DEMO_DOMAIN;
     const teamNames = new Map(this.rows().map((team) => [team.teamId, team.teamName]));
     let nextId = FIRST_PARTICIPANT_ID;
 
@@ -1213,7 +1225,7 @@ export class AdminService {
       return this.liveParticipants()!;
     }
     const overrides = this.roleOverrides();
-    const domain = this.config.site.studentEmailDomain;
+    const domain = this.config.site.studentEmailDomain ?? STUDENT_DEMO_DOMAIN;
 
     return [
       ...this.registered(),
@@ -1738,7 +1750,9 @@ export class AdminService {
    * Async boundary with no I/O behind it yet — the part callers must cope with
    * when a real endpoint replaces this, so it exists from the start.
    */
-  private async run(action: () => AdminActionResult | Promise<AdminActionResult>): Promise<AdminActionResult> {
+  private async run(
+    action: () => AdminActionResult | Promise<AdminActionResult>,
+  ): Promise<AdminActionResult> {
     this.inFlight.update((n) => n + 1);
     try {
       return await action();

@@ -24,9 +24,9 @@ describe('HomeFooter', () => {
     await fixture.whenStable();
   });
 
-  it('credits the event and the faculty behind it', () => {
+  it('credits the event and the organisers behind it', () => {
     expect(credit()).toBe(
-      `© ${DEFAULT_EVENT_CONFIG.settings.eventName}. ${DEFAULT_EVENT_CONFIG.site.faculty}.`,
+      `© ${DEFAULT_EVENT_CONFIG.settings.eventName}. ${DEFAULT_EVENT_CONFIG.site.organisedBy}.`,
     );
   });
 

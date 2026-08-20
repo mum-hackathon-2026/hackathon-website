@@ -72,7 +72,10 @@ describe('ThemeSection', () => {
       const fixture = await render();
 
       expect(host(fixture).querySelector('.theme__title')?.textContent).toContain('Classified');
-      expect(blurb(fixture)).toContain('problem statement and challenge tracks remain classified');
+      expect(blurb(fixture)).toContain('Averis sets a single industry problem statement');
+      expect(blurb(fixture)).toContain('sealed until the opening ceremony');
+      // The section used to promise tracks; one brief now, for everyone.
+      expect(blurb(fixture)).toContain('no separate tracks');
     });
 
     it('says solo entries are allowed when the minimum is one', async () => {

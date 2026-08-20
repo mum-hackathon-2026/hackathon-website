@@ -22,7 +22,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   background: none;
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
   color: var(--color-muted);
@@ -92,7 +92,7 @@
 
 .headline__rank-value,
 .headline__score-value {
-  font-family: var(--font-display);
+  font-family: var(--font-numeric);
   font-size: 30px;
   font-weight: 800;
   line-height: 1.1;

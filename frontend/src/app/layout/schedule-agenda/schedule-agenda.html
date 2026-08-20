@@ -1,0 +1,28 @@
+<section class="agenda" aria-labelledby="agenda-heading">
+  <h2 class="agenda__title" id="agenda-heading">How the event runs</h2>
+  <p class="agenda__intro">
+    Six phases across eight days, from the opening ceremony to the final pitch.
+  </p>
+
+  <ol class="agenda__phases">
+    @for (phase of phases; track phase.id) {
+      <li class="agenda__phase">
+        <div class="agenda__header">
+          <h3 class="agenda__name">{{ phase.name }}</h3>
+          <p class="agenda__dates">
+            {{ phase.start | date: 'd MMM' : myt }}
+            @if (phase.end) {
+              – {{ phase.end | date: 'd MMM' : myt }}
+            }
+          </p>
+        </div>
+
+        @if (phase.venue) {
+          <p class="agenda__venue">{{ phase.venue }}</p>
+        }
+
+        <p class="agenda__summary">{{ phase.summary }}</p>
+      </li>
+    }
+  </ol>
+</section>

@@ -26,6 +26,8 @@
   padding: 18px 0;
   border: none;
   background: none;
+  /* The one control that inherits on purpose: it is the text of the <h3>
+     question, so it must pick up the serif rather than pin itself to the sans. */
   font-family: inherit;
   text-align: left;
   cursor: pointer;

@@ -29,22 +29,4 @@ export class ThemeSection {
       ? `Teams can have up to ${maxTeamSize} members, and you may enter solo.`
       : `Teams can have ${minTeamSize} to ${maxTeamSize} members.`;
   });
-
-  /**
-   * The tracks as a readable list — "A, B and C", "A and B", or bare "A".
-   *
-   * The general form alone is wrong at the short end: with one track,
-   * `slice(0, -1)` is empty and the join yields " and A" — a leading space and
-   * an "and" with nothing before it. Today's config has three tracks so that
-   * never rendered, but the count is config, not a constant, and the blurb is
-   * written to survive changing it.
-   *
-   * '' for no tracks, which the template reads as "leave the aside out".
-   */
-  protected readonly trackList = computed(() => {
-    const tracks = this.config.site.tracks;
-    if (tracks.length === 0) return '';
-    if (tracks.length === 1) return tracks[0];
-    return `${tracks.slice(0, -1).join(', ')} and ${tracks[tracks.length - 1]}`;
-  });
 }
