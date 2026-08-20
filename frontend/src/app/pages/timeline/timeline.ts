@@ -3,10 +3,11 @@ import { EVENT_CONFIG } from '../../core/event/event-config';
 import { EventSettingsService } from '../../core/event/event-settings';
 import { EventTimeline } from '../../layout/event-timeline/event-timeline';
 import { PageHeader } from '../../layout/page-header/page-header';
+import { ScheduleAgenda } from '../../layout/schedule-agenda/schedule-agenda';
 
 @Component({
   selector: 'app-timeline',
-  imports: [EventTimeline, PageHeader],
+  imports: [EventTimeline, PageHeader, ScheduleAgenda],
   templateUrl: './timeline.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
