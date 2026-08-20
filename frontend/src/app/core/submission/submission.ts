@@ -70,7 +70,7 @@ export class SubmissionService {
   constructor() {
     effect((onCleanup) => {
       const user = this.auth.user();
-      if (user && user.role === 'participant') {
+      if (user) {
         this.refreshMySubmission();
         const timer = setInterval(() => {
           this.refreshMySubmission();
@@ -84,7 +84,7 @@ export class SubmissionService {
 
   async refreshMySubmission(): Promise<void> {
     const user = this.auth.user();
-    if (!user || user.role !== 'participant') {
+    if (!user) {
       this.liveSubmission.set(null);
       return;
     }

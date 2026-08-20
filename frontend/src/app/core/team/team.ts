@@ -209,7 +209,7 @@ export class TeamService {
   constructor() {
     effect(() => {
       const user = this.auth.user();
-      if (user?.token && user?.role === 'participant') {
+      if (user?.token) {
         this.refreshMyTeam();
       } else {
         this.apiTeam.set(null);
@@ -220,7 +220,7 @@ export class TeamService {
 
   async refreshMyTeam(): Promise<void> {
     const token = this.auth.token();
-    if (!token || this.auth.user()?.role !== 'participant') return;
+    if (!token) return;
 
     try {
       const res = await firstValueFrom(
