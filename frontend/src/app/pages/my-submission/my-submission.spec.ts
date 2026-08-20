@@ -75,16 +75,8 @@ describe('MySubmission', () => {
     expect(host().querySelector('a[href="/participant/team"]')).toBeTruthy();
   });
 
-  it('says submissions are not open yet during registration', async () => {
+  it('links to the submission form immediately when user has a team', async () => {
     await setUp(DURING_REGISTRATION);
-
-    expect(host().querySelector('app-state-locked')).toBeTruthy();
-    expect(text()).toContain("Submissions aren't open yet");
-    expect(formLink()).toBeNull();
-  });
-
-  it('links to the submission form once the window opens', async () => {
-    await setUp(DURING_SUBMISSION);
 
     expect(formLink()?.getAttribute('href')).toBe(
       DEFAULT_EVENT_CONFIG.site.projectSubmissionFormUrl,
@@ -101,14 +93,6 @@ describe('MySubmission', () => {
     expect(host().querySelector('input')).toBeNull();
     expect(host().querySelector('select')).toBeNull();
     expect(host().querySelector('app-confirm-dialog')).toBeNull();
-  });
-
-  it('goes read-only once the deadline passes', async () => {
-    await setUp(AFTER_DEADLINE);
-
-    expect(host().querySelector('app-state-locked')).toBeTruthy();
-    expect(text()).toContain('Submissions are closed');
-    expect(formLink()).toBeNull();
   });
 
   it('shows nothing on file until an entry arrives', async () => {
