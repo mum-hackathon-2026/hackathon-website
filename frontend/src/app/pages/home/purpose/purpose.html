@@ -1,0 +1,21 @@
+<section class="purpose">
+  <div class="purpose__inner">
+    <p class="section-eyebrow section-eyebrow--center">Why enter</p>
+    <h2 class="section-heading section-heading--center">Eight days that count for something.</h2>
+
+    <ul class="purpose__list">
+      @for (reason of purpose; track reason) {
+        <li class="purpose__item">{{ reason }}</li>
+      }
+    </ul>
+
+    <dl class="purpose__scale">
+      @for (figure of scale; track figure.label) {
+        <div class="purpose__figure">
+          <dt class="purpose__value">{{ figure.value }}</dt>
+          <dd class="purpose__label">{{ figure.label }}</dd>
+        </div>
+      }
+    </dl>
+  </div>
+</section>

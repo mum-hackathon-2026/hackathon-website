@@ -113,6 +113,38 @@ export const EXTRA_FAQS: readonly Faq[] = [
 /** Everything, in the order the organisers page shows it. */
 export const ALL_FAQS: readonly Faq[] = [...FAQS, ...EXTRA_FAQS];
 
+/**
+ * Why the event exists, from the proposal's purpose list.
+ *
+ * Reworded from the proposal's committee register into something a prospective
+ * participant reads — same three intentions, second person rather than
+ * administrative third.
+ */
+export const EVENT_PURPOSE: readonly string[] = [
+  'Solve an authentic industry challenge, set by the people who actually have it.',
+  'Sharpen the technical, teamwork and pitching skills a structured competition demands.',
+  'Meet industry directly — the networking and career openings that come with it are the point, not a side effect.',
+];
+
+export interface ScaleFigure {
+  readonly value: string;
+  readonly label: string;
+}
+
+/**
+ * The proposal's targeted attendance.
+ *
+ * DELIBERATELY OMITS the 500-student headline figure. That number is 100 teams
+ * of five, and `maxTeamSize` is four — publishing both would have the site
+ * quoting a total its own team limit cannot reach. Restore it here once the
+ * team-size conflict in the proposal's implementation notes is settled.
+ */
+export const EVENT_SCALE: readonly ScaleFigure[] = [
+  { value: '100', label: 'teams can enter' },
+  { value: '10', label: 'reach Final Pitch Day' },
+  { value: '8', label: 'days, kickoff to final pitch' },
+];
+
 export interface SchedulePhase {
   readonly id: string;
   readonly name: string;

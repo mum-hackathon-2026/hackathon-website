@@ -4,6 +4,7 @@ import { FaqSection } from './faq/faq';
 import { HomeFooter } from './footer/footer';
 import { Hero } from './hero/hero';
 import { OrganizersSection } from './organizers/organizers';
+import { PurposeSection } from './purpose/purpose';
 import { SponsorsSection } from './sponsors/sponsors';
 import { ThemeSection } from './theme/theme';
 
@@ -12,6 +13,7 @@ import { ThemeSection } from './theme/theme';
   imports: [
     Hero,
     ThemeSection,
+    PurposeSection,
     FaqSection,
     SponsorsSection,
     OrganizersSection,
