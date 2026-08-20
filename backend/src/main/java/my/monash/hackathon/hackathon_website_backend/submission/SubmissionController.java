@@ -8,7 +8,7 @@ import my.monash.hackathon.hackathon_website_backend.webhook.SubmissionImportSer
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -62,18 +62,12 @@ public class SubmissionController {
 
     @GetMapping("/submissions/my")
     @Transactional(readOnly = true)
-    public ResponseEntity<SubmissionResponse> getMySubmission(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
+    public ResponseEntity<SubmissionResponse> getMySubmission(@AuthenticationPrincipal User currentUser) {
+        if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String email = authentication.getName();
-        var userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        var teamMemberOpt = teamMemberRepository.findById(userOpt.get().getId());
+        var teamMemberOpt = teamMemberRepository.findById(currentUser.getId());
         if (teamMemberOpt.isEmpty()) {
             return ResponseEntity.noContent().build();
         }

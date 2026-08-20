@@ -8,14 +8,16 @@ import my.monash.hackathon.hackathon_website_backend.team.TeamMemberRepository;
 import my.monash.hackathon.hackathon_website_backend.webhook.SubmissionImportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.core.MethodParameter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
@@ -31,7 +33,7 @@ class SubmissionControllerTest {
     private TeamMemberRepository teamMemberRepository;
     private SubmissionImportService submissionImportService;
     private SubmissionController controller;
-    private MockMvc mockMvc;
+    private User currentUser;
 
     @BeforeEach
     void setUp() {
@@ -45,37 +47,52 @@ class SubmissionControllerTest {
                 teamMemberRepository,
                 submissionImportService
         );
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        currentUser = null;
+    }
+
+    private MockMvc buildMockMvc() {
+        return MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
+                    @Override
+                    public boolean supportsParameter(MethodParameter parameter) {
+                        return parameter.getParameterType().equals(User.class);
+                    }
+
+                    @Override
+                    public Object resolveArgument(MethodParameter parameter,
+                                                  ModelAndViewContainer mavContainer,
+                                                  NativeWebRequest webRequest,
+                                                  WebDataBinderFactory binderFactory) {
+                        return currentUser;
+                    }
+                })
+                .build();
     }
 
     @Test
     void getMySubmissionUnauthorizedWhenNoAuth() throws Exception {
-        mockMvc.perform(get("/api/submissions/my"))
+        currentUser = null;
+        buildMockMvc().perform(get("/api/submissions/my"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void getMySubmissionNoContentWhenUserHasNoTeam() throws Exception {
-        var auth = new UsernamePasswordAuthenticationToken(
-                "user@example.com", "N/A", List.of(new SimpleGrantedAuthority("participant")));
-
         User user = new User("user@example.com", "User One", "participant");
         setId(user, 10L);
+        currentUser = user;
 
-        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(teamMemberRepository.findById(10L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/submissions/my").principal(auth))
+        buildMockMvc().perform(get("/api/submissions/my"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void getMySubmissionReturnsDetailsWhenSubmitted() throws Exception {
-        var auth = new UsernamePasswordAuthenticationToken(
-                "user@example.com", "N/A", List.of(new SimpleGrantedAuthority("participant")));
-
         User user = new User("user@example.com", "User One", "participant");
         setId(user, 10L);
+        currentUser = user;
 
         Team team = new Team("Super Team", "JOIN1234", user);
         setId(team, 100L);
@@ -96,11 +113,10 @@ class SubmissionControllerTest {
         submission.setStatus("submitted");
         submission.setSubmittedAt(OffsetDateTime.now());
 
-        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(teamMemberRepository.findById(10L)).thenReturn(Optional.of(member));
         when(submissionRepository.findByTeamId(100L)).thenReturn(Optional.of(submission));
 
-        mockMvc.perform(get("/api/submissions/my").principal(auth))
+        buildMockMvc().perform(get("/api/submissions/my"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectTitle").value("EcoTrack"))
                 .andExpect(jsonPath("$.githubUrl").value("https://github.com/monash/ecotrack"))
