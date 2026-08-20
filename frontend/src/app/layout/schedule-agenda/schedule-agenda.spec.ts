@@ -3,9 +3,9 @@ import { EVENT_SCHEDULE } from '../../core/event/event-content';
 import { ScheduleAgenda } from './schedule-agenda';
 
 /**
- * Assertions walk EVENT_SCHEDULE rather than restating it, so adding a phase or
- * a session shows up as a component that stopped rendering the list, not as a
- * stale literal someone has to find by hand.
+ * Assertions walk EVENT_SCHEDULE rather than restating it, so adding a phase
+ * shows up as a component that stopped rendering the list, not as a stale
+ * literal someone has to find by hand.
  */
 describe('ScheduleAgenda', () => {
   let fixture: ComponentFixture<ScheduleAgenda>;
@@ -36,26 +36,9 @@ describe('ScheduleAgenda', () => {
     expect(names).toEqual(EVENT_SCHEDULE.map((p) => p.name));
   });
 
-  it('renders every session of every phase', () => {
-    const rendered = host().querySelectorAll('.agenda__session').length;
-    const declared = EVENT_SCHEDULE.reduce((n, p) => n + p.sessions.length, 0);
-
-    expect(rendered).toBe(declared);
-  });
-
-  it('pairs each time with its activity', () => {
-    const [opening] = EVENT_SCHEDULE;
-    const first = phases()[0];
-
-    const times = Array.from(first.querySelectorAll('.agenda__at')).map((el) =>
-      el.textContent?.trim(),
-    );
-    const activities = Array.from(first.querySelectorAll('.agenda__activity')).map((el) =>
-      el.textContent?.trim(),
-    );
-
-    expect(times).toEqual(opening.sessions.map((s) => s.at));
-    expect(activities).toEqual(opening.sessions.map((s) => s.activity));
+  it('gives each phase its summary', () => {
+    const summaries = phases().map((p) => p.querySelector('.agenda__summary')?.textContent?.trim());
+    expect(summaries).toEqual(EVENT_SCHEDULE.map((p) => p.summary));
   });
 
   it('names a venue only where the schedule gives one', () => {
@@ -74,7 +57,12 @@ describe('ScheduleAgenda', () => {
     }
   });
 
-  it('says which timezone the times are in, once', () => {
-    expect(text()).toContain('MYT');
+  /**
+   * The proposal has a run sheet for the ceremony and pitch day, but those
+   * timings are not settled. This holds the section at phase level until they
+   * are — a clock time appearing here means someone published them early.
+   */
+  it('states no session times', () => {
+    expect(text()).not.toMatch(/\d{1,2}:\d{2}/);
   });
 });

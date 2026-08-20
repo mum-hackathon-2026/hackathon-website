@@ -117,15 +117,6 @@ export const EXTRA_FAQS: readonly Faq[] = [
 /** Everything, in the order the organisers page shows it. */
 export const ALL_FAQS: readonly Faq[] = [...FAQS, ...EXTRA_FAQS];
 
-export interface ScheduleSession {
-  /**
-   * When, within the phase. A clock range for a single-day phase
-   * ('18:00 – 18:10'), a date for one that spans days ('20 September').
-   */
-  readonly at: string;
-  readonly activity: string;
-}
-
 export interface SchedulePhase {
   readonly id: string;
   readonly name: string;
@@ -135,21 +126,24 @@ export interface SchedulePhase {
   /** Where it happens, when that is worth stating. */
   readonly venue: string | null;
   readonly summary: string;
-  readonly sessions: readonly ScheduleSession[];
 }
 
 /**
- * The published programme, transcribed from `docs/EVENT-PROPOSAL.md`.
+ * The shape of the event, phase by phase, from `docs/EVENT-PROPOSAL.md`.
  *
  * Declared rather than derived, because `event_settings` has columns for four
- * instants and the proposal runs to six phases with a session-by-session
- * agenda: there is nowhere to put an opening-ceremony run sheet or a workshop
- * date. `MilestoneService` still owns the four dates the site *reacts* to — the
- * hero countdown, the progress page and the timeline spine all read that, not
- * this. This is the reference copy of the programme and nothing branches on it.
+ * instants and the proposal runs to six phases — there is nowhere to put a
+ * build period or a shortlisting window. `MilestoneService` still owns the four
+ * dates the site *reacts* to: the hero countdown, the progress page and the
+ * timeline spine all read that, not this. Nothing branches on this.
  *
- * Keep the two consistent by hand: the submission and finalist entries here
- * restate `submissionDeadlineAt` and `resultsPublishedAt`.
+ * DELIBERATELY NO SESSION TIMES. The proposal carries a run sheet for the
+ * opening ceremony and pitch day, but those timings are not settled enough to
+ * publish, so this stays at phase level. Adding them later means a `sessions`
+ * field here and a list in `app-schedule-agenda` — nothing else.
+ *
+ * Keep in step by hand: the submission and finalist phases restate
+ * `submissionDeadlineAt` and `resultsPublishedAt`.
  */
 export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
   {
@@ -160,18 +154,6 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     venue: 'Virtual',
     summary:
       'The problem statement is released here, along with the timeline and submission requirements. Attend if you are competing.',
-    sessions: [
-      { at: '18:00 – 18:10', activity: 'Welcome, introduction to the hackathon and organisers' },
-      { at: '18:10 – 18:25', activity: 'Introduction to Averis and opening address' },
-      { at: '18:25 – 18:40', activity: 'Problem statement release' },
-      {
-        at: '18:40 – 18:55',
-        activity: 'Timeline, submission requirements and documentation briefing',
-      },
-      { at: '18:55 – 19:00', activity: 'Workshop schedule and communication channels' },
-      { at: '19:00 – 19:20', activity: 'Problem statement FAQ and open Q&A' },
-      { at: '19:20 – 19:30', activity: 'Closing remarks' },
-    ],
   },
   {
     id: 'build-period',
@@ -180,10 +162,6 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     end: new Date('2026-09-22T12:00:00+08:00'),
     venue: null,
     summary: 'Four days to build, with two workshops along the way.',
-    sessions: [
-      { at: '20 September', activity: 'Workshop 1' },
-      { at: '21 September', activity: 'Workshop 2' },
-    ],
   },
   {
     id: 'submission',
@@ -192,9 +170,6 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     end: null,
     venue: null,
     summary: 'Projects are due at midday. Late entries are not accepted.',
-    sessions: [
-      { at: '12:00', activity: 'Submission due. The organising committee checks eligibility.' },
-    ],
   },
   {
     id: 'shortlisting',
@@ -203,9 +178,6 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     end: new Date('2026-09-24T23:59:00+08:00'),
     venue: null,
     summary: 'Averis judges score every eligible submission to pick the ten finalist teams.',
-    sessions: [
-      { at: '23:59', activity: 'Judges score asynchronously to select the top 10 finalists' },
-    ],
   },
   {
     id: 'finalist-announcement',
@@ -214,12 +186,6 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     end: null,
     venue: null,
     summary: 'The ten finalist teams are notified and named publicly.',
-    sessions: [
-      {
-        at: '12:00',
-        activity: 'Top 10 finalists announced via individual emails, Discord and Instagram',
-      },
-    ],
   },
   {
     id: 'final-pitch-day',
@@ -228,29 +194,7 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     end: new Date('2026-09-26T17:30:00+08:00'),
     venue: 'Plenary Theatre',
     summary:
-      'Ten finalist teams pitch across two rounds — ten minutes each, then five minutes of questions. Winners are announced the same afternoon.',
-    sessions: [
-      { at: '09:00 – 09:30', activity: 'Finalist registration and technical checks' },
-      { at: '09:30 – 09:45', activity: 'Opening address by Monash and Averis representatives' },
-      {
-        at: '09:45 – 11:15',
-        activity: 'Final Pitch Round 1 — 5 teams, 10-minute pitch and 5-minute Q&A each',
-      },
-      { at: '11:15 – 11:30', activity: 'Networking break' },
-      {
-        at: '11:30 – 13:00',
-        activity: 'Final Pitch Round 2 — 5 teams, 10-minute pitch and 5-minute Q&A each',
-      },
-      { at: '13:00 – 15:00', activity: 'Lunch and judging panel deliberation' },
-      {
-        at: '15:00 – 16:00',
-        activity: 'Averis engagement session with all participants while judges finalise decisions',
-      },
-      {
-        at: '16:00 – 17:30',
-        activity: 'Winner announcement, prize presentation, group photograph and closing remarks',
-      },
-    ],
+      'Ten finalist teams pitch across two rounds to a panel of Averis judges. Winners are announced the same afternoon.',
   },
 ];
 

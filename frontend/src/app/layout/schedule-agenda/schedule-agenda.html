@@ -1,7 +1,7 @@
 <section class="agenda" aria-labelledby="agenda-heading">
-  <h2 class="agenda__title" id="agenda-heading">Full programme</h2>
+  <h2 class="agenda__title" id="agenda-heading">How the event runs</h2>
   <p class="agenda__intro">
-    Every session, as scheduled. All times are Malaysian time (MYT, UTC+8).
+    Six phases across eight days, from the opening ceremony to the final pitch.
   </p>
 
   <ol class="agenda__phases">
@@ -22,15 +22,6 @@
         }
 
         <p class="agenda__summary">{{ phase.summary }}</p>
-
-        <dl class="agenda__sessions">
-          @for (session of phase.sessions; track session.activity) {
-            <div class="agenda__session">
-              <dt class="agenda__at">{{ session.at }}</dt>
-              <dd class="agenda__activity">{{ session.activity }}</dd>
-            </div>
-          }
-        </dl>
       </li>
     }
   </ol>
