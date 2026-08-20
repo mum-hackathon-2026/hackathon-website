@@ -62,7 +62,7 @@ public class SubmissionImportService {
                 log.info("Scheduled submission sync: {} imported, {} updated", summary.imported(), summary.updated());
             }
         } catch (Exception e) {
-            log.debug("Scheduled submission sync poll check: {}", e.getMessage());
+            log.warn("Scheduled submission sync poll check: {}", e.getMessage());
         }
     }
 

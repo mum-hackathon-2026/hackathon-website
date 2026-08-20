@@ -68,10 +68,14 @@ export class SubmissionService {
   readonly isSubmitted = computed(() => this.submission()?.status === 'submitted');
 
   constructor() {
-    effect(() => {
+    effect((onCleanup) => {
       const user = this.auth.user();
       if (user && user.role === 'participant') {
         this.refreshMySubmission();
+        const timer = setInterval(() => {
+          this.refreshMySubmission();
+        }, 10000);
+        onCleanup(() => clearInterval(timer));
       } else {
         this.liveSubmission.set(null);
       }

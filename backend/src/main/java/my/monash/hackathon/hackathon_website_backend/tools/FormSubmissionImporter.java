@@ -84,8 +84,8 @@ public final class FormSubmissionImporter {
             """;
 
     private static final String INSERT_AUDIT = """
-            insert into audit_log (user_id, action, entity_type, entity_id, details)
-            values (?, 'SUBMISSION_SYNCED', 'SUBMISSION', ?, ?)
+            insert into audit_log (actor_user_id, action, entity_type, entity_id, details)
+            values (?, 'SUBMISSION_SYNCED', 'SUBMISSION', ?, cast(? as jsonb))
             """;
 
     public enum Status {
@@ -280,8 +280,13 @@ public final class FormSubmissionImporter {
             } else {
                 statement.setNull(1, Types.BIGINT);
             }
-            statement.setString(2, String.valueOf(teamId));
-            statement.setString(3, details);
+            if (teamId != null) {
+                statement.setLong(2, teamId);
+            } else {
+                statement.setNull(2, Types.BIGINT);
+            }
+            String safeMsg = details != null ? details.replace("\\", "\\\\").replace("\"", "\\\"") : "";
+            statement.setString(3, "{\"message\":\"" + safeMsg + "\"}");
             statement.executeUpdate();
         } catch (SQLException ignored) {}
     }
