@@ -420,23 +420,27 @@ public final class FormSubmissionImporter {
     );
 
     private static final List<String> GITHUB_URL_HEADERS = List.of(
-            "github repository url", "github repo url", "github repo",
-            "repository url", "github url", "repo url"
+            "github repository url", "github repo url", "github repository", "github repo",
+            "github link", "repository url", "github url", "repo url", "repository link", "repo link", "github", "repository", "repo"
     );
 
     private static final List<String> DEMO_URL_HEADERS = List.of(
             "live prototype / demo url", "live prototype/demo url",
-            "live prototype url", "live demo url", "prototype url", "demo url", "deployed url", "live url"
+            "live prototype url", "live demo url", "prototype url", "demo url", "deployed url", "live url",
+            "live demo", "prototype link", "demo link", "live link", "deployed link", "prototype", "demo", "website"
     );
 
     private static final List<String> SLIDE_DECK_HEADERS = List.of(
             "slide deck / documentation url", "slide deck/documentation url",
-            "slide deck url", "slide deck", "documentation url", "slides url", "deck url", "presentation url"
+            "slide deck url", "slide deck", "slide deck link", "slides url", "slides link", "slides",
+            "documentation url", "documentation link", "documentation", "presentation url", "presentation link",
+            "presentation", "pitch deck url", "pitch deck", "deck url", "deck"
     );
 
     private static final List<String> VIDEO_DEMO_HEADERS = List.of(
             "video demo url (5 minutes maximum)", "video demo url (5 min max)",
-            "video demo url", "video url", "demo video url", "video demo"
+            "video demo url", "video demo link", "video demo", "video url", "video link", "demo video url",
+            "demo video link", "demo video", "youtube url", "youtube link", "youtube", "video"
     );
 
     private static final List<String> TRACK_HEADERS = List.of(
@@ -479,26 +483,40 @@ public final class FormSubmissionImporter {
         OffsetDateTime submittedAt = parseTimestamp(timestampStr);
 
         return new SubmissionData(
-                trimOrNull(teamName),
-                trimOrNull(repName),
-                trimOrNull(repPhone),
-                trimOrNull(repEmail),
-                trimOrNull(projectTitle),
-                trimOrNull(description),
-                trimOrNull(githubUrl),
-                trimOrNull(deployedUrl),
-                trimOrNull(slideDeckUrl),
-                trimOrNull(videoDemoUrl),
-                trimOrNull(trackLabel),
-                submittedAt
+            trimOrNull(teamName),
+            trimOrNull(repName),
+            trimOrNull(repPhone),
+            trimOrNull(repEmail),
+            trimOrNull(projectTitle),
+            trimOrNull(description),
+            trimOrNull(githubUrl),
+            trimOrNull(deployedUrl),
+            trimOrNull(slideDeckUrl),
+            trimOrNull(videoDemoUrl),
+            trimOrNull(trackLabel),
+            submittedAt
         );
     }
 
     private static String findValue(CsvReader.Row row, List<String> aliases) {
+        // 1. Exact match on normalized header
         for (String alias : aliases) {
             String val = row.byNormalisedHeader().get(CsvReader.normalise(alias));
             if (val != null && !val.isBlank()) {
                 return val.trim();
+            }
+        }
+        // 2. Contains match on normalized header
+        for (Map.Entry<String, String> entry : row.byNormalisedHeader().entrySet()) {
+            String header = entry.getKey();
+            String val = entry.getValue();
+            if (val != null && !val.isBlank()) {
+                for (String alias : aliases) {
+                    String normAlias = CsvReader.normalise(alias);
+                    if (header.contains(normAlias) || normAlias.contains(header)) {
+                        return val.trim();
+                    }
+                }
             }
         }
         return null;

@@ -98,7 +98,7 @@ describe('MySubmission', () => {
   it('shows nothing on file until an entry arrives', async () => {
     await setUp(DURING_SUBMISSION);
 
-    expect(text()).not.toContain('What we have on file');
+    expect(host().querySelector('.submission-showcase')).toBeNull();
   });
 
   it('reads back the entry once it has been imported', async () => {
@@ -112,15 +112,15 @@ describe('MySubmission', () => {
     });
     await fixture.whenStable();
 
-    expect(text()).toContain('What we have on file');
+    expect(host().querySelector('.submission-showcase')).toBeTruthy();
     expect(text()).toContain('EduPath');
     expect(text()).toContain(DEFAULT_EVENT_CONFIG.site.tracks[1]);
     expect(
-      host().querySelector<HTMLAnchorElement>('.submission__facts a')?.getAttribute('href'),
+      host().querySelector<HTMLAnchorElement>('.deliverable-card__link')?.getAttribute('href'),
     ).toBe('https://github.com/example/edupath');
   });
 
-  it('flips the pill and the card heading once submitted', async () => {
+  it('flips the pill to submitted and hides the submit form once submitted', async () => {
     await setUp(DURING_SUBMISSION);
     await submissions.submit({
       projectTitle: 'EduPath',
@@ -132,7 +132,8 @@ describe('MySubmission', () => {
     await fixture.whenStable();
 
     expect(host().querySelector('.submission__pill--submitted')).toBeTruthy();
-    expect(text()).toContain('Update your submission');
+    expect(formLink()).toBeNull();
+    expect(text()).toContain('Submission Finalized');
   });
 });
 
