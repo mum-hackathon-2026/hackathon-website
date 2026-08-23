@@ -1,5 +1,7 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { AuthService } from '../auth/auth';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { API_BASE_URL, AuthService } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
 import { PhaseService } from '../event/phase';
 
@@ -288,6 +290,12 @@ export class JudgeService {
   private readonly auth = inject(AuthService);
   private readonly phase = inject(PhaseService);
   private readonly config = inject(EVENT_CONFIG);
+  private readonly http = inject(HttpClient, { optional: true });
+  private readonly apiBaseUrl =
+    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080/api';
+
+  private readonly liveAssignments = signal<readonly AssignmentView[] | null>(null);
+  private readonly liveCriteria = signal<readonly JudgingCriterion[] | null>(null);
 
   private readonly assignments = signal<readonly Assignment[]>(seedAssignments());
   private readonly scores = signal<readonly Score[]>([]);
@@ -302,16 +310,128 @@ export class JudgeService {
   constructor() {
     // Seeded after the criteria exist, since every row carries their snapshots.
     this.scores.set(seedScores(this.criteria()));
+
+    effect(() => {
+      const user = this.auth.user();
+      if (user?.role === 'judge' && this.http) {
+        void this.refreshAll();
+      } else {
+        this.liveAssignments.set(null);
+        this.liveCriteria.set(null);
+      }
+    });
+  }
+
+  async refreshAll(): Promise<void> {
+    const token = this.auth.token();
+    if (!this.http || !token || this.auth.user()?.role !== 'judge') return;
+
+    const headers = { Authorization: `Bearer ${token}` };
+
+    try {
+      const [criteriaData, assignmentsData] = await Promise.all([
+        firstValueFrom(
+          this.http.get<readonly any[]>(`${this.apiBaseUrl}/judge/criteria`, { headers }),
+        ),
+        firstValueFrom(
+          this.http.get<readonly any[]>(`${this.apiBaseUrl}/judge/assignments`, { headers }),
+        ),
+      ]);
+
+      if (Array.isArray(criteriaData) && criteriaData.length > 0) {
+        this.liveCriteria.set(
+          criteriaData.map((c) => ({
+            id: c.id,
+            title: c.title,
+            maxScore: Number(c.maxScore) || MAX_SCORE,
+            weight: Number(c.weight) || 1,
+            displayOrder: c.displayOrder ?? 0,
+            isActive: c.isActive ?? true,
+          })),
+        );
+      }
+
+      if (Array.isArray(assignmentsData)) {
+        const criteria = this.criteria();
+        this.liveAssignments.set(
+          assignmentsData.map((a) => {
+            const scoresMap = new Map<
+              number,
+              { score: number; comment: string; maxScore: number; weight: number }
+            >();
+            if (Array.isArray(a.scores)) {
+              for (const s of a.scores) {
+                scoresMap.set(s.criteriaId, {
+                  score: Number(s.score),
+                  comment: s.comment || '',
+                  maxScore: Number(s.criteriaMaxScoreSnapshot) || 10,
+                  weight: Number(s.criteriaWeightSnapshot) || 1,
+                });
+              }
+            }
+
+            const criteriaScores: CriterionScoreView[] = criteria.map((c) => {
+              const recorded = scoresMap.get(c.id);
+              const score = recorded ? recorded.score : null;
+              const maxScore = recorded ? recorded.maxScore : c.maxScore;
+              const weight = recorded ? recorded.weight : c.weight;
+              const contribution =
+                score !== null && maxScore > 0 ? (score / maxScore) * weight : null;
+
+              return {
+                criteriaId: c.id,
+                title: c.title,
+                maxScore,
+                weight,
+                score,
+                comment: recorded ? recorded.comment : '',
+                contribution,
+              };
+            });
+
+            const scoredCount = criteriaScores.filter((s) => s.score !== null).length;
+            const allScored = scoredCount === criteria.length && criteria.length > 0;
+            const totalWeighted = criteriaScores.reduce((sum, s) => sum + (s.contribution ?? 0), 0);
+
+            return {
+              id: a.id,
+              teamId: a.teamId,
+              teamName: a.teamName || '',
+              projectTitle: a.projectTitle || '',
+              trackLabel: a.trackLabel || '',
+              summary: a.summary || '',
+              githubUrl: a.githubUrl || '',
+              deployedUrl: a.deployedUrl || '',
+              memberCount: a.memberCount ?? 0,
+              status: a.status as AssignmentStatus,
+              assignedAt: a.assignedAt ? new Date(a.assignedAt) : new Date(),
+              completedAt: a.completedAt ? new Date(a.completedAt) : null,
+              overallFeedback: a.overallFeedback || '',
+              scores: criteriaScores,
+              scoredCount,
+              criteriaCount: criteria.length,
+              weightedTotal: Math.round(totalWeighted * 100) / 100,
+              allScored,
+              locked: a.status === 'completed',
+            };
+          }),
+        );
+      }
+    } catch {
+      // Keep local state on error
+    }
   }
 
   /**
    * The live rubric, in display order.
    *
-   * Derived from EVENT_CONFIG rather than seeded, so the weights judges score
-   * against are the same ones the homepage and the results page quote.
+   * Derived from backend criteria or fallback EVENT_CONFIG.
    */
-  readonly criteria = computed<readonly JudgingCriterion[]>(() =>
-    this.config.site.judgingCriteria
+  readonly criteria = computed<readonly JudgingCriterion[]>(() => {
+    if (this.liveCriteria() !== null) {
+      return this.liveCriteria()!;
+    }
+    return this.config.site.judgingCriteria
       .map((criterion, i) => ({
         id: i + 1,
         title: criterion.name,
@@ -320,14 +440,17 @@ export class JudgeService {
         displayOrder: i,
         isActive: true,
       }))
-      // judging_criteria.is_active — retired lines are never scored.
-      .filter((criterion) => criterion.isActive),
-  );
+      .filter((criterion) => criterion.isActive);
+  });
 
   /** This judge's queue. Empty for every other role. */
   readonly myAssignments = computed<readonly AssignmentView[]>(() => {
     const me = this.auth.user();
     if (!me || me.role !== 'judge') return [];
+
+    if (this.liveAssignments() !== null) {
+      return this.liveAssignments()!;
+    }
 
     return this.assignments()
       .filter((assignment) => assignment.judgeId === me.id)
@@ -365,12 +488,37 @@ export class JudgeService {
   // ── Mutations ───────────────────────────────────────────────────────────
 
   saveDraft(assignmentId: number, draft: ReviewDraft): Promise<JudgeActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const refusal = this.checkWritable(assignmentId);
       if (refusal) return refusal;
 
       const invalid = this.validate(draft);
       if (invalid) return invalid;
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'judge') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/judge/assignments/${assignmentId}/draft`,
+              {
+                scores: draft.scores.map((s) => ({
+                  criteriaId: s.criteriaId,
+                  score: s.score,
+                  comment: s.comment,
+                })),
+                overallFeedback: draft.overallFeedback,
+              },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to save draft on server.';
+          return { ok: false, error: errorMsg };
+        }
+      }
 
       this.writeScores(assignmentId, draft);
       this.patch(assignmentId, (assignment) =>
@@ -382,7 +530,7 @@ export class JudgeService {
   }
 
   completeReview(assignmentId: number, draft: ReviewDraft): Promise<JudgeActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const refusal = this.checkWritable(assignmentId);
       if (refusal) return refusal;
 
@@ -394,6 +542,31 @@ export class JudgeService {
       const scored = draft.scores.filter((s) => s.score !== null);
       if (scored.length !== this.criteria().length) {
         return { ok: false, error: 'Score every criterion before submitting this review.' };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'judge') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/judge/assignments/${assignmentId}/complete`,
+              {
+                scores: draft.scores.map((s) => ({
+                  criteriaId: s.criteriaId,
+                  score: s.score,
+                  comment: s.comment,
+                })),
+                overallFeedback: draft.overallFeedback,
+              },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to submit review on server.';
+          return { ok: false, error: errorMsg };
+        }
       }
 
       this.writeScores(assignmentId, draft);
@@ -412,13 +585,31 @@ export class JudgeService {
    * the same as reopening a submitted review.
    */
   declineAssignment(assignmentId: number): Promise<JudgeActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const refusal = this.checkWritable(assignmentId);
       if (refusal) return refusal;
 
       const assignment = this.mine(assignmentId);
       if (assignment && assignment.status !== 'pending') {
         return { ok: false, error: 'You have already started this review.' };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'judge') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/judge/assignments/${assignmentId}/decline`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to decline assignment on server.';
+          return { ok: false, error: errorMsg };
+        }
       }
 
       // completed_at stays null: assignments_completed_at_check only constrains
@@ -430,10 +621,15 @@ export class JudgeService {
 
   // ── Internals ───────────────────────────────────────────────────────────
 
-  private mine(assignmentId: number): Assignment | null {
+  private mine(assignmentId: number): { id: number; status: AssignmentStatus } | null {
     const me = this.auth.user();
     if (!me || me.role !== 'judge') return null;
-    return this.assignments().find((a) => a.id === assignmentId && a.judgeId === me.id) ?? null;
+    if (this.liveAssignments() !== null) {
+      const found = this.liveAssignments()!.find((a) => a.id === assignmentId);
+      return found ? { id: found.id, status: found.status } : null;
+    }
+    const found = this.assignments().find((a) => a.id === assignmentId && a.judgeId === me.id);
+    return found ? { id: found.id, status: found.status } : null;
   }
 
   /** Every precondition shared by the three mutations, in refusal order. */
@@ -579,11 +775,12 @@ export class JudgeService {
   }
 
   /** Same async boundary as TeamService, for the same reason. */
-  private async run(operation: () => JudgeActionResult): Promise<JudgeActionResult> {
+  private async run(
+    operation: () => JudgeActionResult | Promise<JudgeActionResult>,
+  ): Promise<JudgeActionResult> {
     this.inFlight.update((n) => n + 1);
     try {
-      await Promise.resolve();
-      return operation();
+      return await operation();
     } finally {
       this.inFlight.update((n) => n - 1);
     }
