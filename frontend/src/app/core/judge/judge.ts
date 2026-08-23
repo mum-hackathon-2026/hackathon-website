@@ -292,7 +292,7 @@ export class JudgeService {
   private readonly config = inject(EVENT_CONFIG);
   private readonly http = inject(HttpClient, { optional: true });
   private readonly apiBaseUrl =
-    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080/api';
+    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080';
 
   private readonly liveAssignments = signal<readonly AssignmentView[] | null>(null);
   private readonly liveCriteria = signal<readonly JudgingCriterion[] | null>(null);
@@ -331,10 +331,10 @@ export class JudgeService {
     try {
       const [criteriaData, assignmentsData] = await Promise.all([
         firstValueFrom(
-          this.http.get<readonly any[]>(`${this.apiBaseUrl}/judge/criteria`, { headers }),
+          this.http.get<readonly any[]>(`${this.apiBaseUrl}/api/judge/criteria`, { headers }),
         ),
         firstValueFrom(
-          this.http.get<readonly any[]>(`${this.apiBaseUrl}/judge/assignments`, { headers }),
+          this.http.get<readonly any[]>(`${this.apiBaseUrl}/api/judge/assignments`, { headers }),
         ),
       ]);
 
@@ -500,7 +500,7 @@ export class JudgeService {
         try {
           await firstValueFrom(
             this.http.post(
-              `${this.apiBaseUrl}/judge/assignments/${assignmentId}/draft`,
+              `${this.apiBaseUrl}/api/judge/assignments/${assignmentId}/draft`,
               {
                 scores: draft.scores.map((s) => ({
                   criteriaId: s.criteriaId,
@@ -549,7 +549,7 @@ export class JudgeService {
         try {
           await firstValueFrom(
             this.http.post(
-              `${this.apiBaseUrl}/judge/assignments/${assignmentId}/complete`,
+              `${this.apiBaseUrl}/api/judge/assignments/${assignmentId}/complete`,
               {
                 scores: draft.scores.map((s) => ({
                   criteriaId: s.criteriaId,
@@ -599,7 +599,7 @@ export class JudgeService {
         try {
           await firstValueFrom(
             this.http.post(
-              `${this.apiBaseUrl}/judge/assignments/${assignmentId}/decline`,
+              `${this.apiBaseUrl}/api/judge/assignments/${assignmentId}/decline`,
               {},
               { headers: { Authorization: `Bearer ${token}` } },
             ),
