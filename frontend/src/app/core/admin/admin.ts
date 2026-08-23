@@ -1024,6 +1024,11 @@ export class AdminService {
    */
   private readonly roleOverrides = signal<ReadonlyMap<number, Role>>(new Map());
 
+  /** Newly registered judges in demo/offline mode */
+  private readonly mockCustomJudges = signal<
+    readonly { userId: number; name: string; email: string; competingTeam: string }[]
+  >([]);
+
   constructor() {
     effect(() => {
       const user = this.auth.user();
@@ -1120,6 +1125,9 @@ export class AdminService {
       [
         ...JUDGE_SEED.filter((judge) => overrides.get(judge.userId) !== 'participant').map(
           (judge) => ({ ...judge, competingTeam: '' }),
+        ),
+        ...this.mockCustomJudges().filter(
+          (judge) => overrides.get(judge.userId) !== 'participant',
         ),
         // Promoted from the floor, so they may well still be on a team.
         ...this.registered()
@@ -1530,6 +1538,120 @@ export class AdminService {
     });
   }
 
+  registerJudge(fullName: string, email: string): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const cleanName = fullName.trim();
+      const cleanEmail = email.trim().toLowerCase();
+
+      if (!cleanName) return { ok: false, error: 'Full name is required.' };
+      if (!cleanEmail || !cleanEmail.includes('@'))
+        return { ok: false, error: 'A valid email address is required.' };
+
+      if (this.judges().some((j) => j.email.toLowerCase() === cleanEmail)) {
+        return { ok: false, error: 'A judge with this email is already registered.' };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/judges/register`,
+              { fullName: cleanName, email: cleanEmail },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          this.log('judge', 'Judge registered', `${cleanName} (${cleanEmail})`);
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to register judge on server.';
+          return { ok: false, error: errorMsg };
+        }
+      }
+
+      // Mock fallback:
+      const existingPerson = this.participants().find(
+        (p) => p.email.toLowerCase() === cleanEmail,
+      );
+      if (existingPerson) {
+        this.setRole(existingPerson.userId, 'judge');
+      } else {
+        const nextId =
+          Math.max(
+            9000,
+            ...this.judges().map((j) => j.userId),
+            ...this.mockCustomJudges().map((j) => j.userId),
+            ...this.participants().map((p) => p.userId),
+          ) + 1;
+        this.mockCustomJudges.update((all) => [
+          ...all,
+          { userId: nextId, name: cleanName, email: cleanEmail, competingTeam: '' },
+        ]);
+      }
+
+      this.log('judge', 'Judge registered', `${cleanName} (${cleanEmail})`);
+      return { ok: true };
+    });
+  }
+
+  batchRegisterJudges(
+    judges: readonly { fullName: string; email: string }[],
+  ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+    return this.run(async () => {
+      const valid = judges
+        .map((j) => ({ fullName: j.fullName.trim(), email: j.email.trim().toLowerCase() }))
+        .filter((j) => j.fullName && j.email && j.email.includes('@'));
+
+      if (valid.length === 0) {
+        return { ok: false, error: 'No valid judge entries provided.' };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/judges/batch`,
+              { judges: valid },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          this.log('judge', 'Judges batch registered', `${valid.length} judges`);
+          return { ok: true, count: valid.length };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to batch register judges on server.';
+          return { ok: false, error: errorMsg };
+        }
+      }
+
+      // Mock fallback:
+      for (const j of valid) {
+        const existingPerson = this.participants().find(
+          (p) => p.email.toLowerCase() === j.email,
+        );
+        if (existingPerson) {
+          this.setRole(existingPerson.userId, 'judge');
+        } else {
+          const nextId =
+            Math.max(
+              9000,
+              ...this.judges().map((judge) => judge.userId),
+              ...this.mockCustomJudges().map((judge) => judge.userId),
+            ) + 1;
+          this.mockCustomJudges.update((all) => [
+            ...all,
+            { userId: nextId, name: j.fullName, email: j.email, competingTeam: '' },
+          ]);
+        }
+      }
+
+      this.log('judge', 'Judges batch registered', `${valid.length} judges`);
+      return { ok: true, count: valid.length };
+    });
+  }
+
   grantJudgeRole(userId: number): Promise<AdminActionResult> {
     return this.run(async () => {
       if (this.judges().some((row) => row.userId === userId)) {
@@ -1750,9 +1872,7 @@ export class AdminService {
    * Async boundary with no I/O behind it yet — the part callers must cope with
    * when a real endpoint replaces this, so it exists from the start.
    */
-  private async run(
-    action: () => AdminActionResult | Promise<AdminActionResult>,
-  ): Promise<AdminActionResult> {
+  private async run<T = AdminActionResult>(action: () => T | Promise<T>): Promise<T> {
     this.inFlight.update((n) => n + 1);
     try {
       return await action();

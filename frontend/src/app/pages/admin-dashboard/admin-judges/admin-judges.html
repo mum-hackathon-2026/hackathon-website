@@ -10,38 +10,163 @@
 <!-- ── Add to the panel ───────────────────────────────────────────────────── -->
 
 <section class="panel" aria-labelledby="add-judge-heading">
-  <h2 class="panel__title" id="add-judge-heading">Add a judge</h2>
-
-  <div class="assign">
-    <div class="assign__field">
-      <label class="assign__label" for="judge-add">Registered account</label>
-      <select
-        id="judge-add"
-        class="input"
-        name="judgeAdd"
-        [ngModel]="draftPerson()"
-        (ngModelChange)="draftPerson.set($event)"
+  <div class="panel__header">
+    <h2 class="panel__title" id="add-judge-heading">Register Judges</h2>
+    <div class="mode-tabs" role="tablist" aria-label="Judge registration mode">
+      <button
+        type="button"
+        class="mode-tab"
+        [class.mode-tab--active]="entryMode() === 'single'"
+        role="tab"
+        [attr.aria-selected]="entryMode() === 'single'"
+        (click)="entryMode.set('single')"
       >
-        <option value="">Select somebody…</option>
-        @for (person of addable(); track person.userId) {
-          <option [value]="person.userId">
-            {{ person.fullName }} — {{ person.teamName || 'no team' }}
-          </option>
-        }
-      </select>
+        <span class="mode-tab__icon">👤</span> Single Judge
+      </button>
+      <button
+        type="button"
+        class="mode-tab"
+        [class.mode-tab--active]="entryMode() === 'batch'"
+        role="tab"
+        [attr.aria-selected]="entryMode() === 'batch'"
+        (click)="entryMode.set('batch')"
+      >
+        <span class="mode-tab__icon">📋</span> Batch Register
+      </button>
+      <button
+        type="button"
+        class="mode-tab"
+        [class.mode-tab--active]="entryMode() === 'promote'"
+        role="tab"
+        [attr.aria-selected]="entryMode() === 'promote'"
+        (click)="entryMode.set('promote')"
+      >
+        <span class="mode-tab__icon">👥</span> Promote from Roster
+      </button>
     </div>
-
-    <button type="button" class="button button--primary" [disabled]="pending()" (click)="add()">
-      Add to panel
-    </button>
   </div>
 
+  @if (entryMode() === 'single') {
+    <form class="assign assign--grid" (ngSubmit)="registerSingle()">
+      <div class="assign__field">
+        <label class="assign__label" for="judge-name-input">Full Name</label>
+        <input
+          id="judge-name-input"
+          class="input"
+          type="text"
+          name="judgeFullName"
+          placeholder="e.g. Dr. Sofia Lindqvist"
+          [ngModel]="singleFullName()"
+          (ngModelChange)="singleFullName.set($event)"
+          required
+        />
+      </div>
+
+      <div class="assign__field">
+        <label class="assign__label" for="judge-email-input">Email Address</label>
+        <input
+          id="judge-email-input"
+          class="input"
+          type="email"
+          name="judgeEmail"
+          placeholder="e.g. s.lindqvist@monash.edu"
+          [ngModel]="singleEmail()"
+          (ngModelChange)="singleEmail.set($event)"
+          required
+        />
+      </div>
+
+      <div class="assign__action">
+        <button
+          type="submit"
+          class="button button--primary"
+          [disabled]="pending() || !singleFullName().trim() || !singleEmail().trim()"
+        >
+          Register Judge
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (entryMode() === 'batch') {
+    <div class="batch-box">
+      <label class="assign__label" for="judge-batch-input">
+        Paste or type judge details (one per line):
+        <span class="batch-hint-format">Format: <code>Full Name, email@example.com</code> or copy-pasted columns from Sheets</span>
+      </label>
+      <textarea
+        id="judge-batch-input"
+        class="input input--textarea batch-textarea"
+        name="judgeBatch"
+        rows="5"
+        placeholder="Dr. Sofia Lindqvist, s.lindqvist@monash.edu&#10;Prof. Arun Balakrishnan, a.balakrishnan@monash.edu&#10;Nadia Rahman, n.rahman@monash.edu"
+        [ngModel]="batchInput()"
+        (ngModelChange)="batchInput.set($event)"
+      ></textarea>
+
+      @if (parsedBatch().length > 0) {
+        <div class="batch-preview">
+          <div class="batch-preview__header">
+            <span class="badge badge--info">
+              {{ validBatch().length }} of {{ parsedBatch().length }} entries ready
+            </span>
+          </div>
+
+          <div class="batch-preview__list">
+            @for (item of parsedBatch(); track $index) {
+              <div class="batch-chip" [class.batch-chip--invalid]="!item.valid">
+                <span class="batch-chip__name">{{ item.fullName || '—' }}</span>
+                <span class="batch-chip__email">{{ item.email || item.raw }}</span>
+                @if (!item.valid) {
+                  <span class="batch-chip__err">({{ item.error }})</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="batch-box__actions">
+        <button
+          type="button"
+          class="button button--primary"
+          [disabled]="pending() || validBatch().length === 0"
+          (click)="registerBatch()"
+        >
+          Register {{ validBatch().length }} Judge{{ validBatch().length === 1 ? '' : 's' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (entryMode() === 'promote') {
+    <div class="assign">
+      <div class="assign__field">
+        <label class="assign__label" for="judge-add">Registered account</label>
+        <select
+          id="judge-add"
+          class="input"
+          name="judgeAdd"
+          [ngModel]="draftPerson()"
+          (ngModelChange)="draftPerson.set($event)"
+        >
+          <option value="">Select somebody…</option>
+          @for (person of addable(); track person.userId) {
+            <option [value]="person.userId">
+              {{ person.fullName }} — {{ person.teamName || 'no team' }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <button type="button" class="button button--primary" [disabled]="pending()" (click)="add()">
+        Add to panel
+      </button>
+    </div>
+  }
+
   <p class="assign__hint">
-    Only people who already hold a <code>users</code> row can be added, because that row
-    <em>is</em> the permission — sign-in looks the address up and refuses an account it cannot find.
-    Registration puts it there, so somebody can be put on the panel before they have ever signed in;
-    V3 made <code>users.google_sub</code> nullable for exactly that case, and it fills in on their
-    first Google sign-in. There is no way to add an address from here.
+    Judges are registered directly by admins. Once added, judges can sign in using their Google account to access the Judge Portal and review assigned submissions.
   </p>
 </section>
 

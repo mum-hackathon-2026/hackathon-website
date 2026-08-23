@@ -110,4 +110,38 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ok").value(true));
     }
+
+    @Test
+    void registerJudgeSucceeds() throws Exception {
+        var judgeDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminJudgeDto(
+                10L, "Dr. Jane Doe", "jane.doe@example.com", 0, 0, ""
+        );
+        when(adminService.registerJudge(any(), any())).thenReturn(judgeDto);
+
+        mockMvc.perform(post("/api/admin/judges/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fullName\":\"Dr. Jane Doe\",\"email\":\"jane.doe@example.com\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(10))
+                .andExpect(jsonPath("$.name").value("Dr. Jane Doe"))
+                .andExpect(jsonPath("$.email").value("jane.doe@example.com"));
+    }
+
+    @Test
+    void batchRegisterJudgesSucceeds() throws Exception {
+        var judge1 = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminJudgeDto(
+                10L, "Dr. Jane Doe", "jane.doe@example.com", 0, 0, ""
+        );
+        var judge2 = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminJudgeDto(
+                11L, "Prof. John Smith", "john.smith@example.com", 0, 0, ""
+        );
+        when(adminService.batchRegisterJudges(any(), any())).thenReturn(List.of(judge1, judge2));
+
+        mockMvc.perform(post("/api/admin/judges/batch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"judges\":[{\"fullName\":\"Dr. Jane Doe\",\"email\":\"jane.doe@example.com\"},{\"fullName\":\"Prof. John Smith\",\"email\":\"john.smith@example.com\"}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Dr. Jane Doe"))
+                .andExpect(jsonPath("$[1].name").value("Prof. John Smith"));
+    }
 }

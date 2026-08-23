@@ -43,9 +43,14 @@ describe('AdminJudges', () => {
 
     fixture = TestBed.createComponent(AdminJudges);
     await fixture.whenStable();
-  }
-
-  async function select(id: string, value: string) {
+  }  async function select(id: string, value: string) {
+    if (id === 'judge-add') {
+      const promoteTab = Array.from(host().querySelectorAll<HTMLButtonElement>('.mode-tab')).find(
+        (b) => b.textContent?.includes('Promote'),
+      );
+      promoteTab?.click();
+      await fixture.whenStable();
+    }
     const field = host().querySelector<HTMLSelectElement>(`#${id}`)!;
     field.value = value;
     field.dispatchEvent(new Event('change'));
@@ -71,8 +76,60 @@ describe('AdminJudges', () => {
     expect(rows().length).toBe(admin.judges().length);
   });
 
-  it('does not offer somebody already judging', async () => {
+  it('registers a single judge with full name and email', async () => {
     await setUp();
+    const before = admin.judges().length;
+
+    const nameInput = host().querySelector<HTMLInputElement>('#judge-name-input')!;
+    nameInput.value = 'Dr. Alan Turing';
+    nameInput.dispatchEvent(new Event('input'));
+
+    const emailInput = host().querySelector<HTMLInputElement>('#judge-email-input')!;
+    emailInput.value = 'alan.turing@enigma.org';
+    emailInput.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    const submitBtn = host().querySelector<HTMLButtonElement>('.assign--grid button[type="submit"]')!;
+    submitBtn.click();
+    await fixture.whenStable();
+
+    expect(admin.judges().length).toBe(before + 1);
+    expect(text()).toContain('Dr. Alan Turing (alan.turing@enigma.org) has been registered as a judge.');
+  });
+
+  it('batch registers multiple judges from textarea', async () => {
+    await setUp();
+    const before = admin.judges().length;
+
+    const batchTab = Array.from(host().querySelectorAll<HTMLButtonElement>('.mode-tab')).find(
+      (b) => b.textContent?.includes('Batch'),
+    );
+    batchTab?.click();
+    await fixture.whenStable();
+
+    const textarea = host().querySelector<HTMLTextAreaElement>('#judge-batch-input')!;
+    textarea.value = `Grace Hopper, grace.hopper@navy.mil\nMargaret Hamilton, margaret.hamilton@mit.edu`;
+    textarea.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    expect(text()).toContain('2 of 2 entries ready');
+
+    const submitBtn = host().querySelector<HTMLButtonElement>('.batch-box__actions button')!;
+    submitBtn.click();
+    await fixture.whenStable();
+
+    expect(admin.judges().length).toBe(before + 2);
+    expect(text()).toContain('Successfully registered 2 judges.');
+  });
+
+  it('does not offer somebody already judging in promote list', async () => {
+    await setUp();
+    const promoteTab = Array.from(host().querySelectorAll<HTMLButtonElement>('.mode-tab')).find(
+      (b) => b.textContent?.includes('Promote'),
+    );
+    promoteTab?.click();
+    await fixture.whenStable();
+
     const onPanel = admin.judges().map((judge) => judge.userId);
 
     for (const userId of onPanel) {
@@ -80,8 +137,14 @@ describe('AdminJudges', () => {
     }
   });
 
-  it('asks who to add rather than adding nobody', async () => {
+  it('asks who to add rather than adding nobody in promote mode', async () => {
     await setUp();
+    const promoteTab = Array.from(host().querySelectorAll<HTMLButtonElement>('.mode-tab')).find(
+      (b) => b.textContent?.includes('Promote'),
+    );
+    promoteTab?.click();
+    await fixture.whenStable();
+
     const before = admin.judges().length;
 
     await pressAdd();
@@ -105,8 +168,6 @@ describe('AdminJudges', () => {
     expect(text()).toContain(`${person.fullName} can now judge.`);
   });
 
-  // users.role and team_members are independent, so nothing forbids it — which is
-  // exactly why an organiser is asked rather than blocked.
   it('confirms before letting a competitor judge', async () => {
     await setUp();
     const person = admin
@@ -161,11 +222,6 @@ describe('AdminJudges', () => {
     expect(text()).toContain(`${person.fullName} is off the panel.`);
   });
 
-  /*
-   * A role change is not a delete, so assignments.judge_id ON DELETE CASCADE does
-   * not fire — their rows would survive while judgeGuard locked them out. The
-   * service refuses instead, and the section has to surface that.
-   */
   it('refuses to remove a judge who still holds teams', async () => {
     await setUp();
     const busy = admin.judges().find((judge) => judge.assigned > 0)!;
@@ -221,8 +277,6 @@ describe('AdminJudges', () => {
     expect(rows()[0].textContent).toContain(judge.name);
   });
 
-  // Scaled against the busiest judge rather than an invented target, so a full
-  // bar means 'most loaded', not 'done'.
   it('scales the meters against the busiest judge', async () => {
     await setUp();
     const peak = Math.max(1, ...admin.judges().map((judge) => judge.assigned));
@@ -231,10 +285,9 @@ describe('AdminJudges', () => {
     expect(meter.getAttribute('aria-valuemax')).toBe(String(peak));
   });
 
-  it('says a judge cannot be invited by email', async () => {
+  it('explains how judges are registered by admins', async () => {
     await setUp();
 
-    // The schema's word, not a preference — it must stay on the screen.
-    expect(text()).toContain('There is no way to add an address from here.');
+    expect(text()).toContain('Judges are registered directly by admins.');
   });
 });

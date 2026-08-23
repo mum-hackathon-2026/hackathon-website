@@ -7,7 +7,9 @@ import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminOverviewDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminParticipantDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminTeamDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AuditLogDto;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.BatchRegisterJudgesRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.CreateAssignmentRequest;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterJudgeRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateTeamRequest;
 import my.monash.hackathon.hackathon_website_backend.user.User;
 import org.springframework.http.ResponseEntity;
@@ -65,6 +67,30 @@ public class AdminController {
     @GetMapping("/judges")
     public ResponseEntity<List<AdminJudgeDto>> getJudges() {
         return ResponseEntity.ok(adminService.getJudges());
+    }
+
+    @PostMapping("/judges/register")
+    public ResponseEntity<?> registerJudge(
+            @Valid @RequestBody RegisterJudgeRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var judge = adminService.registerJudge(request, currentUser);
+            return ResponseEntity.ok(judge);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/judges/batch")
+    public ResponseEntity<?> batchRegisterJudges(
+            @Valid @RequestBody BatchRegisterJudgesRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var judges = adminService.batchRegisterJudges(request.judges(), currentUser);
+            return ResponseEntity.ok(judges);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/judges/{userId}")

@@ -326,6 +326,12 @@ describe('AdminDashboard', () => {
   describe('judges', () => {
     /** The option's value is a generated user id, so it is looked up by name. */
     function optionValue(select: string, startsWith: string): string {
+      if (select === '#judge-add') {
+        const promoteTab = Array.from(host().querySelectorAll<HTMLButtonElement>('.mode-tab')).find(
+          (b) => b.textContent?.includes('Promote'),
+        );
+        promoteTab?.click();
+      }
       const option = Array.from(
         host().querySelectorAll<HTMLOptionElement>(`${select} option`),
       ).find((o) => o.textContent!.trim().startsWith(startsWith));
@@ -335,7 +341,7 @@ describe('AdminDashboard', () => {
 
     function click(selector: string, label: string) {
       const button = Array.from(host().querySelectorAll<HTMLButtonElement>(selector)).find(
-        (b) => b.textContent?.trim() === label,
+        (b) => b.textContent?.includes(label),
       );
       expect(button, `a ${label} button should be rendered`).toBeTruthy();
       button!.click();
@@ -365,8 +371,19 @@ describe('AdminDashboard', () => {
       expect(teamNames()).toEqual(['Nadia Rahman']);
     });
 
+    it('registers a new judge by full name and email', async () => {
+      await render({ section: 'judges' });
+      await setInput('#judge-name-input', 'Dr. Barbara Liskov');
+      await setInput('#judge-email-input', 'barbara.liskov@mit.edu');
+      await click('.assign--grid button', 'Register Judge');
+
+      expect(host().querySelector('.banner--notice')?.textContent).toContain('has been registered as a judge');
+      expect(teamNames()).toContain('Dr. Barbara Liskov');
+    });
+
     it('adds a registered participant to the panel', async () => {
       await render({ section: 'judges' });
+      await click('.mode-tab', 'Promote from Roster');
       await setInput('#judge-add', optionValue('#judge-add', 'Nicholas Yap'));
       await click('.assign button', 'Add to panel');
 
@@ -376,6 +393,7 @@ describe('AdminDashboard', () => {
 
     it('asks before letting somebody judge the event they are competing in', async () => {
       await render({ section: 'judges' });
+      await click('.mode-tab', 'Promote from Roster');
       await setInput('#judge-add', optionValue('#judge-add', 'Aisha Rahman'));
       await click('.assign button', 'Add to panel');
 
@@ -399,6 +417,7 @@ describe('AdminDashboard', () => {
 
     it('removes a judge who has nothing assigned', async () => {
       await render({ section: 'judges' });
+      await click('.mode-tab', 'Promote from Roster');
       await setInput('#judge-add', optionValue('#judge-add', 'Nicholas Yap'));
       await click('.assign button', 'Add to panel');
 

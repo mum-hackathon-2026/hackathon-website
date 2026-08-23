@@ -7,7 +7,9 @@ import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminParticipantD
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminStatsDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminTeamDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AuditLogDto;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.BatchRegisterJudgesRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.CreateAssignmentRequest;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterJudgeRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateTeamRequest;
 import my.monash.hackathon.hackathon_website_backend.audit.AuditLog;
 import my.monash.hackathon.hackathon_website_backend.audit.AuditLogRepository;
@@ -314,6 +316,66 @@ public class AdminBackendService {
         return dtoList;
     }
 
+    public AdminJudgeDto registerJudge(RegisterJudgeRequest request, User actor) {
+        if (request == null || request.email() == null || request.email().isBlank()) {
+            throw new IllegalArgumentException("Email is required for judge registration.");
+        }
+        if (request.fullName() == null || request.fullName().isBlank()) {
+            throw new IllegalArgumentException("Full name is required for judge registration.");
+        }
+
+        String email = request.email().trim().toLowerCase();
+        String fullName = request.fullName().trim();
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user != null) {
+            if ("admin".equalsIgnoreCase(user.getRole())) {
+                throw new IllegalArgumentException("User " + email + " is an administrator and cannot be registered as a judge.");
+            }
+            user.setFullName(fullName);
+            user.setRole("judge");
+            user.setEmailVerified(true);
+            user = userRepository.save(user);
+            logAudit(actor, "Added to judging panel", "judge", user.getId(),
+                    "{\"name\":\"" + user.getFullName() + "\",\"email\":\"" + user.getEmail() + "\"}");
+        } else {
+            user = new User(null, email, fullName);
+            user.setRole("judge");
+            user.setEmailVerified(true);
+            user = userRepository.save(user);
+            logAudit(actor, "Added to judging panel", "judge", user.getId(),
+                    "{\"name\":\"" + user.getFullName() + "\",\"email\":\"" + user.getEmail() + "\"}");
+        }
+
+        var allAssignments = assignmentRepository.findByJudgeId(user.getId());
+        int completed = (int) allAssignments.stream()
+                .filter(a -> "completed".equalsIgnoreCase(a.getStatus()))
+                .count();
+
+        return new AdminJudgeDto(
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                allAssignments.size(),
+                completed,
+                ""
+        );
+    }
+
+    public List<AdminJudgeDto> batchRegisterJudges(List<RegisterJudgeRequest> requests, User actor) {
+        if (requests == null || requests.isEmpty()) {
+            throw new IllegalArgumentException("Judge list cannot be empty.");
+        }
+        List<AdminJudgeDto> results = new ArrayList<>();
+        for (RegisterJudgeRequest req : requests) {
+            if (req != null && req.email() != null && !req.email().isBlank()
+                    && req.fullName() != null && !req.fullName().isBlank()) {
+                results.add(registerJudge(req, actor));
+            }
+        }
+        return results;
+    }
+
     public void promoteToJudge(Long userId, User actor) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
@@ -325,6 +387,13 @@ public class AdminBackendService {
     public void demoteJudge(Long userId, User actor) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+        var assignments = assignmentRepository.findByJudgeId(userId);
+        if (!assignments.isEmpty()) {
+            throw new IllegalArgumentException("Judge " + (user.getFullName() != null ? user.getFullName() : user.getEmail())
+                    + " still has " + assignments.size() + " assigned team(s). Reassign them first.");
+        }
+
         user.setRole("participant");
         userRepository.save(user);
         logAudit(actor, "Judge removed from panel", "judge", user.getId(), "{\"name\":\"" + user.getFullName() + "\"}");
