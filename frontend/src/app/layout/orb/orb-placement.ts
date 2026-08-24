@@ -1,0 +1,129 @@
+/**
+ * Where the orb is allowed to land.
+ *
+ * Split out from the component and kept free of the DOM on purpose: the choice
+ * is pure geometry, so it can be tested against synthetic rectangles rather
+ * than against a rendered page. `orb.ts` does the measuring; this decides.
+ */
+
+export interface Rect {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
+export interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface PlacementRequest {
+  /** Visible area to place within, in CSS pixels. */
+  readonly viewport: { readonly width: number; readonly height: number };
+  /** Boxes the orb must stay clear of: every run of text on screen. */
+  readonly obstacles: readonly Rect[];
+  /** Half the orb's width, so clearance is measured from its edge. */
+  readonly radius: number;
+  /** Keep-out band at the top, for the fixed nav bar. */
+  readonly topInset: number;
+  /** Where it is now, so a hop can be required to actually go somewhere. */
+  readonly current: Point | null;
+  /** Injected so specs get a deterministic choice. */
+  readonly random?: () => number;
+}
+
+/** Candidate points per axis. 9x9 is fine-grained enough to find real gaps. */
+const GRID = 9;
+
+/** Breathing room between the orb's edge and any text, in pixels. */
+const COMFORT = 24;
+
+/**
+ * A hop shorter than this does not read as movement, so among equally clear
+ * spots the further ones are preferred.
+ */
+const MIN_TRAVEL = 120;
+
+/** Distance from a point to the nearest edge of a rect; 0 when inside it. */
+export function distanceToRect(point: Point, rect: Rect): number {
+  const dx = Math.max(rect.left - point.x, 0, point.x - rect.right);
+  const dy = Math.max(rect.top - point.y, 0, point.y - rect.bottom);
+  return Math.hypot(dx, dy);
+}
+
+/**
+ * How much empty space surrounds a point, measured from the orb's edge.
+ * Negative means the orb would overlap text there.
+ */
+export function clearanceAt(point: Point, radius: number, obstacles: readonly Rect[]): number {
+  if (obstacles.length === 0) return Number.POSITIVE_INFINITY;
+  let nearest = Number.POSITIVE_INFINITY;
+  for (const rect of obstacles) {
+    nearest = Math.min(nearest, distanceToRect(point, rect));
+    if (nearest <= 0) break;
+  }
+  return nearest - radius;
+}
+
+/** Whether the orb sitting here would be comfortably clear of every obstacle. */
+export function isComfortable(point: Point, radius: number, obstacles: readonly Rect[]): boolean {
+  return clearanceAt(point, radius, obstacles) >= COMFORT;
+}
+
+/**
+ * Pick somewhere clear to land.
+ *
+ * Scores a grid of candidates by surrounding empty space and takes one of the
+ * best. "One of" rather than "the best": among spots that are all comfortably
+ * clear the orb should not be predictable, so it chooses at random from the top
+ * band, preferring a spot far enough from the current one to read as a hop.
+ *
+ * When nothing is comfortable — a dense page with text everywhere — it still
+ * returns the roomiest point rather than giving up, so the orb is never left
+ * sitting on a paragraph.
+ */
+export function chooseSpot(request: PlacementRequest): Point {
+  const { viewport, obstacles, radius, topInset, current } = request;
+  const random = request.random ?? Math.random;
+
+  const minX = radius + COMFORT;
+  const maxX = Math.max(minX, viewport.width - radius - COMFORT);
+  const minY = topInset + radius + COMFORT;
+  const maxY = Math.max(minY, viewport.height - radius - COMFORT);
+
+  const scored: { point: Point; clearance: number }[] = [];
+  for (let ix = 0; ix < GRID; ix++) {
+    for (let iy = 0; iy < GRID; iy++) {
+      const point = {
+        x: minX + ((maxX - minX) * ix) / (GRID - 1),
+        y: minY + ((maxY - minY) * iy) / (GRID - 1),
+      };
+      scored.push({ point, clearance: clearanceAt(point, radius, obstacles) });
+    }
+  }
+
+  // Every comfortable spot is an equally valid answer, so all of them are in
+  // play and the choice among them is random — that is what stops the orb
+  // being predictable. Only when nothing is comfortable does "best" matter,
+  // and then the roomiest points are the whole pool. Scaling `best` by a
+  // fraction would not work here: on a page with no gap at all every clearance
+  // is negative, and scaling a negative number raises the bar instead of
+  // lowering it, which leaves nothing to choose from.
+  const comfortable = scored.filter((entry) => entry.clearance >= COMFORT);
+  let band = comfortable;
+  if (band.length === 0) {
+    const best = Math.max(...scored.map((entry) => entry.clearance));
+    band = scored.filter((entry) => entry.clearance >= best - 1);
+  }
+
+  // Prefer a visible hop, but never at the cost of landing on text.
+  const travelled = current
+    ? band.filter(
+        (entry) => Math.hypot(entry.point.x - current.x, entry.point.y - current.y) >= MIN_TRAVEL,
+      )
+    : band;
+  const pool = travelled.length > 0 ? travelled : band;
+
+  return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))].point;
+}

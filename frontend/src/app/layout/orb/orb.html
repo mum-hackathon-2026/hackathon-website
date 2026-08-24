@@ -1,0 +1,49 @@
+@if (visible()) {
+  <!-- position: fixed, so this never enters page layout and cannot reflow copy. -->
+  <div
+    class="orb"
+    [class.orb--placed]="spot() !== null"
+    [class.orb--flip]="panelOnRight()"
+    [class.orb--landing]="landing()"
+    [style.transform]="spot() ? 'translate(' + spot()!.x + 'px, ' + spot()!.y + 'px)' : null"
+    [attr.data-hop]="hops()"
+    (mouseenter)="open.set(true)"
+    (mouseleave)="close()"
+  >
+    @if (open()) {
+      <div class="orb__panel" role="dialog" aria-label="Hackathon shortcut">
+        @if (signedIn()) {
+          <p class="orb__greeting">Hi {{ firstName() }}</p>
+          @if (status(); as line) {
+            <p class="orb__status">{{ line }}</p>
+          }
+        } @else {
+          <p class="orb__pitch">Not registered yet?</p>
+          <a
+            class="orb__action"
+            [href]="registrationFormUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Register your team
+            <span class="orb__action-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+        }
+      </div>
+    }
+
+    <button
+      type="button"
+      class="orb__button"
+      [class.orb__button--open]="open()"
+      [attr.aria-expanded]="open()"
+      [attr.aria-label]="
+        signedIn() ? 'Open your hackathon status' : 'Open team registration shortcut'
+      "
+      (click)="toggle()"
+    >
+      <span class="orb__core" aria-hidden="true"></span>
+      <span class="orb__sheen" aria-hidden="true"></span>
+    </button>
+  </div>
+}

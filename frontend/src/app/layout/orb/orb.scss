@@ -1,0 +1,217 @@
+/* The sponsor's orange, sampled from public/logos/averis.png (#e88800 core,
+   ranging to #e07800). Local to this component: the orb is the only thing on
+   the site in Averis's colour, so it does not earn a global token. */
+:host {
+  --orb-averis: #e88800;
+  --orb-averis-deep: #d97600;
+  --orb-averis-lift: #ffa733;
+  --orb-size: 56px;
+  --orb-gap: 12px;
+}
+
+/* A zero-size anchor at the orb's centre. Everything visible hangs off it
+   absolutely, which is what lets the panel swap sides without the anchor
+   point moving.
+
+   Travel is a transform, never left/top: transform is composited, so the orb
+   crossing the page costs no layout work on a page it is floating over. */
+.orb {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 150;
+  /* A touch of overshoot on arrival, which is most of the character. */
+  transition: transform 0.85s cubic-bezier(0.34, 1.3, 0.5, 1);
+}
+
+/* Before the first measurement lands, sit in the bottom-right corner. Without
+   this the orb would flash at the viewport origin on the very first paint. */
+.orb:not(.orb--placed) {
+  left: auto;
+  top: auto;
+  right: clamp(28px, 3vw, 44px);
+  bottom: clamp(28px, 3vw, 44px);
+}
+
+.orb__button {
+  position: absolute;
+  left: calc(var(--orb-size) / -2);
+  top: calc(var(--orb-size) / -2);
+  display: grid;
+  place-items: center;
+  width: var(--orb-size);
+  height: var(--orb-size);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover,
+  &--open {
+    transform: scale(1.08);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+/* Squash and rebound as it touches down. Applied to the inner core so it
+   composes with the button's own hover scale instead of fighting it. */
+.orb--landing .orb__core {
+  animation:
+    orb-land 0.5s cubic-bezier(0.34, 1.5, 0.5, 1),
+    orb-breathe 4.5s ease-in-out infinite 0.5s;
+}
+
+@keyframes orb-land {
+  0% {
+    transform: scale(1.18, 0.82);
+  }
+  45% {
+    transform: scale(0.92, 1.08);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+.orb__core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 32% 28%,
+    var(--orb-averis-lift) 0%,
+    var(--orb-averis) 45%,
+    var(--orb-averis-deep) 100%
+  );
+  box-shadow:
+    0 6px 20px -4px rgba(232, 136, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.12);
+  animation: orb-breathe 4.5s ease-in-out infinite;
+}
+
+/* A soft highlight, so the orb reads as a sphere rather than a flat dot. */
+.orb__sheen {
+  position: absolute;
+  top: 14%;
+  left: 20%;
+  width: 34%;
+  height: 26%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+@keyframes orb-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 6px 20px -4px rgba(232, 136, 0, 0.5),
+      0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+  50% {
+    box-shadow:
+      0 8px 28px -2px rgba(232, 136, 0, 0.75),
+      0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* Hangs to the left of the orb by default, and flips right once the orb roams
+   into the left half of the viewport, where the default would run off screen. */
+.orb__panel {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--orb-size) / 2 + var(--orb-gap));
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: min(260px, 40vw);
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow:
+    0 12px 32px -8px rgba(0, 0, 0, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  text-align: left;
+  animation: orb-panel-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.orb--flip .orb__panel {
+  right: auto;
+  left: calc(var(--orb-size) / 2 + var(--orb-gap));
+}
+
+@keyframes orb-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+.orb__greeting {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.orb__status {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.orb__pitch {
+  margin: 0 0 8px;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.orb__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--orb-averis-deep);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.orb__action-arrow {
+  transition: transform 0.2s ease;
+
+  .orb__action:hover & {
+    transform: translateX(3px);
+  }
+}
+
+/* The component stops hopping under this query too, so the orb simply rests in
+   its corner. Killing the transition as well means the one placement it may
+   already have had does not animate. */
+@media (prefers-reduced-motion: reduce) {
+  .orb {
+    transition: none;
+  }
+
+  .orb--landing .orb__core {
+    animation: none;
+  }
+}
