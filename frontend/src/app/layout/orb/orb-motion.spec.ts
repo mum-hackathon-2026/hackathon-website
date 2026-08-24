@@ -1,4 +1,4 @@
-import { SpringState, Vec, idleOffset, isAtRest, stepSpring } from './orb-motion';
+import { SpringState, Vec, idleOffset, isAtRest, scrollPull, stepSpring } from './orb-motion';
 
 const FRAME_S = 1 / 60;
 
@@ -130,5 +130,42 @@ describe('idleOffset', () => {
     const start = idleOffset(0);
     const oneXPeriodLater = idleOffset(9_000);
     expect(Math.abs(oneXPeriodLater.y - start.y)).toBeGreaterThan(0.5);
+  });
+});
+
+describe('scrollPull', () => {
+  it('is nothing when the page has not moved', () => {
+    expect(scrollPull(0)).toBe(0);
+  });
+
+  it('follows the direction of the scroll', () => {
+    expect(scrollPull(20)).toBeGreaterThan(0);
+    expect(scrollPull(-20)).toBeLessThan(0);
+  });
+
+  it('grows with the size of the step', () => {
+    expect(scrollPull(40)).toBeGreaterThan(scrollPull(10));
+  });
+
+  // A flung wheel reports hundreds of pixels at once; uncapped, that throws the
+  // orb off the page and it spends a second coming back.
+  it('caps, both ways', () => {
+    expect(scrollPull(100_000)).toBeLessThanOrEqual(850);
+    expect(scrollPull(-100_000)).toBeGreaterThanOrEqual(-850);
+  });
+
+  // Fed straight back into the spring, so it has to be in the same units.
+  it('is a velocity the spring can absorb without leaving the page', () => {
+    let state: SpringState = { at: { x: 500, y: 400 }, velocity: { x: 0, y: scrollPull(400) } };
+    const target: Vec = { x: 500, y: 400 };
+
+    let furthest = 0;
+    for (let i = 0; i < 240; i++) {
+      state = stepSpring(state, target, 1 / 60);
+      furthest = Math.max(furthest, Math.abs(state.at.y - target.y));
+    }
+
+    expect(furthest).toBeLessThan(200);
+    expect(isAtRest(state, target)).toBe(true);
   });
 });

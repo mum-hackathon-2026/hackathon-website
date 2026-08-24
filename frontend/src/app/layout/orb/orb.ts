@@ -14,7 +14,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth';
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { PhaseService } from '../../core/event/phase';
-import { SpringState, idleOffset, stepSpring } from './orb-motion';
+import { SpringState, idleOffset, scrollPull, stepSpring } from './orb-motion';
 import { Point, Rect, chooseSpot, isComfortable } from './orb-placement';
 
 /**
@@ -125,6 +125,17 @@ export class Orb {
   private spring: SpringState | null = null;
   private frame: number | null = null;
   private lastFrameMs = 0;
+  private lastScrollY = 0;
+  /** Scroll velocity owed to the orb, handed over on the next frame. */
+  private pendingPull = 0;
+  /**
+   * Set on arrival at a new page. The browser's jump back to the top arrives
+   * as a scroll event *after* NavigationEnd, so resyncing the position there
+   * is too early to catch it; the first scroll after a navigation instead
+   * resyncs and lends nothing. The cost is one swallowed impulse when a page
+   * does not reset its scroll, which is a single frame nobody can see.
+   */
+  private resyncScroll = true;
   /**
    * Time the idle bob has been running. Advanced by the loop rather than read
    * off the clock, so holding still is simply declining to advance it — the
@@ -141,6 +152,11 @@ export class Orb {
     const navigations = this.router.events.subscribe((event) => {
       if (!(event instanceof NavigationEnd)) return;
       this.url.set(event.urlAfterRedirects);
+      // Landing on a new page resets the scroll position. That jump is not the
+      // reader moving, so it must not be handed to the orb as a pull.
+      this.lastScrollY = typeof window === 'undefined' ? 0 : window.scrollY;
+      this.pendingPull = 0;
+      this.resyncScroll = true;
       this.cancelLeave();
       this.hovered.set(false);
       this.open.set(false);
@@ -206,12 +222,23 @@ export class Orb {
   }
 
   /**
-   * Scrolling does not move the orb by itself — motion in the corner of the eye
-   * while reading is tiring. It only relocates once text has actually scrolled
-   * underneath where it sits.
+   * Scrolling tows the orb: it takes on some of the page's motion and the
+   * spring reels it back, so it trails and catches up rather than sitting
+   * inert while everything else races past.
+   *
+   * It only *relocates* once text has actually scrolled underneath it. Picking
+   * a new spot on every scroll would be motion in the corner of the eye while
+   * reading, which is tiring; being towed is the page's own movement and reads
+   * as weight instead.
    */
   @HostListener('window:scroll')
   onScroll(): void {
+    const y = window.scrollY;
+    // Under the pointer it holds still, so it does not squirm out of reach.
+    if (this.resyncScroll) this.resyncScroll = false;
+    else if (!this.settled()) this.pendingPull += scrollPull(y - this.lastScrollY);
+    this.lastScrollY = y;
+
     this.afterSettle(() => {
       const here = this.spot();
       if (here && isComfortable(here, ORB_RADIUS, this.textRects())) return;
@@ -297,11 +324,17 @@ export class Orb {
 
       const target = this.spot();
       if (target) {
-        this.spring = stepSpring(
-          this.spring ?? { at: target, velocity: { x: 0, y: 0 } },
-          target,
-          dt,
-        );
+        let state = this.spring ?? { at: target, velocity: { x: 0, y: 0 } };
+
+        if (this.pendingPull !== 0) {
+          state = {
+            at: state.at,
+            velocity: { x: state.velocity.x, y: state.velocity.y + this.pendingPull },
+          };
+          this.pendingPull = 0;
+        }
+
+        this.spring = stepSpring(state, target, dt);
         // Held still under the pointer: the spring still settles onto its
         // target, but the bob stops advancing so the orb stays put.
         if (!this.settled()) this.driftMs += dt * 1000;

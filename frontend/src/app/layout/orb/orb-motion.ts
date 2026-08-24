@@ -89,6 +89,29 @@ export function isAtRest(state: SpringState, target: Vec): boolean {
   return speed < REST_SPEED && distance < REST_DISTANCE;
 }
 
+/**
+ * How much of a scroll step becomes orb velocity, and the ceiling on it.
+ *
+ * A flung scroll wheel can report hundreds of pixels in one event; without the
+ * cap the orb would be thrown clean off the page and spend a second coming
+ * back, which reads as a glitch rather than as weight.
+ */
+const SCROLL_PULL = 7;
+const MAX_SCROLL_PULL = 850;
+
+/**
+ * The velocity a scroll step lends the orb.
+ *
+ * The orb is fixed to the viewport, so scrolling does not move it and it can
+ * look inert while the page races past. Lending it some of the scroll's motion
+ * drags it along, and the spring then pulls it back to where it belongs — so
+ * it reads as something with weight being towed, and catching up.
+ */
+export function scrollPull(deltaPx: number): number {
+  const pull = deltaPx * SCROLL_PULL;
+  return Math.min(Math.max(pull, -MAX_SCROLL_PULL), MAX_SCROLL_PULL);
+}
+
 /** The idle bob, added on top of the spring position. */
 export function idleOffset(elapsedMs: number): Vec {
   return {

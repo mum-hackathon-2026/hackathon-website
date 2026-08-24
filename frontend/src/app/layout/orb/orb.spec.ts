@@ -182,6 +182,72 @@ describe('Orb', () => {
       expect(spot.y).toBeLessThan(window.innerHeight);
     });
 
+    function paintedY(): number {
+      const match = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(anchor().style.transform);
+      return match ? Number(match[2]) : NaN;
+    }
+
+    async function frames(count: number): Promise<void> {
+      for (let i = 0; i < count; i++) {
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      }
+    }
+
+    /**
+     * Run until the orb has stopped travelling, so a hop still in flight
+     * cannot be mistaken for whatever the test is actually measuring.
+     */
+    async function quiet(): Promise<void> {
+      let previous = paintedY();
+      for (let i = 0; i < 400; i++) {
+        await frames(4);
+        const current = paintedY();
+        if (Math.abs(current - previous) < 1) return;
+        previous = current;
+      }
+    }
+
+    // The orb is fixed to the viewport, so scrolling does not move it and it
+    // can look inert while the page races past. It should be towed instead.
+    it('is towed along when the page scrolls', async () => {
+      await settle();
+      // The first scroll after load only resyncs, so that a browser restoring a
+      // scrolled position cannot fling the orb. Spend it, then measure.
+      window.dispatchEvent(new Event('scroll'));
+      await quiet();
+      const before = paintedY();
+
+      Object.defineProperty(window, 'scrollY', { value: 500, configurable: true });
+      window.dispatchEvent(new Event('scroll'));
+      // Two frames: the pull lands on the next one, while the re-placement hop
+      // is 180ms out. Measuring here cannot confuse the two.
+      await frames(2);
+
+      // Well beyond what the idle bob could account for over two frames.
+      expect(Math.abs(paintedY() - before)).toBeGreaterThan(8);
+    });
+
+    // A navigation resets the page to the top. That jump is the browser, not
+    // the reader, and handing it to the orb would fling it across the screen.
+    it('is not towed by the scroll reset a navigation causes', async () => {
+      await settle();
+
+      Object.defineProperty(window, 'scrollY', { value: 4000, configurable: true });
+      await router.navigateByUrl('/participant/team');
+      await fixture.whenStable();
+      // The navigation hops the orb; let that finish, or its travel would be
+      // read as the pull this test is trying to rule out.
+      await quiet();
+
+      const before = paintedY();
+      Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+      window.dispatchEvent(new Event('scroll'));
+      await frames(2);
+
+      // A 4000px jump would be an unmissable lurch if it were handed over.
+      expect(Math.abs(paintedY() - before)).toBeLessThan(4);
+    });
+
     // The panel hangs to the orb's left by default, which would run off screen
     // once the orb roams into the left half.
     it('flips the panel to whichever side has room', async () => {
