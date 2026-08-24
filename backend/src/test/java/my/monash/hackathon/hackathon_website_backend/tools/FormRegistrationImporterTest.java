@@ -1,6 +1,7 @@
 package my.monash.hackathon.hackathon_website_backend.tools;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -68,7 +69,7 @@ class FormRegistrationImporterTest {
         deleteTestRows();
     }
 
-    // ------------------------------------------------------------------ the member 2-4 guard
+    // -------------------------------------------------------------- the member block guard
 
     @Test
     void memberBlockMissingOneColumnAbortsAndNamesIt() throws IOException, SQLException {
@@ -158,6 +159,8 @@ class FormRegistrationImporterTest {
         assertThat(run.output())
                 .containsPattern("member 3\\s+\\(no columns - not collected\\)")
                 .containsPattern("member 4\\s+\\(no columns - not collected\\)")
+                // max_team_size is 5, so the report reaches block 5 as well.
+                .containsPattern("member 5\\s+\\(no columns - not collected\\)")
                 .contains("IMPORTED")
                 .contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0");
         assertThat(countUsers()).isEqualTo(2);
@@ -243,13 +246,16 @@ class FormRegistrationImporterTest {
     void exitCodeIsOneWhenSomethingIsRejected() throws IOException, SQLException {
         Path file = csv("one-bad-row.csv",
                 header(4),
+                // Two members, not one: the minimum is 2, and a solo team would be rejected
+                // on size before its email was ever looked at.
                 "2026/08/01 9:00:00 AM GMT+8," + team("Good Team") + ","
-                        + member("Alpha One") + "," + NO_MEMBER + "," + NO_MEMBER + "," + NO_MEMBER,
+                        + member("Alpha One") + "," + member("Beta Two") + ","
+                        + NO_MEMBER + "," + NO_MEMBER,
                 "2026/08/01 9:05:00 AM GMT+8," + team("Bad Team") + ","
                         + "Broken Person,not-an-email,+60 12-000 0000,"
                         + "https://drive.google.com/file/d/broken/view,"
                         + "https://www.linkedin.com/in/broken,https://github.com/broken,"
-                        + NO_MEMBER + "," + NO_MEMBER + "," + NO_MEMBER);
+                        + member("Second Person") + "," + NO_MEMBER + "," + NO_MEMBER);
 
         Run run = runImporter("--file=" + file);
 
@@ -261,20 +267,22 @@ class FormRegistrationImporterTest {
                 .doesNotContain("1 row need a human");
 
         // A rejection does not cost the good row its import.
-        assertThat(countUsers()).isEqualTo(1);
+        assertThat(countUsers()).isEqualTo(2);
         assertThat(countTeams()).isEqualTo(1);
     }
 
     @Test
     void pluralRejectionMessageAgrees() throws IOException {
         Path file = csv("two-bad-rows.csv",
-                header(1),
+                header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Bad One") + ",Broken,not-an-email,"
                         + "+60 12-000 0000,https://drive.google.com/file/d/b/view,"
-                        + "https://www.linkedin.com/in/b,https://github.com/b",
+                        + "https://www.linkedin.com/in/b,https://github.com/b,"
+                        + member("Beta Two"),
                 "2026/08/01 9:05:00 AM GMT+8,,Nameless Team,other@" + EMAIL_DOMAIN
                         + ",+60 12-000 0000,https://drive.google.com/file/d/c/view,"
-                        + "https://www.linkedin.com/in/c,https://github.com/c");
+                        + "https://www.linkedin.com/in/c,https://github.com/c,"
+                        + member("Gamma Three"));
 
         Run run = runImporter("--file=" + file);
 
@@ -285,10 +293,11 @@ class FormRegistrationImporterTest {
     @Test
     void dryRunWithRejectionsAlsoExitsOne() throws IOException {
         Path file = csv("dry-bad.csv",
-                header(1),
+                header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Bad One") + ",Broken,not-an-email,"
                         + "+60 12-000 0000,https://drive.google.com/file/d/b/view,"
-                        + "https://www.linkedin.com/in/b,https://github.com/b");
+                        + "https://www.linkedin.com/in/b,https://github.com/b,"
+                        + member("Beta Two"));
 
         Run run = runImporter("--file=" + file, "--dry-run");
 
@@ -392,17 +401,21 @@ class FormRegistrationImporterTest {
                         + "Member 1: LinkedIn Profile URL,Member 1: GitHub Profile URL,"
                         + "Do you want to add another team member?,Member 1: University,Member 1: Major,"
                         + "Member 1: Year of Study,Member 1: Semester,Member 1: Dietary Restrictions,"
-                        + "Do you want to add another team member?",
+                        + "Do you want to add another team member?,"
+                        + "Member 2: Full Name (First & Family Name),Member 2: Email Address,"
+                        + "Member 2: Phone / WhatsApp Number,Member 2: Resume / CV (PDF),"
+                        + "Member 2: LinkedIn Profile URL,Member 2: GitHub Profile URL",
                 "2026/08/01 9:00:00 AM GMT+8,Primary Guy,primary@" + EMAIL_DOMAIN + ",+60 11-111 1111,Male,Monash,"
                         + team("Unknown Cols") + ",Real Leader," + email("Real Leader") + ",+60 12-000 0000,"
                         + "https://drive.google.com/file/d/real/view,https://www.linkedin.com/in/real,"
-                        + "https://github.com/real,No,Monash,CS,Y2,S1,None,No");
+                        + "https://github.com/real,No,Monash,CS,Y2,S1,None,No,"
+                        + member("Real Second"));
 
         Run run = runImporter("--file=" + file);
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
         assertThat(run.output()).contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0");
-        assertThat(countUsers()).isEqualTo(1);
+        assertThat(countUsers()).isEqualTo(2);
 
         // Ensure leader's phone was stored, not primary contact's phone
         assertThat(queryString("select phone from users where email = ?", email("Real Leader")))
@@ -479,6 +492,218 @@ class FormRegistrationImporterTest {
                 .contains("RESULT mode=live rows=1 imported=0 skipped=1 rejected=0");
         assertThat(countUsers()).isEqualTo(2);
         assertThat(countTeams()).isEqualTo(1);
+    }
+
+    // ------------------------------------------------------------------ team size 2-5
+
+    @Test
+    void twoMemberTeamImports() throws IOException, SQLException {
+        Path file = csv("pair.csv",
+                header(5),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Pair") + ","
+                        + member("Alpha One") + "," + member("Beta Two") + ","
+                        + NO_MEMBER + "," + NO_MEMBER + "," + NO_MEMBER);
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
+        assertThat(run.output())
+                .contains("team size   : 2-5 (from event_settings)")
+                .contains("IMPORTED")
+                .contains("2 members")
+                .contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0");
+        assertThat(countUsers()).isEqualTo(2);
+        assertThat(countTeams()).isEqualTo(1);
+    }
+
+    @Test
+    void fiveMemberTeamImports() throws IOException, SQLException {
+        // The fifth block is new. Nothing about it is special-cased: the field aliases are
+        // generated per block number, so this maps by the same rule as member 1.
+        Path file = csv("five.csv",
+                header(5),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Full House") + ","
+                        + member("Alpha One") + "," + member("Beta Two") + ","
+                        + member("Gamma Three") + "," + member("Delta Four") + ","
+                        + member("Epsilon Five"));
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
+        assertThat(run.output())
+                .contains("IMPORTED")
+                .contains("5 members")
+                .contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0");
+        assertThat(countUsers()).isEqualTo(5);
+        assertThat(countTeams()).isEqualTo(1);
+
+        // Every one of member 5's six collected values landed, not just their name.
+        assertThat(queryOne(
+                """
+                select count(*) from users
+                where email = ? and phone is not null and resume_url is not null
+                  and linkedin_url is not null and github_url is not null
+                """,
+                email("Epsilon Five")))
+                .isEqualTo(1);
+    }
+
+    @Test
+    void soloTeamIsRejectedAndNamesTheMinimum() throws IOException, SQLException {
+        // This used to import. Solo entries ended with V6; the message has to say so in
+        // terms the organiser chasing the registrant can repeat back to them.
+        Path file = csv("solo.csv",
+                header(5),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Solo Mission") + ","
+                        + member("Alpha One") + "," + NO_MEMBER + "," + NO_MEMBER + ","
+                        + NO_MEMBER + "," + NO_MEMBER);
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("REJECTED")
+                .contains("team has 1 member; the minimum is 2")
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=1");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+    }
+
+    @Test
+    void sixMemberTeamIsRejected() throws IOException, SQLException {
+        // The scan looks past the maximum on purpose, so an oversized team is named as
+        // oversized rather than having its sixth member quietly dropped.
+        Path file = csv("six.csv",
+                header(6),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Too Many") + ","
+                        + member("Alpha One") + "," + member("Beta Two") + ","
+                        + member("Gamma Three") + "," + member("Delta Four") + ","
+                        + member("Epsilon Five") + "," + member("Zeta Six"));
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("REJECTED")
+                .contains("team size is 6; teams must have between 2 and 5 members")
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=1");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+    }
+
+    @Test
+    void partiallyPresentMemberFiveBlockAborts() throws IOException, SQLException {
+        // The all-six-or-none guard now reaches block 5, because block 5 is inside the
+        // limit. Five of its six columns is a mis-titled question, not a smaller team.
+        Path file = csv("partial-five.csv",
+                header(4)
+                        + ",Member 5 Name,Member 5 Email,Member 5 Phone,Member 5 Resume,"
+                        + "Member 5 LinkedIn",
+                "2026/08/01 9:00:00 AM GMT+8," + team("Partial Five") + ","
+                        + member("Alpha One") + "," + member("Beta Two") + ","
+                        + NO_MEMBER + "," + NO_MEMBER + ","
+                        + "Fifth Person," + email("Fifth Person") + ",+60 12-000 0000,"
+                        + "https://drive.google.com/file/d/fifth/view,"
+                        + "https://www.linkedin.com/in/fifth");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
+        assertThat(run.output())
+                .contains("STOPPING: member 5's block is incomplete - no column for GitHub.")
+                .contains("'Member 5 GitHub'")
+                .doesNotContain("RESULT ");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+    }
+
+    @Test
+    void githubRepositoryHeaderStillAbortsForMemberFive() throws IOException {
+        // The repo/project guard is not weakened by the new block: users.github_url is the
+        // person, and a project repo must not land in it for member 5 either.
+        Path file = csv("repo-header-five.csv",
+                header(4)
+                        + ",Member 5 Name,Member 5 Email,Member 5 Phone,Member 5 Resume,"
+                        + "Member 5 LinkedIn,Member 5: GitHub Project Repository",
+                "2026/08/01 9:00:00 AM GMT+8," + team("Repo Five") + ","
+                        + member("Alpha One") + "," + member("Beta Two") + ","
+                        + NO_MEMBER + "," + NO_MEMBER + "," + member("Epsilon Five"));
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
+        assertThat(run.output())
+                .contains("A project repository must not be imported into users.github_url")
+                .contains("'Member 5: GitHub Profile URL'");
+    }
+
+    // ---------------------------------------------------- the limits come from the database
+
+    @Test
+    void limitsAreReadFromEventSettingsAndReported() throws IOException, SQLException {
+        // The importer holds no copy of the limits. This is the read, and the run header is
+        // where the operator sees which ones were actually enforced.
+        Path file = csv("reported.csv",
+                header(5),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Reported") + ","
+                        + member("Alpha One") + "," + member("Beta Two") + ","
+                        + NO_MEMBER + "," + NO_MEMBER + "," + NO_MEMBER);
+
+        Run run = runImporter("--file=" + file);
+
+        int min = queryOne("select min_team_size from event_settings where id = 1");
+        int max = queryOne("select max_team_size from event_settings where id = 1");
+        assertThat(run.output())
+                .contains("team size   : " + min + "-" + max + " (from event_settings)");
+    }
+
+    @Test
+    void readingLimitsFailsWhenTheSingletonRowIsMissing() throws SQLException {
+        // Exercised on a connection of our own inside a transaction that is rolled back, so
+        // the shared test database never actually loses its event_settings row.
+        try (Connection connection = testConnection()) {
+            connection.setAutoCommit(false);
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("delete from event_settings where id = 1");
+            }
+
+            assertThatThrownBy(() -> FormRegistrationImporter.readTeamSizeLimits(connection))
+                    .isInstanceOf(FormRegistrationImporter.MissingLimitsException.class)
+                    .hasMessageContaining("event_settings has no row with id = 1");
+
+            connection.rollback();
+        }
+    }
+
+    @Test
+    void missingEventSettingsAbortsWithExitTwo() throws IOException, SQLException {
+        // End to end: no limits, no import, exit 2, and no RESULT line - a caller branching
+        // on the exit code must be able to tell "nothing happened" from "some rows failed".
+        Path file = csv("no-settings.csv",
+                header(5),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Would Import") + ","
+                        + member("Alpha One") + "," + member("Beta Two") + ","
+                        + NO_MEMBER + "," + NO_MEMBER + "," + NO_MEMBER);
+
+        EventSettingsRow saved = readEventSettings();
+        Run run;
+        try {
+            deleteEventSettings();
+            run = runImporter("--file=" + file);
+        } finally {
+            restoreEventSettings(saved);
+        }
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
+        assertThat(run.output())
+                .contains("STOPPING:")
+                .contains("event_settings has no row with id = 1")
+                .doesNotContain("RESULT ");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+
+        // The row is back, so the rest of the suite is unaffected.
+        assertThat(queryOne("select count(*) from event_settings where id = 1")).isEqualTo(1);
     }
 
     // ------------------------------------------------------------------ helpers
@@ -590,6 +815,55 @@ class FormRegistrationImporterTest {
                     "delete from teams where name like '" + TEAM_PREFIX + "%'");
             statement.executeUpdate(
                     "delete from users where email like '%@" + EMAIL_DOMAIN + "'");
+        }
+    }
+
+    /**
+     * The event_settings singleton, so a test can take it away and put it back.
+     *
+     * <p>Only the NOT NULL columns are carried: the nullable instants are null in the V1
+     * seed and nothing in this class depends on them.
+     */
+    private record EventSettingsRow(String eventName, boolean judgingOpen, int minTeamSize,
+                                    int maxTeamSize, boolean screeningEnabled) {}
+
+    private EventSettingsRow readEventSettings() throws SQLException {
+        try (Connection connection = testConnection();
+                Statement statement = connection.createStatement();
+                ResultSet results = statement.executeQuery(
+                        "select event_name, judging_open, min_team_size, max_team_size, "
+                                + "screening_enabled from event_settings where id = 1")) {
+            assertThat(results.next())
+                    .as("event_settings singleton must exist before this test removes it")
+                    .isTrue();
+            return new EventSettingsRow(
+                    results.getString("event_name"),
+                    results.getBoolean("judging_open"),
+                    results.getInt("min_team_size"),
+                    results.getInt("max_team_size"),
+                    results.getBoolean("screening_enabled"));
+        }
+    }
+
+    private void deleteEventSettings() throws SQLException {
+        try (Connection connection = testConnection();
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate("delete from event_settings where id = 1");
+        }
+    }
+
+    private void restoreEventSettings(EventSettingsRow row) throws SQLException {
+        try (Connection connection = testConnection();
+                var statement = connection.prepareStatement(
+                        "insert into event_settings (id, event_name, judging_open, min_team_size, "
+                                + "max_team_size, screening_enabled) values (1, ?, ?, ?, ?, ?) "
+                                + "on conflict (id) do nothing")) {
+            statement.setString(1, row.eventName());
+            statement.setBoolean(2, row.judgingOpen());
+            statement.setInt(3, row.minTeamSize());
+            statement.setInt(4, row.maxTeamSize());
+            statement.setBoolean(5, row.screeningEnabled());
+            statement.executeUpdate();
         }
     }
 

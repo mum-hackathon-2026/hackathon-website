@@ -84,6 +84,16 @@ public final class FormRegistrationImporter {
 
     private static final String JOIN_CODE_EXISTS = "select 1 from teams where join_code = ?";
 
+    /**
+     * The permitted team size, which lives in the database and nowhere else.
+     *
+     * <p>{@code event_settings} is the singleton row V1 constrains with {@code check (id = 1)},
+     * so this reads that row by id rather than taking whatever {@code select ... limit 1}
+     * returns.
+     */
+    private static final String FIND_TEAM_SIZE_LIMITS =
+            "select min_team_size, max_team_size from event_settings where id = 1";
+
     private static final Map<String, String> CONSTRAINT_EXPLANATIONS = Map.of(
             "users_email_key", "that email address is already registered",
             "users_email_lowercase_check",
@@ -122,7 +132,19 @@ public final class FormRegistrationImporter {
     public static ImportSummary importFromSheet(Connection connection, String sheetId, String tab,
                                                 Path credentialsPath, boolean dryRun) throws Exception {
         CsvReader.Sheet sheet = GoogleSheetsReader.read(sheetId, tab, credentialsPath);
-        if (!reportColumnMapping(sheet)) {
+
+        // Same rule as the CLI path: the permitted team size comes from event_settings and
+        // there is no fallback. A scheduled sync that cannot read the limits does nothing
+        // rather than importing against guessed ones.
+        TeamRow.SizeLimits limits;
+        try {
+            limits = readTeamSizeLimits(connection);
+        } catch (MissingLimitsException e) {
+            return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(),
+                    List.of("STOPPING: " + e.getMessage()));
+        }
+
+        if (!reportColumnMapping(sheet, limits)) {
             return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(),
                     List.of("Column mapping failed - incomplete member block or disallowed repository question"));
         }
@@ -133,9 +155,10 @@ public final class FormRegistrationImporter {
         FormRegistrationImporter importer = new FormRegistrationImporter();
         List<Outcome> outcomes = new ArrayList<>();
         List<String> logMessages = new ArrayList<>();
+        logMessages.add("team size limits: " + limits.describe() + " (from event_settings)");
 
         for (CsvReader.Row row : sheet.rows()) {
-            Outcome outcome = importer.processRow(connection, row, dryRun);
+            Outcome outcome = importer.processRow(connection, row, limits, dryRun);
             outcomes.add(outcome);
             logMessages.add("line " + row.lineNumber() + " " + outcome.status().label + " " + outcome.detail());
         }
@@ -171,6 +194,58 @@ public final class FormRegistrationImporter {
 
     private record Options(Path file, String sheetId, String tab, Path credentials,
                            boolean dryRun, String url, String user, String password) {}
+
+    /**
+     * Raised when {@code event_settings} cannot tell us the permitted team size.
+     *
+     * <p>Deliberately fatal. There is no default to fall back on: importing a season's
+     * registrations against guessed limits would admit teams the organisers did not agree to
+     * and reject ones they did, and nothing downstream would notice.
+     */
+    static final class MissingLimitsException extends Exception {
+        MissingLimitsException(String reason) {
+            super(reason);
+        }
+    }
+
+    /**
+     * Reads the permitted team size from the {@code event_settings} singleton.
+     *
+     * <p>This is the only copy of the limits the importer has. It used to hold its own
+     * constant beside the column, which is what made a change of policy a change of code;
+     * the column is now the source and this is the read.
+     */
+    static TeamRow.SizeLimits readTeamSizeLimits(Connection connection)
+            throws SQLException, MissingLimitsException {
+        try (PreparedStatement statement = connection.prepareStatement(FIND_TEAM_SIZE_LIMITS);
+                ResultSet results = statement.executeQuery()) {
+            if (!results.next()) {
+                throw new MissingLimitsException(
+                        "event_settings has no row with id = 1, so the permitted team size is "
+                                + "unknown. V1 seeds this row; a database missing it has not been "
+                                + "migrated. Nothing was imported.");
+            }
+
+            int min = results.getInt("min_team_size");
+            boolean minIsNull = results.wasNull();
+            int max = results.getInt("max_team_size");
+            boolean maxIsNull = results.wasNull();
+
+            if (minIsNull || maxIsNull) {
+                throw new MissingLimitsException(
+                        "event_settings.min_team_size / max_team_size is null, so the permitted "
+                                + "team size is unknown. Set both before importing. Nothing was "
+                                + "imported.");
+            }
+            if (min < 1 || max < min) {
+                throw new MissingLimitsException(
+                        "event_settings holds a nonsensical team size: min_team_size=" + min
+                                + ", max_team_size=" + max + ". Nothing was imported.");
+            }
+
+            return new TeamRow.SizeLimits(min, max);
+        }
+    }
 
     public static void main(String[] args) {
         System.exit(run(args));
@@ -211,7 +286,6 @@ public final class FormRegistrationImporter {
         System.out.println("  mode        : " + (options.dryRun()
                 ? "DRY RUN - every team is validated against the real database, then rolled back"
                 : "LIVE - teams that validate are committed"));
-        System.out.println();
 
         CsvReader.Sheet sheet;
         if (options.file() != null) {
@@ -236,19 +310,45 @@ public final class FormRegistrationImporter {
             }
         }
 
-        if (!reportColumnMapping(sheet)) {
-            return EXIT_ABORTED;
-        }
-
-        if (sheet.rows().isEmpty()) {
-            System.out.println("The file has a header row but no data rows. Nothing to do.");
-            return EXIT_ABORTED;
-        }
-
+        // The database is opened BEFORE the column mapping is reported, because the mapping
+        // depends on it: how many "Member N" blocks the form is expected to carry is
+        // max_team_size, and that lives in event_settings. Nothing is written until
+        // importAll.
         try (Connection connection = DriverManager.getConnection(
                 options.url(), options.user(), options.password())) {
             connection.setAutoCommit(false);
-            return importAll(connection, sheet, options.dryRun());
+
+            TeamRow.SizeLimits limits;
+            try {
+                limits = readTeamSizeLimits(connection);
+            } catch (MissingLimitsException e) {
+                System.out.println();
+                System.out.println("STOPPING: " + e.getMessage());
+                return EXIT_ABORTED;
+            } catch (SQLException e) {
+                // Distinguished from the connection failure below: we are connected, and it
+                // was reading event_settings that failed.
+                System.out.println();
+                System.out.println("STOPPING: could not read event_settings for the permitted "
+                        + "team size: " + e.getMessage());
+                return EXIT_ABORTED;
+            }
+
+            // Printed so the operator can see which limits were actually enforced, rather
+            // than assuming the ones they have in mind.
+            System.out.println("  team size   : " + limits.describe() + " (from event_settings)");
+            System.out.println();
+
+            if (!reportColumnMapping(sheet, limits)) {
+                return EXIT_ABORTED;
+            }
+
+            if (sheet.rows().isEmpty()) {
+                System.out.println("The file has a header row but no data rows. Nothing to do.");
+                return EXIT_ABORTED;
+            }
+
+            return importAll(connection, sheet, limits, options.dryRun());
         } catch (SQLException e) {
             System.out.println();
             System.out.println("Could not connect to " + options.url() + " as " + options.user()
@@ -258,15 +358,15 @@ public final class FormRegistrationImporter {
         }
     }
 
-    private int importAll(Connection connection, CsvReader.Sheet sheet, boolean dryRun)
-            throws SQLException {
+    private int importAll(Connection connection, CsvReader.Sheet sheet,
+                          TeamRow.SizeLimits limits, boolean dryRun) throws SQLException {
         List<Outcome> outcomes = new ArrayList<>();
 
         System.out.println("Rows");
         System.out.println("-".repeat(78));
 
         for (CsvReader.Row row : sheet.rows()) {
-            Outcome outcome = processRow(connection, row, dryRun);
+            Outcome outcome = processRow(connection, row, limits, dryRun);
             outcomes.add(outcome);
 
             System.out.printf("line %-4d %-13s %s%n",
@@ -287,10 +387,11 @@ public final class FormRegistrationImporter {
      * one bad row never stops the import — the point of the report is that a human can chase
      * all the rejects in one pass instead of discovering them one re-run at a time.
      */
-    private Outcome processRow(Connection connection, CsvReader.Row row, boolean dryRun) {
+    private Outcome processRow(Connection connection, CsvReader.Row row,
+                               TeamRow.SizeLimits limits, boolean dryRun) {
         TeamRow team;
         try {
-            team = TeamRow.from(row);
+            team = TeamRow.from(row, limits);
         } catch (TeamRow.InvalidRowException e) {
             return Outcome.of(Status.REJECTED, e.getMessage());
         }
@@ -544,7 +645,7 @@ public final class FormRegistrationImporter {
      * Prints which CSV column fed which field before touching the database, and refuses to
      * continue if any member block mapped only part of itself or contains a disallowed repository question.
      */
-    private static boolean reportColumnMapping(CsvReader.Sheet sheet) {
+    private static boolean reportColumnMapping(CsvReader.Sheet sheet, TeamRow.SizeLimits limits) {
         System.out.println("Column mapping");
         System.out.println("-".repeat(78));
 
@@ -559,7 +660,7 @@ public final class FormRegistrationImporter {
                 teamNameHeader == null ? "(NOT PRESENT)" : "'" + teamNameHeader + "'");
 
         // Check for disallowed GitHub questions containing "repo" or "repository"
-        for (int block = 1; block <= TeamRow.MAX_TEAM_SIZE; block++) {
+        for (int block = 1; block <= limits.max(); block++) {
             String disallowedHeader = findDisallowedGithubHeader(sheet, block);
             if (disallowedHeader != null) {
                 System.out.println();
@@ -572,7 +673,7 @@ public final class FormRegistrationImporter {
 
         Map<Integer, List<String>> incompleteBlocks = new LinkedHashMap<>();
 
-        for (int block = 1; block <= TeamRow.MAX_TEAM_SIZE; block++) {
+        for (int block = 1; block <= limits.max(); block++) {
             List<String> lines = new ArrayList<>();
             boolean blockDeclared = false;
             List<String> missing = new ArrayList<>();
@@ -645,10 +746,10 @@ public final class FormRegistrationImporter {
         System.out.println("A member block is all six columns or none at all: "
                 + String.join(", ", TeamRow.fieldLabels()) + ".");
         System.out.println("Member 1 is the leader and every row has one, so its six columns are "
-                + "always required. Members 2-4 may be left out of the form entirely, but a team "
-                + "with fewer than four members leaves those columns EMPTY - it does not omit "
-                + "them. A block with only some of its columns is a mis-titled question, and "
-                + "importing it would silently store nulls for data the form did collect.");
+                + "always required. Later member blocks may be left out of the form entirely, "
+                + "but a team smaller than the maximum leaves those columns EMPTY - it does not "
+                + "omit them. A block with only some of its columns is a mis-titled question, "
+                + "and importing it would silently store nulls for data the form did collect.");
         System.out.println();
         System.out.println("Rename the sheet's header row to the canonical names:");
         for (Integer block : incompleteBlocks.keySet()) {

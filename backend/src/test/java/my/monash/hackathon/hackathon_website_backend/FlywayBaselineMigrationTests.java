@@ -65,8 +65,8 @@ class FlywayBaselineMigrationTests {
 
         MigrateResult result = flyway.migrate();
 
-        assertThat(result.migrationsExecuted).isEqualTo(5);
-        assertThat(result.targetSchemaVersion).isEqualTo("5");
+        assertThat(result.migrationsExecuted).isEqualTo(6);
+        assertThat(result.targetSchemaVersion).isEqualTo("6");
 
         Map<String, Object> baselineRow = jdbcTemplate.queryForMap(
                 "select version, description, success from flyway_schema_history where version = ?",
@@ -113,6 +113,15 @@ class FlywayBaselineMigrationTests {
                 .isEqualTo(Boolean.TRUE);
         assertThat(submissionFieldsRow.get("description")).isEqualTo("submission additional fields");
 
+        Map<String, Object> teamSizeRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "6");
+
+        assertThat(teamSizeRow.get("success"))
+                .as("V6 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(teamSizeRow.get("description")).isEqualTo("team size two to five");
+
         List<String> actualTables = jdbcTemplate.queryForList(
                 """
                 select table_name
@@ -132,8 +141,10 @@ class FlywayBaselineMigrationTests {
                 jdbcTemplate.queryForMap("select * from event_settings where id = 1");
         assertThat(settings.get("judging_open")).isEqualTo(Boolean.FALSE);
         assertThat(settings.get("results_published_at")).isNull();
-        assertThat(settings.get("min_team_size")).isEqualTo(1);
-        assertThat(settings.get("max_team_size")).isEqualTo(4);
+        // V1 seeds 1/4 and V6 corrects it to 2/5. Asserting the END state rather than the
+        // seed is the point: a fresh database and an existing one both have to finish here.
+        assertThat(settings.get("min_team_size")).isEqualTo(2);
+        assertThat(settings.get("max_team_size")).isEqualTo(5);
     }
 
     /**

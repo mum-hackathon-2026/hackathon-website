@@ -15,26 +15,59 @@ import java.util.stream.Collectors;
 /**
  * One row of the exported registration sheet, turned into a team and its members.
  *
- * <p>The form collects one row per TEAM: a leader in the "Member 1" block plus up to three
- * more. This class works out which member blocks a row actually filled in, checks every
- * value the database or the rules require, and reports the first problem in words a person
- * chasing the registrant can act on.
+ * <p>The form collects one row per TEAM: a leader in the "Member 1" block plus the rest.
+ * This class works out which member blocks a row actually filled in, checks every value the
+ * database or the rules require, and reports the first problem in words a person chasing the
+ * registrant can act on.
  *
  * <p>Nothing here touches the database. Everything it rejects is decidable from the row
- * alone — shape, formats, team size, and a person listed twice on their own team. Clashes
- * with rows already in the database, or with earlier rows in the same file, are the
- * importer's job.
+ * alone plus the {@link SizeLimits} it is handed — shape, formats, team size, and a person
+ * listed twice on their own team. Clashes with rows already in the database, or with earlier
+ * rows in the same file, are the importer's job.
+ *
+ * <p>How many member blocks the form carries is not fixed here. The field aliases are
+ * generated per block number, so "Member 5: Email Address" maps by the same rule that maps
+ * "Member 1 Email"; the only thing that decides how many blocks are permitted is
+ * {@code event_settings.max_team_size}.
  */
 final class TeamRow {
 
-    /** The blocks the form is expected to produce. */
-    static final int MAX_TEAM_SIZE = 4;
+    /**
+     * The permitted team size, inclusive at both ends.
+     *
+     * <p>Read from the {@code event_settings} singleton at import time — see
+     * {@code FormRegistrationImporter.readTeamSizeLimits}. This class deliberately does not
+     * know how to fetch it: everything here is decidable from a row plus these two numbers,
+     * and keeping the database out preserves that.
+     *
+     * <p>There is no default and no fallback anywhere. The limits used to be a constant on
+     * this class, which is exactly why moving from 1–4 to 2–5 needed a recompile; now the
+     * only copy is the database row.
+     */
+    record SizeLimits(int min, int max) {
+
+        SizeLimits {
+            if (min < 1 || max < min) {
+                throw new IllegalArgumentException(
+                        "nonsensical team size limits: min=" + min + ", max=" + max);
+            }
+        }
+
+        /** "2-5", for the run header and for rejection messages. */
+        String describe() {
+            return min + "-" + max;
+        }
+    }
 
     /**
-     * How far past the maximum to keep looking for member blocks. A form that grew a
-     * "Member 5" block is a mistake worth naming — reporting "team size is 5, the limit is
-     * 4" is far more use than ignoring the column and importing a team that is quietly
-     * missing someone.
+     * How far past the maximum to keep looking for member blocks. A form that grew one more
+     * block than the limit allows is a mistake worth naming — reporting "team size is 6, the
+     * limit is 5" is far more use than ignoring the column and importing a team that is
+     * quietly missing someone.
+     *
+     * <p>Fixed rather than derived from {@link SizeLimits}: it is a scan depth, not a
+     * policy, and it only has to sit far enough above any plausible limit to catch the
+     * overflow. Raise it if {@code max_team_size} ever approaches it.
      */
     private static final int BLOCK_SCAN_LIMIT = 8;
 
@@ -178,7 +211,7 @@ final class TeamRow {
      * than returning a partially-built team — a row the importer cannot fully understand is
      * one a human has to look at.
      */
-    static TeamRow from(CsvReader.Row row) {
+    static TeamRow from(CsvReader.Row row, SizeLimits limits) {
         String rawTeamName = row.firstPresent(TEAM_NAME_HEADERS);
         String teamName = rawTeamName == null ? "" : rawTeamName.trim();
         if (teamName.isEmpty()) {
@@ -193,13 +226,13 @@ final class TeamRow {
         // is named. A report line reading "team size is 5" tells whoever has to chase it
         // almost nothing; "'Overflow Five' - team size is 5" tells them who to email.
         try {
-            return membersOf(row, teamName);
+            return membersOf(row, teamName, limits);
         } catch (InvalidRowException e) {
             throw new InvalidRowException("'" + teamName + "' - " + e.getMessage());
         }
     }
 
-    private static TeamRow membersOf(CsvReader.Row row, String teamName) {
+    private static TeamRow membersOf(CsvReader.Row row, String teamName, SizeLimits limits) {
         // Which member blocks this row actually filled in. Established before any of them is
         // validated, so an oversized team is reported as oversized rather than as whatever
         // its fifth member happened to get wrong.
@@ -214,9 +247,18 @@ final class TeamRow {
         if (filled.isEmpty()) {
             throw new InvalidRowException("no members at all");
         }
-        if (filled.size() > MAX_TEAM_SIZE) {
+        // Both ends are named against the live limits rather than a literal, so the message
+        // cannot drift from what was actually enforced. Under-size is its own message: "team
+        // has 1 member; the minimum is 2" tells whoever chases it what to ask for, where
+        // "must have between 2 and 5" leaves them working out which end was wrong.
+        if (filled.size() < limits.min()) {
+            throw new InvalidRowException("team has " + describeSize(filled.size())
+                    + "; the minimum is " + limits.min());
+        }
+        if (filled.size() > limits.max()) {
             throw new InvalidRowException("team size is " + filled.size()
-                    + "; teams must have between 1 and " + MAX_TEAM_SIZE + " members");
+                    + "; teams must have between " + limits.min() + " and " + limits.max()
+                    + " members");
         }
 
         List<Member> members = new ArrayList<>();
@@ -326,5 +368,10 @@ final class TeamRow {
 
     private static String blankToNull(String value) {
         return value == null || value.isEmpty() ? null : value;
+    }
+
+    /** "1 member" / "3 members", so the rejection reads as a sentence. */
+    private static String describeSize(int size) {
+        return size + (size == 1 ? " member" : " members");
     }
 }

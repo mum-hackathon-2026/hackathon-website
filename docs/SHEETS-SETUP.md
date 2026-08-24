@@ -66,6 +66,55 @@ This guide explains how to set up Google Sheets API access using a Google Cloud 
 | **Default Tab** | `Form responses 1` |
 | **Default Key Path** | `backend/credentials/sheets-key.json` |
 | **Env Var Override**| `GOOGLE_APPLICATION_CREDENTIALS` |
+| **Team size** | Read from `event_settings` at import time — see below |
+
+---
+
+## 5a. Team size comes from the database, not the code
+
+Teams are **2 to 5 people**. Solo entries are not accepted.
+
+The importer does **not** hold these numbers. It reads `min_team_size` and `max_team_size`
+from the `event_settings` singleton (`id = 1`) on every run, and prints what it read in the
+run header so you can see which limits were actually enforced:
+
+```
+  team size   : 2-5 (from event_settings)
+```
+
+That one value decides two things: which team sizes are accepted, and **how many
+`Member N` blocks the column-mapping guard expects to find in the sheet**. With the maximum
+at 5, the form needs six columns for each of members 1 through 5.
+
+**There is no fallback.** If the `event_settings` row is missing, or either value is null,
+the importer aborts with **exit `2`** and imports nothing — no `RESULT` line, no partial
+write. Importing a season's registrations against guessed limits is worse than not
+importing them.
+
+### Changing the limits later
+
+An `UPDATE` plus a form change. **No code change, and no new migration.**
+
+```sql
+update event_settings set min_team_size = 2, max_team_size = 6 where id = 1;
+```
+
+Then add or remove the matching block of six questions on the Google Form, titled exactly:
+
+```
+Member 6: Full Name (First & Family Name)
+Member 6: Email Address
+Member 6: Phone / WhatsApp Number
+Member 6: LinkedIn Profile URL
+Member 6: Resume / CV (PDF)
+Member 6: GitHub Profile URL
+```
+
+Header matching ignores case and punctuation and is generated per block number, so a new
+block needs no alias list of its own. **A block must be all six columns or none** — five of
+six is a mis-titled question and halts the run. Keep "Repository" and "repo" out of the
+GitHub question title: `users.github_url` is the person's own account, not a project repo,
+and a title containing either word aborts the import on purpose.
 
 ---
 
