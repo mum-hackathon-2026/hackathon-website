@@ -14,7 +14,7 @@
 
 .contact__heading {
   margin: 0 0 8px;
-  font-size: 22px;
+  font-size: var(--text-xl);
   font-weight: 700;
   color: var(--color-ink);
 }
@@ -22,7 +22,7 @@
 .contact__blurb {
   margin: 0;
   max-width: 380px;
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.6;
   color: var(--color-muted);
 }
@@ -42,7 +42,7 @@
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-surface);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-body);
   text-decoration: none;

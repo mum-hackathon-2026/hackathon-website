@@ -8,7 +8,7 @@
 .missing__code {
   margin: 0;
   font-family: var(--font-numeric);
-  font-size: 56px;
+  font-size: var(--text-6xl);
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -18,14 +18,14 @@
 .missing__heading {
   margin: 12px 0 0;
   font-family: var(--font-serif);
-  font-size: 26px;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--color-ink);
 }
 
 .missing__body {
   margin: 12px 0 0;
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.6;
   color: var(--color-muted);
 }
@@ -42,7 +42,7 @@
 .missing__secondary {
   padding: 10px 18px;
   border-radius: 6px;
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   font-weight: 600;
   text-decoration: none;
 }

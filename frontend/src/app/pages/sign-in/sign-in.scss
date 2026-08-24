@@ -24,7 +24,7 @@
 
 .sign-in__blurb {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-md);
   line-height: 1.7;
   color: var(--color-muted);
 }
@@ -39,7 +39,7 @@
   border-radius: 8px;
   background: var(--color-red-tint, #fef2f2);
   color: var(--color-red-ink, #991b1b);
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 500;
   text-align: left;
 
@@ -65,7 +65,7 @@
 
 .sign-in__loading {
   margin-top: 8px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-subtle);
 }
 
@@ -74,7 +74,7 @@
   align-items: center;
   margin: 28px 0;
   color: var(--color-subtle);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
 
   &::before,
@@ -97,7 +97,7 @@
   border: none;
   background: none;
   color: var(--color-blue);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
   padding: 4px 8px;
@@ -120,7 +120,7 @@
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: var(--text-xs);
   resize: vertical;
   background: var(--color-surface);
   color: var(--color-ink);
@@ -138,7 +138,7 @@
   background: var(--color-blue);
   color: #fff;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--text-sm);
   cursor: pointer;
   transition: opacity 0.15s;
 
@@ -159,14 +159,14 @@
 }
 
 .sign-in__subheading {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 700;
   color: var(--color-ink);
   margin: 0 0 4px;
 }
 
 .sign-in__subblurb {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-subtle);
   margin: 0 0 16px;
 }
@@ -212,7 +212,7 @@
   border-radius: 50%;
   background: var(--role-tint);
   color: var(--role-ink);
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 700;
 }
 
@@ -225,14 +225,14 @@
 }
 
 .sign-in__name {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--color-ink);
 }
 
 .sign-in__email {
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-subtle);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -244,7 +244,7 @@
   border-radius: 10px;
   background: var(--role-tint);
   color: var(--role-ink);
-  font-size: 10px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -254,7 +254,7 @@
 }
 
 .sign-in__back {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-blue);
   text-decoration: none;

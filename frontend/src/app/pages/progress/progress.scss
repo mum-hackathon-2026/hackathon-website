@@ -10,7 +10,7 @@
 .tabs__tab {
   padding: 9px 14px;
   border-bottom: 2px solid transparent;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-muted);
   text-decoration: none;
@@ -66,7 +66,7 @@
 
 .summary__label {
   margin: 0 0 4px;
-  font-size: 10px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -78,7 +78,7 @@
   align-items: center;
   gap: 7px;
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-ink);
 }
@@ -117,7 +117,7 @@
 .action__text {
   flex: 1 1 260px;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.55;
   color: var(--color-body);
 }
@@ -146,7 +146,7 @@
 
 .team-card__eyebrow {
   margin: 0 0 2px;
-  font-size: 10px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -155,7 +155,7 @@
 
 .team-card__name {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 700;
   color: var(--color-ink);
 }
@@ -184,7 +184,7 @@
   height: 30px;
   border-radius: 50%;
   background: var(--color-blue-tint);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   color: var(--color-blue-ink);
 }
@@ -196,13 +196,13 @@
 }
 
 .team-card__member-name {
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-ink);
 }
 
 .team-card__member-role {
-  font-size: 10.5px;
+  font-size: var(--text-3xs);
   color: var(--color-muted);
 }
 
@@ -220,7 +220,7 @@
 .empty__heading {
   font-family: var(--font-serif);
   margin: 0 0 6px;
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 700;
   color: var(--color-ink);
 }
@@ -228,7 +228,7 @@
 .empty__body {
   max-width: 42ch;
   margin: 0 auto 16px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.6;
   color: var(--color-muted);
 }

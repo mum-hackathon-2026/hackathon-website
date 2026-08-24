@@ -8,13 +8,13 @@
 .rankings {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .rankings th {
   padding: 8px 10px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 10.5px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -58,12 +58,12 @@
 
 .rankings__project {
   display: block;
-  font-size: 11.5px;
+  font-size: var(--text-2xs);
   color: var(--color-subtle);
 }
 
 .rankings__track {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-muted);
   white-space: nowrap;
 }
@@ -73,7 +73,7 @@
   padding: 1px 7px;
   border-radius: 20px;
   background: var(--color-blue-tint);
-  font-size: 10px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   color: var(--color-blue-ink);
 }
