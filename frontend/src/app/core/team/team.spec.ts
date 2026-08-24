@@ -93,7 +93,7 @@ describe('TeamService', () => {
   });
 
   it('refuses to join a team that is already at max size', async () => {
-    // 'Full House' is seeded with maxTeamSize (4) members.
+    // 'Full House' is seeded with maxTeamSize members, whatever that currently is.
     const result = await teams.joinTeam('FULL44');
 
     expect(result).toEqual({ ok: false, error: 'Full House is already full.' });

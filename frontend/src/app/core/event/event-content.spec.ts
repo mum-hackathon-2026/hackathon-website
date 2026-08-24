@@ -31,10 +31,21 @@ describe('event content', () => {
       expect(FAQS.length).toBeLessThan(ALL_FAQS.length);
     });
 
+    /*
+     * Branches the way the copy does rather than transcribing one wording, so a
+     * change to the limits carries the assertion with it — the same reason the
+     * solo question below reads `minTeamSize` instead of expecting "Yes".
+     */
     it('states the team size the settings allow', () => {
       const eligibility = FAQS.find((faq) => faq.question === 'Who can participate?')!;
 
-      expect(eligibility.answer).toContain(`up to ${settings.maxTeamSize} members`);
+      if (settings.minTeamSize === 1) {
+        expect(eligibility.answer).toContain(`up to ${settings.maxTeamSize} members`);
+      } else {
+        expect(eligibility.answer).toContain(
+          `Teams of ${settings.minTeamSize} to ${settings.maxTeamSize} members`,
+        );
+      }
       expect(eligibility.answer).toContain(site.university);
     });
 

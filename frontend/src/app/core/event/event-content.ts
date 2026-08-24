@@ -19,6 +19,17 @@ const teamSizeSentence =
     ? `Teams of up to ${settings.maxTeamSize} members, and solo entries are allowed.`
     : `Teams of ${settings.minTeamSize} to ${settings.maxTeamSize} members.`;
 
+/**
+ * The same fact as a noun phrase, for copy that is already mid-sentence.
+ *
+ * Names both ends once solo entries are not allowed: "up to 5 people" is true
+ * but omits the minimum, which is the half a registrant now has to act on.
+ */
+const teamSizePhrase =
+  settings.minTeamSize === 1
+    ? `up to ${settings.maxTeamSize} people`
+    : `${settings.minTeamSize} to ${settings.maxTeamSize} people`;
+
 export interface Faq {
   readonly question: string;
   readonly answer: string;
@@ -84,7 +95,7 @@ export const EXTRA_FAQS: readonly Faq[] = [
     question: 'How do I register my team?',
     answer:
       'One person fills in the registration form for the whole team, naming everyone at once — ' +
-      `up to ${settings.maxTeamSize} people. There is no join code and nobody registers ` +
+      `${teamSizePhrase}. There is no join code and nobody registers ` +
       'separately. Once your entry is imported, everyone named on it can sign in with the Google ' +
       'account they gave and see the team on the My Team page.',
   },
@@ -135,10 +146,15 @@ export interface ScaleFigure {
 /**
  * The proposal's targeted attendance.
  *
- * DELIBERATELY OMITS the 500-student headline figure. That number is 100 teams
- * of five, and `maxTeamSize` is four — publishing both would have the site
- * quoting a total its own team limit cannot reach. Restore it here once the
- * team-size conflict in the proposal's implementation notes is settled.
+ * STILL OMITS the 500-student headline figure, but the reason it was omitted is
+ * gone. That number is 100 teams of five, and `maxTeamSize` was four — the site
+ * would have quoted a total its own team limit could not reach. V6 settled the
+ * conflict at 2–5, so 100 × 5 = 500 is now consistent and the figure could be
+ * published here as a fourth entry.
+ *
+ * Left out pending a call on whether to advertise a target attendance at all —
+ * it is a promise about turnout, not a fact about the rules. Adding it is a
+ * one-line change to the array below.
  */
 export const EVENT_SCALE: readonly ScaleFigure[] = [
   { value: '100', label: 'teams can enter' },

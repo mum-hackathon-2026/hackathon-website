@@ -193,9 +193,11 @@
     <!-- ── Unregistered visitor ─────────────────────────────────────────────── -->
     <app-form-link-card
       heading="Register your team"
-      description="One person fills the form in for the whole team — up to
-        {{ maxTeamSize() }} people, named all at once. There is no join code and
-        nobody needs to sign up separately."
+      [description]="
+        'One person fills the form in for the whole team — ' +
+        teamSizePhrase() +
+        ', named all at once. There is no join code and nobody needs to sign up separately.'
+      "
       [href]="formUrl"
       buttonLabel="Open the registration form"
       note="Your team will appear here automatically as soon as the form submission is received."
