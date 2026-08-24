@@ -1,3 +1,9 @@
 <app-nav-bar />
 <router-outlet />
-<app-orb />
+
+<!-- Deferred so the orb leaves the initial bundle: it is decoration, and the
+     page is usable without it. `on idle` waits for the browser to be free,
+     so it never competes with the first render. -->
+@defer (on idle) {
+  <app-orb />
+}
