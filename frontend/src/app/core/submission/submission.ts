@@ -181,7 +181,11 @@ export class SubmissionService {
     return null;
   }
 
-  private upsertLocal(teamId: number, draft: SubmissionDraft, patch: Partial<Submission> = {}): void {
+  private upsertLocal(
+    teamId: number,
+    draft: SubmissionDraft,
+    patch: Partial<Submission> = {},
+  ): void {
     const existing = this.liveSubmission();
     const next: Submission = {
       teamId,

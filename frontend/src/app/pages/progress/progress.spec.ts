@@ -107,26 +107,14 @@ describe('Progress', () => {
     it('moves directly to submission once team is registered', async () => {
       const host = await render({ withTeam: true, when: DURING_REGISTRATION });
 
-      expect(stageStates(host)).toEqual([
-        'done',
-        'current',
-        'pending',
-        'pending',
-        'pending',
-      ]);
+      expect(stageStates(host)).toEqual(['done', 'current', 'pending', 'pending', 'pending']);
       expect(currentStageLabel(host)).toBe('Project submission');
     });
 
     it('prompts project submission when registered', async () => {
       const host = await render({ withTeam: true, when: DURING_SUBMISSION });
 
-      expect(stageStates(host)).toEqual([
-        'done',
-        'current',
-        'pending',
-        'pending',
-        'pending',
-      ]);
+      expect(stageStates(host)).toEqual(['done', 'current', 'pending', 'pending', 'pending']);
       expect(currentStageLabel(host)).toBe('Project submission');
     });
 
@@ -163,13 +151,7 @@ describe('Progress', () => {
       // Judging has started, but this team has no submission.
       const host = await render({ withTeam: true, when: DURING_JUDGING });
 
-      expect(stageStates(host)).toEqual([
-        'done',
-        'current',
-        'pending',
-        'pending',
-        'pending',
-      ]);
+      expect(stageStates(host)).toEqual(['done', 'current', 'pending', 'pending', 'pending']);
     });
   });
 

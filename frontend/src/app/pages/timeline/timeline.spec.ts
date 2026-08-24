@@ -109,7 +109,9 @@ describe('Timeline', () => {
     // one person is a legal team, which V6 ended.
     const { minTeamSize, maxTeamSize } = DEFAULT_EVENT_CONFIG.settings;
     expect(first).toContain(
-      minTeamSize === 1 ? `up to ${maxTeamSize} members` : `${minTeamSize} to ${maxTeamSize} members`,
+      minTeamSize === 1
+        ? `up to ${maxTeamSize} members`
+        : `${minTeamSize} to ${maxTeamSize} members`,
     );
   });
 
