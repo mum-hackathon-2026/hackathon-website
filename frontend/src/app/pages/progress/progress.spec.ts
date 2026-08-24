@@ -140,6 +140,30 @@ describe('Progress', () => {
       expect(currentStageLabel(host)).toBe('Judging complete');
     });
 
+    it('advances to judging complete when all assigned judges have scored the team', async () => {
+      const host = await render({
+        submitted: true,
+        when: DURING_JUDGING,
+        settings: { judgingOpen: true },
+      });
+
+      // Simulate submission service having judgingComplete = true
+      const subService = TestBed.inject(SubmissionService);
+      (subService as any).liveSubmission.update((s: any) => ({
+        ...s,
+        reviewsCompleted: 3,
+        reviewsExpected: 3,
+        judgingComplete: true,
+      }));
+
+      const fixture = TestBed.createComponent(Progress);
+      await fixture.whenStable();
+      const updatedHost = fixture.nativeElement as HTMLElement;
+
+      expect(stageStates(updatedHost)).toEqual(['done', 'done', 'done', 'current', 'pending']);
+      expect(currentStageLabel(updatedHost)).toBe('Judging complete');
+    });
+
     it('completes every stage once results are published', async () => {
       const host = await render({ submitted: true, when: AFTER_RESULTS });
 

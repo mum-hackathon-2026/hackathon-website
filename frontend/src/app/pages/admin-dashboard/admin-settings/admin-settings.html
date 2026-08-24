@@ -114,6 +114,23 @@
         </span>
       </span>
     </label>
+
+    <div class="field" style="margin-top: 18px;">
+      <label class="field__label" for="judges-per-team">Judges per team</label>
+      <input
+        id="judges-per-team"
+        class="input"
+        type="number"
+        min="1"
+        max="10"
+        name="judgesPerTeam"
+        [ngModel]="draft().judgesPerTeam"
+        (ngModelChange)="updateNumber('judgesPerTeam', $event)"
+      />
+      <p class="field__hint">
+        How many judges are expected to evaluate each submitted team (controls under-assigned alerts and completion metrics).
+      </p>
+    </div>
   </section>
 
   <!-- ── Teams ────────────────────────────────────────────────────────────── -->

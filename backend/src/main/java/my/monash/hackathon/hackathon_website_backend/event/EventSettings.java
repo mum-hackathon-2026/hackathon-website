@@ -50,8 +50,8 @@ public class EventSettings {
     @Column(name = "submission_deadline_at")
     private OffsetDateTime submissionDeadlineAt;
 
-    // The four initialisers below duplicate the DEFAULTs in V1 (judging_open false,
-    // min_team_size 1, max_team_size 4, screening_enabled false). The columns are NOT NULL
+    // The four initialisers below duplicate the DEFAULTs in V1 and V8 (judging_open false,
+    // min_team_size 2, max_team_size 5, screening_enabled false). The columns are NOT NULL
     // and Hibernate always names them in the INSERT, so the database DEFAULT never applies
     // and a null field would fail the insert rather than fall back to it.
     //
@@ -66,13 +66,16 @@ public class EventSettings {
     private OffsetDateTime resultsPublishedAt;
 
     @Column(name = "min_team_size", nullable = false)
-    private int minTeamSize = 1;
+    private int minTeamSize = 2;
 
     @Column(name = "max_team_size", nullable = false)
-    private int maxTeamSize = 4;
+    private int maxTeamSize = 5;
 
     @Column(name = "screening_enabled", nullable = false)
     private boolean screeningEnabled = false;
+
+    @Column(name = "judges_per_team", nullable = false)
+    private int judgesPerTeam = 3;
 
     /** The admin who last changed these settings. Nulled out if that user is deleted. */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -178,6 +181,14 @@ public class EventSettings {
 
     public void setScreeningEnabled(boolean screeningEnabled) {
         this.screeningEnabled = screeningEnabled;
+    }
+
+    public int getJudgesPerTeam() {
+        return judgesPerTeam;
+    }
+
+    public void setJudgesPerTeam(int judgesPerTeam) {
+        this.judgesPerTeam = judgesPerTeam;
     }
 
     public User getUpdatedBy() {

@@ -48,6 +48,30 @@
             }
           </dd>
         </div>
+        <div class="summary__fact">
+          <dt>Slide deck</dt>
+          <dd>
+            @if (review.slideDeckUrl) {
+              <a [href]="review.slideDeckUrl" target="_blank" rel="noopener noreferrer">
+                View slides
+              </a>
+            } @else {
+              <span class="summary__missing">Not provided</span>
+            }
+          </dd>
+        </div>
+        <div class="summary__fact">
+          <dt>Video demo</dt>
+          <dd>
+            @if (review.videoDemoUrl) {
+              <a [href]="review.videoDemoUrl" target="_blank" rel="noopener noreferrer">
+                Watch video
+              </a>
+            } @else {
+              <span class="summary__missing">Not provided</span>
+            }
+          </dd>
+        </div>
       </dl>
     </section>
 

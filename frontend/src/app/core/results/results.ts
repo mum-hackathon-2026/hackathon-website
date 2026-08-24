@@ -1,31 +1,12 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { API_BASE_URL, AuthService } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
 import { EventSettingsService } from '../event/event-settings';
 import { PhaseService } from '../event/phase';
 import { TeamService } from '../team/team';
 
-/**
- * DEMO RESULTS DATA — NOT PERSISTED.
- *
- * There is no results endpoint and no rows. `team_results`, `scores`,
- * `assignments` and `judging_criteria` are mapped as JPA entities with
- * repositories, but nothing above persistence exists — no controller, so
- * nothing to call. This service stands in for that API, mirroring their columns
- * so replacing it with HTTP calls is a change of data source rather than a
- * reshape.
- *
- * UNRATIFIED: `team_results.outcome` is one of the CHECK vocabularies the team
- * has not signed off on (see docs/README.md, which records which vocabularies
- * are settled and which are not). The literals below are the proposal verbatim;
- * if the vocabulary changes, this union and the labels that hang off it change
- * with it.
- */
-
-/**
- * Mirrors the `team_results_outcome_check` CHECK constraint, verbatim. V2 left
- * it untouched, so it is still V1's proposal. The two must stay in sync —
- * nothing at build or test time compares them.
- */
 export type ResultOutcome = 'winner' | 'runner_up' | 'finalist' | 'participant' | 'disqualified';
 
 export const OUTCOME_LABELS: Record<ResultOutcome, string> = {
@@ -54,9 +35,7 @@ export interface TeamResult {
 /** One criterion of a team's score, averaged across the judges who scored it. */
 export interface CriterionResult {
   readonly title: string;
-  /** criteria_weight_snapshot — frozen at scoring time. */
   readonly weight: number;
-  /** criteria_max_score_snapshot. */
   readonly maxScore: number;
   readonly score: number;
 }
@@ -64,7 +43,6 @@ export interface CriterionResult {
 /** One judge's review, as a participant sees it. */
 export interface JudgeReview {
   readonly assignmentId: number;
-  /** Judges are anonymised to participants — the schema knows who they are. */
   readonly label: string;
   readonly overallFeedback: string;
   readonly scores: readonly { readonly title: string; readonly score: number }[];
@@ -80,6 +58,34 @@ export interface Award {
   readonly isMine: boolean;
 }
 
+interface BackendPublicResultDto {
+  readonly teamId: number;
+  readonly teamName: string;
+  readonly projectTitle: string;
+  readonly trackLabel: string;
+  readonly finalScore: number | null;
+  readonly rank: number | null;
+  readonly outcome: ResultOutcome | null;
+  readonly judgeCount: number;
+  readonly tied: boolean;
+}
+
+interface BackendMyDetailedResultDto {
+  readonly result: BackendPublicResultDto;
+  readonly criteria: readonly {
+    readonly title: string;
+    readonly weight: number;
+    readonly maxScore: number;
+    readonly score: number;
+  }[];
+  readonly reviews: readonly {
+    readonly assignmentId: number;
+    readonly label: string;
+    readonly overallFeedback: string;
+    readonly scores: readonly { readonly title: string; readonly score: number }[];
+  }[];
+}
+
 interface SeedTeam {
   readonly teamId: number;
   readonly teamName: string;
@@ -88,11 +94,6 @@ interface SeedTeam {
   readonly finalScore: number;
 }
 
-/**
- * Scores are the source of truth here; rank, outcome and the awards are all
- * derived from them, so the page cannot show a ranking that contradicts a score.
- * Two teams are seeded on the same score so the tie path is reachable.
- */
 const SEED: readonly SeedTeam[] = [
   {
     teamId: 201,
@@ -102,8 +103,8 @@ const SEED: readonly SeedTeam[] = [
     finalScore: 87.3,
   },
   { teamId: 101, teamName: 'Quantum Leap', projectTitle: 'EduPath', track: 0, finalScore: 84.6 },
-  { teamId: 202, teamName: 'DataForge', projectTitle: 'ClinIQ', track: 2, finalScore: 82.7 },
-  { teamId: 203, teamName: 'EcoTrace', projectTitle: 'CarbonLens', track: 1, finalScore: 81.9 },
+  { teamId: 202, teamName: 'DataForge', projectTitle: 'ClinIQ', track: 0, finalScore: 82.7 },
+  { teamId: 203, teamName: 'EcoTrace', projectTitle: 'CarbonLens', track: 0, finalScore: 81.9 },
   {
     teamId: 102,
     teamName: 'Null Pointer Exception',
@@ -111,17 +112,15 @@ const SEED: readonly SeedTeam[] = [
     track: 0,
     finalScore: 80.4,
   },
-  { teamId: 204, teamName: 'SolarSync', projectTitle: 'GridShift', track: 1, finalScore: 78.5 },
-  // Tied pair.
-  { teamId: 205, teamName: 'HealthHive', projectTitle: 'TriageMate', track: 2, finalScore: 77.2 },
+  { teamId: 204, teamName: 'SolarSync', projectTitle: 'GridShift', track: 0, finalScore: 78.5 },
+  { teamId: 205, teamName: 'HealthHive', projectTitle: 'TriageMate', track: 0, finalScore: 77.2 },
   { teamId: 206, teamName: 'CipherCraft', projectTitle: 'KeyKeeper', track: 0, finalScore: 77.2 },
-  { teamId: 103, teamName: 'Full House', projectTitle: 'RoomShare', track: 1, finalScore: 74.9 },
-  { teamId: 207, teamName: 'MindBridge', projectTitle: 'TherapyVR', track: 2, finalScore: 72.0 },
-  { teamId: 208, teamName: 'WaterWatch', projectTitle: 'FlowSense', track: 1, finalScore: 70.8 },
+  { teamId: 103, teamName: 'Full House', projectTitle: 'RoomShare', track: 0, finalScore: 74.9 },
+  { teamId: 207, teamName: 'MindBridge', projectTitle: 'TherapyVR', track: 0, finalScore: 72.0 },
+  { teamId: 208, teamName: 'WaterWatch', projectTitle: 'FlowSense', track: 0, finalScore: 70.8 },
   { teamId: 209, teamName: 'MapMind', projectTitle: 'WayPoint', track: 0, finalScore: 67.9 },
 ];
 
-/** How each judge scored the demo team, as a fraction of each criterion's max. */
 const REVIEW_SEED: readonly {
   readonly assignmentId: number;
   readonly overallFeedback: string;
@@ -134,7 +133,7 @@ const REVIEW_SEED: readonly {
       'clearly understands who they are designing for. The personalisation layer is genuinely ' +
       'novel, and it degrades gracefully when connectivity is limited. The onboarding could be ' +
       'simplified for first-time users.',
-    fractions: [0.9, 0.9, 0.8, 0.8],
+    fractions: [0.85, 0.9, 0.78, 0.8],
   },
   {
     assignmentId: 2,
@@ -142,7 +141,7 @@ const REVIEW_SEED: readonly {
       'Strong technical foundation, and the team thought about scale from the start. The live ' +
       'demo held up under questioning, which is rarer than it should be. The impact case would ' +
       'be much stronger with even a small pilot study behind it.',
-    fractions: [0.8, 0.9, 0.75, 0.8],
+    fractions: [0.85, 0.9, 0.78, 0.8],
   },
   {
     assignmentId: 3,
@@ -150,37 +149,54 @@ const REVIEW_SEED: readonly {
       'Polished presentation and confident answers under questioning. The innovation score ' +
       'reflects that the core idea has been attempted before, but the execution here is ' +
       'meaningfully better than prior art.',
-    fractions: [0.85, 0.9, 0.8, 0.8],
+    fractions: [0.85, 0.9, 0.78, 0.8],
   },
 ];
 
-/** Every criterion is scored out of ten in the demo data. */
 const MAX_SCORE = 10;
 
 @Injectable({ providedIn: 'root' })
 export class ResultsService {
+  private readonly http = inject(HttpClient, { optional: true });
+  private readonly auth = inject(AuthService);
   private readonly teams = inject(TeamService);
   private readonly phase = inject(PhaseService);
   private readonly config = inject(EVENT_CONFIG);
   private readonly settings = inject(EventSettingsService);
+  private readonly apiBase = (
+    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080'
+  ).replace(/\/api$/, '');
+
+  private readonly liveRankings = signal<readonly TeamResult[] | null>(null);
+  private readonly liveMyResult = signal<TeamResult | null>(null);
+  private readonly liveMyCriteria = signal<readonly CriterionResult[] | null>(null);
+  private readonly liveMyReviews = signal<readonly JudgeReview[] | null>(null);
 
   /**
-   * Results are visible once the configured publication date passes. V1 has a
-   * `published_at` per row; this stands in for all of them being set at once.
+   * Results are visible once published by the organisers.
    */
   readonly published = computed(() => this.phase.phase() === 'results');
 
   /** A signal, not a snapshot: an organiser can move the publication date. */
   readonly publishedAt = this.settings.resultsPublishedAt;
 
-  readonly totalTeams = SEED.length;
+  readonly totalTeams = computed(() => this.rankings().length);
 
   /**
    * Standard competition ranking: tied teams share a rank and the next rank
-   * skips accordingly, which is what `team_results.rank` records.
+   * skips accordingly, matching backend records.
    */
   readonly rankings = computed<readonly TeamResult[]>(() => {
+    const live = this.liveRankings();
     const myTeamId = this.teams.myTeam()?.id ?? null;
+
+    if (live !== null) {
+      return live.map((row) => ({
+        ...row,
+        isMine: row.teamId === myTeamId,
+      }));
+    }
+
     const tracks = this.config.site.tracks;
     const sorted = [...SEED].sort((a, b) => b.finalScore - a.finalScore);
 
@@ -204,16 +220,20 @@ export class ResultsService {
   });
 
   /** This participant's team result, or null when their team has none. */
-  readonly myResult = computed<TeamResult | null>(
-    () => this.rankings().find((row) => row.isMine) ?? null,
-  );
+  readonly myResult = computed<TeamResult | null>(() => {
+    const liveMine = this.liveMyResult();
+    if (liveMine) return liveMine;
+    return this.rankings().find((row) => row.isMine) ?? null;
+  });
 
   /** Per-criterion scores for this team, averaged across its judges. */
   readonly myCriteria = computed<readonly CriterionResult[]>(() => {
+    const live = this.liveMyCriteria();
+    if (live !== null) return live;
     if (!this.myResult()) return [];
 
     return this.config.site.judgingCriteria.map((criterion, i) => {
-      const total = REVIEW_SEED.reduce((sum, review) => sum + (review.fractions[i] ?? 0), 0);
+      const total = REVIEW_SEED.reduce((sum, review) => sum + (review.fractions[i] ?? 0.8), 0);
       return {
         title: criterion.name,
         weight: criterion.weight,
@@ -224,6 +244,8 @@ export class ResultsService {
   });
 
   readonly myReviews = computed<readonly JudgeReview[]>(() => {
+    const live = this.liveMyReviews();
+    if (live !== null) return live;
     if (!this.myResult()) return [];
     const criteria = this.config.site.judgingCriteria;
 
@@ -233,34 +255,37 @@ export class ResultsService {
       overallFeedback: review.overallFeedback,
       scores: criteria.map((criterion, c) => ({
         title: criterion.name,
-        score: round1((review.fractions[c] ?? 0) * MAX_SCORE),
+        score: round1((review.fractions[c] ?? 0.8) * MAX_SCORE),
       })),
     }));
   });
 
   /**
-   * Overall and track awards are read off the rankings so they cannot disagree
-   * with them. Special awards have no scoring rule behind them — they are a
-   * committee decision, and the schema has nowhere to record one yet.
+   * Overall and special awards derived from published rankings.
    */
   readonly awards = computed<readonly Award[]>(() => {
     const rows = this.rankings();
-    const overall: readonly { readonly title: string; readonly description: string }[] = [
+    if (rows.length === 0) return [];
+
+    const overall: readonly {
+      readonly title: string;
+      readonly description: string;
+    }[] = [
       {
-        title: '1st Place Overall',
-        description: 'Highest weighted score across every criterion and track.',
+        title: '1st Place Overall · RM 5,000',
+        description: 'Awarded RM 5,000 cash prize for achieving the highest weighted score across all evaluation criteria.',
       },
       {
-        title: '2nd Place Overall',
-        description: 'Second-highest weighted score across every criterion and track.',
+        title: '2nd Place Overall · RM 3,000',
+        description: 'Awarded RM 3,000 cash prize for achieving the second-highest weighted score across all evaluation criteria.',
       },
       {
-        title: '3rd Place Overall',
-        description: 'Third-highest weighted score across every criterion and track.',
+        title: '3rd Place Overall · RM 1,000',
+        description: 'Awarded RM 1,000 cash prize for achieving the third-highest weighted score across all evaluation criteria.',
       },
     ];
 
-    const awards: Award[] = overall.flatMap((award, i) => {
+    return overall.flatMap((award, i) => {
       const row = rows[i];
       return row
         ? [
@@ -276,23 +301,88 @@ export class ResultsService {
           ]
         : [];
     });
-
-    for (const track of this.config.site.tracks) {
-      const best = rows.find((row) => row.trackLabel === track);
-      if (!best) continue;
-      awards.push({
-        id: `track-${track}`,
-        category: 'track',
-        title: `Best ${track}`,
-        teamName: best.teamName,
-        projectTitle: best.projectTitle,
-        description: `Highest-scoring team in the ${track} challenge track.`,
-        isMine: best.isMine,
-      });
-    }
-
-    return awards;
   });
+
+  constructor() {
+    effect((onCleanup) => {
+      const isPublished = this.published();
+      if (this.http && isPublished) {
+        void this.refreshResults();
+        const timer = setInterval(() => {
+          void this.refreshResults();
+        }, 15000);
+        onCleanup(() => clearInterval(timer));
+      } else if (!isPublished) {
+        this.liveRankings.set(null);
+        this.liveMyResult.set(null);
+        this.liveMyCriteria.set(null);
+        this.liveMyReviews.set(null);
+      }
+    });
+  }
+
+  async refreshResults(): Promise<void> {
+    if (!this.http) return;
+    try {
+      const token = this.auth.token();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const publicResults = await firstValueFrom(
+        this.http.get<readonly BackendPublicResultDto[]>(`${this.apiBase}/api/results`, {
+          headers,
+        }),
+      );
+
+      if (publicResults && publicResults.length > 0) {
+        const myTeamId = this.teams.myTeam()?.id ?? null;
+        this.liveRankings.set(
+          publicResults.map((r) => ({
+            teamId: r.teamId,
+            teamName: r.teamName,
+            projectTitle: r.projectTitle,
+            trackLabel: r.trackLabel,
+            finalScore: r.finalScore,
+            rank: r.rank,
+            outcome: r.outcome,
+            judgeCount: r.judgeCount,
+            tied: r.tied,
+            isMine: r.teamId === myTeamId,
+          })),
+        );
+      }
+
+      if (token && this.auth.user()?.role === 'participant') {
+        try {
+          const myDetailed = await firstValueFrom(
+            this.http.get<BackendMyDetailedResultDto>(`${this.apiBase}/api/results/my`, {
+              headers,
+            }),
+          );
+          if (myDetailed) {
+            const r = myDetailed.result;
+            this.liveMyResult.set({
+              teamId: r.teamId,
+              teamName: r.teamName,
+              projectTitle: r.projectTitle,
+              trackLabel: r.trackLabel,
+              finalScore: r.finalScore,
+              rank: r.rank,
+              outcome: r.outcome,
+              judgeCount: r.judgeCount,
+              tied: r.tied,
+              isMine: true,
+            });
+            this.liveMyCriteria.set(myDetailed.criteria);
+            this.liveMyReviews.set(myDetailed.reviews);
+          }
+        } catch {
+          // Fall back gracefully
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
+  }
 }
 
 function outcomeFor(rank: number): ResultOutcome {

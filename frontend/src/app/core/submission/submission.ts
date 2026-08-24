@@ -22,6 +22,9 @@ export interface Submission {
   readonly status: SubmissionStatus;
   readonly submittedAt: Date | null;
   readonly version: number;
+  readonly reviewsCompleted?: number;
+  readonly reviewsExpected?: number;
+  readonly judgingComplete?: boolean;
 }
 
 export interface BackendSubmissionResponse {
@@ -39,6 +42,9 @@ export interface BackendSubmissionResponse {
   readonly status: SubmissionStatus;
   readonly submittedAt: string | null;
   readonly version: number;
+  readonly reviewsCompleted?: number;
+  readonly reviewsExpected?: number;
+  readonly judgingComplete?: boolean;
 }
 
 export type SubmissionDraft = Pick<
@@ -66,6 +72,9 @@ export class SubmissionService {
   /** The current team's submission from live backend API. */
   readonly submission = computed<Submission | null>(() => this.liveSubmission());
   readonly isSubmitted = computed(() => this.submission()?.status === 'submitted');
+  readonly judgingComplete = computed(() => !!this.submission()?.judgingComplete);
+  readonly reviewsCompleted = computed(() => this.submission()?.reviewsCompleted ?? 0);
+  readonly reviewsExpected = computed(() => this.submission()?.reviewsExpected ?? 0);
 
   constructor() {
     effect((onCleanup) => {
@@ -112,6 +121,9 @@ export class SubmissionService {
           status: res.status ?? 'draft',
           submittedAt: res.submittedAt ? new Date(res.submittedAt) : null,
           version: res.version ?? 0,
+          reviewsCompleted: res.reviewsCompleted ?? 0,
+          reviewsExpected: res.reviewsExpected ?? 0,
+          judgingComplete: res.judgingComplete ?? false,
         });
       } else if (user.token) {
         this.liveSubmission.set(null);

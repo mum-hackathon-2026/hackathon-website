@@ -425,8 +425,8 @@ class FormRegistrationImporterTest {
     @Test
     void exitCodeIsTwoWhenTheDatabaseIsUnreachable() throws IOException {
         Path file = csv("unreachable.csv",
-                header(1),
-                "2026/08/01 9:00:00 AM GMT+8," + team("Anyone") + "," + member("Alpha One"));
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Anyone") + "," + member("Alpha One") + "," + member("Beta Two"));
 
         // Port 1 is reserved and nothing listens on it, so this refuses immediately.
         PrintStream originalOut = System.out;

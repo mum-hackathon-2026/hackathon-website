@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { JudgeStats } from '../../../core/judge/judge';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { AssignmentStatus, JudgeStats } from '../../../core/judge/judge';
 
-/** How far through their queue a judge is: four counts and a bar. */
+/** How far through their queue a judge is: four counts, interactive filters, and a bar. */
 @Component({
   selector: 'app-judging-progress',
   templateUrl: './judging-progress.html',
@@ -10,4 +10,9 @@ import { JudgeStats } from '../../../core/judge/judge';
 })
 export class JudgingProgress {
   readonly stats = input.required<JudgeStats>();
+  readonly filterSelected = output<AssignmentStatus | 'all'>();
+
+  protected selectFilter(status: AssignmentStatus | 'all'): void {
+    this.filterSelected.emit(status);
+  }
 }

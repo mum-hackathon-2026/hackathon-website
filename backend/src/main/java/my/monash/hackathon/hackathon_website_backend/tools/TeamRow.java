@@ -59,6 +59,10 @@ final class TeamRow {
         }
     }
 
+    /** The blocks the form is expected to produce (2 to 5 members). */
+    static final int MIN_TEAM_SIZE = 2;
+    static final int MAX_TEAM_SIZE = 5;
+
     /**
      * How far past the maximum to keep looking for member blocks. A form that grew one more
      * block than the limit allows is a mistake worth naming — reporting "team size is 6, the

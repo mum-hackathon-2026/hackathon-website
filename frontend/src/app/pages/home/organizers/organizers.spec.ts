@@ -95,6 +95,14 @@ describe('OrganizersSection', () => {
       });
     });
 
+    it('renders a logo for each partner', () => {
+      partnerCards().forEach((card, i) => {
+        const img = card.querySelector<HTMLImageElement>('.organizers__partner-logo');
+        expect(img).toBeTruthy();
+        expect(img?.getAttribute('src')).toBe(PARTNERS[i].logo);
+      });
+    });
+
     it('puts the organising bodies above the individual people', () => {
       const partners = host().querySelector('.organizers__partners')!;
       const grid = host().querySelector('.organizers__grid')!;

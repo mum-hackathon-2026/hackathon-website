@@ -1,8 +1,34 @@
 @if (criterion(); as c) {
   <div class="criterion">
     <div class="criterion__head">
-      <h3 class="criterion__title">{{ c.title }}</h3>
+      <div>
+        <h3 class="criterion__title">{{ c.title }}</h3>
+        @if (c.description) {
+          <p class="criterion__desc">{{ c.description }}</p>
+        }
+      </div>
       <span class="criterion__weight">{{ c.weight }}% of the total</span>
+    </div>
+
+    <div class="criterion__guide" aria-label="Score guide">
+      @for (band of guideBands(); track band.label) {
+        <div class="guide-tag-container">
+          <span
+            class="guide-tag guide-tag--{{ band.type }}"
+            tabindex="0"
+            [attr.title]="band.label + ' (' + band.range + ' pts): ' + band.description"
+          >
+            {{ band.label }} ({{ band.range }})
+          </span>
+          <div class="guide-tooltip" role="tooltip" aria-hidden="true">
+            <div class="guide-tooltip__header">
+              <span class="guide-tooltip__badge guide-tooltip__badge--{{ band.type }}">{{ band.label }}</span>
+              <span class="guide-tooltip__range font-num">{{ band.range }} pts</span>
+            </div>
+            <p class="guide-tooltip__body">{{ band.description }}</p>
+          </div>
+        </div>
+      }
     </div>
 
     @if (readOnly()) {

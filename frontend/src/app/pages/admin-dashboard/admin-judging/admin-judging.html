@@ -1,0 +1,287 @@
+<!-- ── Key metrics ─────────────────────────────────────────────────────────── -->
+
+@if (stats(); as s) {
+  <section class="overview-banner">
+    <div class="overview-banner__main">
+      <div class="overview-banner__head">
+        <div class="overview-banner__title-group">
+          <span class="overview-banner__eyebrow">Overall Progress</span>
+          <h2 class="overview-banner__title">
+            {{ s.percentJudged }}% of all reviews completed
+          </h2>
+        </div>
+        <div class="overview-banner__counts">
+          <span class="overview-banner__ratio">
+            <strong>{{ s.reviewsCompleted }}</strong> / {{ s.reviewsExpected }}
+          </span>
+          <span class="overview-banner__sub">reviews submitted</span>
+        </div>
+      </div>
+
+      <div
+        class="progress-track"
+        role="progressbar"
+        [attr.aria-valuenow]="s.percentJudged"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-label="Reviews completed across the event"
+      >
+        <div class="progress-fill" [style.width.%]="s.percentJudged"></div>
+      </div>
+
+      <div class="overview-banner__foot">
+        <span>Target: <strong>{{ judgesPerTeam() }} judges</strong> per team</span>
+        @if (judgingOpen()) {
+          <span class="pulse-indicator pulse-indicator--live">
+            <span class="pulse-dot"></span> Judging is actively open
+          </span>
+        } @else {
+          <span class="pulse-indicator pulse-indicator--closed">
+            <span class="pulse-dot"></span> Judging portal is closed
+          </span>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Metric Cards ──────────────────────────────────────────────────────────── -->
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-card__label">Total Submissions</span>
+      <span class="kpi-card__val">{{ metrics().total }}</span>
+      <span class="kpi-card__hint">Submitted projects</span>
+    </div>
+    <div class="kpi-card kpi-card--green">
+      <span class="kpi-card__label">Fully Reviewed</span>
+      <span class="kpi-card__val">{{ metrics().fullyReviewed }}</span>
+      <span class="kpi-card__hint">{{ judgesPerTeam() }}+ reviews in</span>
+    </div>
+    <div class="kpi-card kpi-card--blue">
+      <span class="kpi-card__label">In Progress</span>
+      <span class="kpi-card__val">{{ metrics().inProgress }}</span>
+      <span class="kpi-card__hint">Partially scored</span>
+    </div>
+    <div class="kpi-card kpi-card--amber">
+      <span class="kpi-card__label">Awaiting Reviews</span>
+      <span class="kpi-card__val">{{ metrics().unreviewed }}</span>
+      <span class="kpi-card__hint">0 reviews recorded</span>
+    </div>
+    @if (metrics().underAssigned > 0) {
+      <div class="kpi-card kpi-card--red">
+        <span class="kpi-card__label">Short of Panel</span>
+        <span class="kpi-card__val">{{ metrics().underAssigned }}</span>
+        <span class="kpi-card__hint">Needs &ge; {{ judgesPerTeam() }} judges</span>
+      </div>
+    }
+  </div>
+}
+
+<!-- ── Closed portal callout ────────────────────────────────────────────────── -->
+
+@if (!judgingOpen()) {
+  <div class="callout callout--warning">
+    <div class="callout__icon">⚠️</div>
+    <div class="callout__content">
+      <h3 class="callout__title">Judging is currently closed</h3>
+      <p class="callout__desc">
+        Judges cannot submit scores while judging is closed. You can open judging in
+        <a class="callout__link" [routerLink]="['/admin/dashboard/settings']">Event Settings</a>
+        once all submissions are assigned.
+      </p>
+    </div>
+  </div>
+}
+
+<!-- ── Filter controls ──────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="judging-search">Search teams or judges</label>
+  <input
+    id="judging-search"
+    class="input filters__search"
+    type="search"
+    name="judgingSearch"
+    placeholder="Search team, project, or judge"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="judging-status-filter">Filter by status</label>
+  <select
+    id="judging-status-filter"
+    class="input"
+    name="judgingStatus"
+    [ngModel]="statusFilter()"
+    (ngModelChange)="statusFilter.set($event)"
+  >
+    @for (opt of statusFilters; track opt.id) {
+      <option [value]="opt.id">{{ opt.label }}</option>
+    }
+  </select>
+
+  <label class="visually-hidden" for="judging-track-filter">Filter by track</label>
+  <select
+    id="judging-track-filter"
+    class="input"
+    name="judgingTrack"
+    [ngModel]="trackFilter()"
+    (ngModelChange)="trackFilter.set($event)"
+  >
+    <option value="all">All Tracks</option>
+    @for (t of tracks(); track t) {
+      @if (t !== 'all') {
+        <option [value]="t">{{ t }}</option>
+      }
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+<!-- ── Teams Progress Table ─────────────────────────────────────────────────── -->
+
+<div class="section-block">
+  <div class="section-block__head">
+    <div>
+      <h2 class="section-block__title">Submission Reviews</h2>
+      <p class="section-block__sub">
+        Live breakdown of scoring progress across submitted projects.
+      </p>
+    </div>
+    <a class="action-btn" [routerLink]="['/admin/dashboard/assignments']">
+      Manage Assignments &rarr;
+    </a>
+  </div>
+
+  @if (filteredRows().length === 0) {
+    <p class="empty-notice">No submitted teams match the selected criteria.</p>
+  } @else {
+    <div class="scroller">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th scope="col">Team & Project</th>
+            <th scope="col">Track</th>
+            <th scope="col">Reviews Progress</th>
+            <th scope="col">Assigned Judges</th>
+            <th scope="col">Average Score</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of filteredRows(); track row.teamId) {
+            <tr>
+              <td>
+                <div class="team-cell">
+                  <span class="team-cell__name">{{ row.teamName }}</span>
+                  <span class="team-cell__project">{{ row.projectTitle }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="track-tag">{{ row.trackLabel }}</span>
+              </td>
+              <td>
+                <div class="table-progress">
+                  <div class="table-progress__bar">
+                    <div class="table-progress__fill" [style.width.%]="row.percent"></div>
+                  </div>
+                  <span class="table-progress__label">
+                    {{ row.reviewsCompleted }} / {{ row.reviewsExpected }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="judges-list">
+                  @if (row.assignedJudges.length === 0) {
+                    <span class="text-muted">None assigned</span>
+                  } @else {
+                    @for (judge of row.assignedJudges; track judge.id) {
+                      <span
+                        class="judge-chip"
+                        [class.judge-chip--done]="judge.status === 'completed'"
+                        [class.judge-chip--prog]="judge.status === 'in_progress'"
+                        [title]="judge.judgeName + ' (' + judge.status + ')'"
+                      >
+                        @if (judge.status === 'completed') {
+                          <span class="judge-chip__icon">✓</span>
+                        } @else if (judge.status === 'in_progress') {
+                          <span class="judge-chip__dot"></span>
+                        }
+                        {{ judge.judgeName }}
+                      </span>
+                    }
+                  }
+                </div>
+              </td>
+              <td>
+                @if (row.averageScore !== null) {
+                  <span class="score-pill">{{ row.averageScore | number: '1.1-1' }} / 100</span>
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </td>
+              <td>
+                <span class="badge" [class]="'badge--' + row.statusTone">
+                  <span class="badge__dot"></span>
+                  {{ row.statusLabel }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- ── Judge Panel Workload ─────────────────────────────────────────────────── -->
+
+<div class="section-block">
+  <div class="section-block__head">
+    <div>
+      <h2 class="section-block__title">Judge Panel Workload</h2>
+      <p class="section-block__sub">
+        Tracking individual judge progress and review completion.
+      </p>
+    </div>
+    <a class="action-btn" [routerLink]="['/admin/dashboard/judges']">
+      Manage Judges &rarr;
+    </a>
+  </div>
+
+  @if (workloads().length === 0) {
+    <p class="empty-notice">No judges registered on the panel.</p>
+  } @else {
+    <div class="judge-workload-grid">
+      @for (jw of workloads(); track jw.userId) {
+        @let pct = jw.assigned > 0 ? (jw.completed / jw.assigned) * 100 : 0;
+        <div class="judge-card">
+          <div class="judge-card__head">
+            <div class="judge-card__info">
+              <span class="judge-card__name">{{ jw.name }}</span>
+              <span class="judge-card__counts">
+                <strong>{{ jw.completed }}</strong> of {{ jw.assigned }} completed
+              </span>
+            </div>
+            @if (jw.assigned === 0) {
+              <span class="badge badge--amber"><span class="badge__dot"></span>No teams</span>
+            } @else if (jw.completed >= jw.assigned) {
+              <span class="badge badge--green"><span class="badge__dot"></span>Finished</span>
+            } @else if (jw.completed > 0) {
+              <span class="badge badge--blue"><span class="badge__dot"></span>In progress</span>
+            } @else {
+              <span class="badge badge--amber"><span class="badge__dot"></span>Pending</span>
+            }
+          </div>
+
+          <div class="judge-card__progress">
+            <div class="judge-card__fill" [style.width.%]="pct"></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

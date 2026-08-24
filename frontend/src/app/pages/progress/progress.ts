@@ -43,17 +43,27 @@ export class Progress {
    * 3: Judging complete
    * 4: Results announced
    */
+  /**
+   * Each stage is complete only if every stage before it is.
+   * 0: Team formed
+   * 1: Project submission
+   * 2: Under review
+   * 3: Judging complete
+   * 4: Results announced
+   */
   private readonly completion = computed<readonly boolean[]>(() => {
     const team = this.team();
     const isSubmitted = this.submissions.isSubmitted();
     const phase = this.phaseService.phase();
     const judgingDone =
-      phase === 'results' || (phase === 'judging' && !this.phaseService.judgingOpen());
+      phase === 'results' ||
+      (phase === 'judging' && !this.phaseService.judgingOpen()) ||
+      this.submissions.judgingComplete();
 
     return [
       team !== null,
       team !== null && isSubmitted,
-      judgingDone,
+      team !== null && isSubmitted && judgingDone,
       phase === 'results',
       phase === 'results',
     ];
@@ -72,6 +82,12 @@ export class Progress {
     const current = this.currentIndex();
     const memberCount = this.members().length;
     const s = this.settings.settings();
+    const isJudgingComplete = this.submissions.judgingComplete();
+    const phase = this.phaseService.phase();
+    const judgingDone =
+      phase === 'results' ||
+      (phase === 'judging' && !this.phaseService.judgingOpen()) ||
+      isJudgingComplete;
 
     const stateOf = (i: number): ProgressStage['state'] =>
       i < current ? 'done' : i === current ? 'current' : 'pending';
@@ -102,14 +118,20 @@ export class Progress {
         id: 'under-review' as const,
         label: 'Under review',
         accent: 'amber' as const,
-        description: 'Judges are scoring your submission against the evaluation criteria.',
+        description:
+          judgingDone
+            ? 'All assigned judge reviews have been submitted for your project.'
+            : 'Judges are scoring your submission against the evaluation criteria.',
         at: null,
       },
       {
         id: 'judging-complete' as const,
         label: 'Judging complete',
         accent: 'blue' as const,
-        description: 'Every score is in. Final rankings are being verified.',
+        description:
+          judgingDone
+            ? 'Every score is in for your team. Final rankings are being verified.'
+            : 'Every score is in. Final rankings are being verified.',
         at: null,
       },
       {
@@ -160,7 +182,7 @@ export class Progress {
         };
       case 'judging-complete':
         return {
-          message: 'Scoring has finished. Results will be published once verified.',
+          message: 'All assigned judges have submitted their scores. Results will be published once verified.',
           urgent: false,
           cta: null,
         };
