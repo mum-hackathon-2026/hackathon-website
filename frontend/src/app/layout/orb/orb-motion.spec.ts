@@ -150,14 +150,16 @@ describe('scrollPull', () => {
   // A flung wheel reports hundreds of pixels at once; uncapped, that throws the
   // orb off the page and it spends a second coming back.
   it('caps, both ways', () => {
-    expect(scrollPull(100_000)).toBeLessThanOrEqual(850);
-    expect(scrollPull(-100_000)).toBeGreaterThanOrEqual(-850);
+    expect(scrollPull(100_000)).toBeLessThanOrEqual(80);
+    expect(scrollPull(-100_000)).toBeGreaterThanOrEqual(-80);
   });
 
-  // Fed straight back into the spring, so it has to be in the same units.
-  it('is a velocity the spring can absorb without leaving the page', () => {
-    let state: SpringState = { at: { x: 500, y: 400 }, velocity: { x: 0, y: scrollPull(400) } };
+  // The number only means anything once the spring has turned it into
+  // displacement, so this asserts the thing a reader actually sees: even the
+  // hardest possible fling leans the orb a little, and never throws it.
+  it('leans the orb, rather than throwing it', () => {
     const target: Vec = { x: 500, y: 400 };
+    let state: SpringState = { at: target, velocity: { x: 0, y: scrollPull(100_000) } };
 
     let furthest = 0;
     for (let i = 0; i < 240; i++) {
@@ -165,7 +167,22 @@ describe('scrollPull', () => {
       furthest = Math.max(furthest, Math.abs(state.at.y - target.y));
     }
 
-    expect(furthest).toBeLessThan(200);
+    expect(furthest).toBeGreaterThan(4);
+    expect(furthest).toBeLessThan(30);
     expect(isAtRest(state, target)).toBe(true);
+  });
+
+  // An ordinary wheel notch, which is the common case by far.
+  it('barely stirs on a normal scroll step', () => {
+    const target: Vec = { x: 500, y: 400 };
+    let state: SpringState = { at: target, velocity: { x: 0, y: scrollPull(100) } };
+
+    let furthest = 0;
+    for (let i = 0; i < 240; i++) {
+      state = stepSpring(state, target, 1 / 60);
+      furthest = Math.max(furthest, Math.abs(state.at.y - target.y));
+    }
+
+    expect(furthest).toBeLessThan(12);
   });
 });

@@ -223,8 +223,10 @@ describe('Orb', () => {
       // is 180ms out. Measuring here cannot confuse the two.
       await frames(2);
 
-      // Well beyond what the idle bob could account for over two frames.
-      expect(Math.abs(paintedY() - before)).toBeGreaterThan(8);
+      // Small on purpose — the tow is a lean, not a lurch. Still several times
+      // what the bob can manage in two frames, which is under a third of a
+      // pixel at its 8px amplitude and 6.2s period.
+      expect(Math.abs(paintedY() - before)).toBeGreaterThan(1.5);
     });
 
     // A navigation resets the page to the top. That jump is the browser, not

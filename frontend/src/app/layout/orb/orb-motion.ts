@@ -92,12 +92,14 @@ export function isAtRest(state: SpringState, target: Vec): boolean {
 /**
  * How much of a scroll step becomes orb velocity, and the ceiling on it.
  *
- * A flung scroll wheel can report hundreds of pixels in one event; without the
- * cap the orb would be thrown clean off the page and spend a second coming
- * back, which reads as a glitch rather than as weight.
+ * Read these as displacement, not speed: this spring turns an impulse of `v`
+ * into a peak offset of roughly `v / 4`. The cap is therefore about 20px of
+ * lean at the very most, whatever the reader does with the wheel — a nudge,
+ * not a lurch. The first version of this used 850 and threw the orb a fifth of
+ * the screen, which read as a glitch rather than as weight.
  */
-const SCROLL_PULL = 7;
-const MAX_SCROLL_PULL = 850;
+const SCROLL_PULL = 0.3;
+const MAX_SCROLL_PULL = 80;
 
 /**
  * The velocity a scroll step lends the orb.
