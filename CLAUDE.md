@@ -184,6 +184,16 @@ Expect the next one to be equally silent, and note that the usual safety nets ba
 
 **Two smaller things that carry the pairing.** `.section-eyebrow` stays sans on purpose — the tracked uppercase sans kicker above a serif heading is what makes the split read as deliberate rather than accidental. And large titles had their negative tracking halved (`-0.02em` → `-0.01em` on `.hero__title` and `.my-team__team-name`, `-0.01em` → `0` on `.sponsors__wordmark`): serif counters close up under tracking tuned for a sans.
 
+### Type scale: every size comes from the ramp
+
+**No stylesheet sets a literal `font-size` any more.** Twelve steps live on `:root` in `styles.scss` — `--text-3xs` (10px), `--text-2xs` (11px), `--text-xs` (12px), `--text-sm` (13px), `--text-md` (15px), `--text-lg` (18px), `--text-xl` (22px), `--text-2xl` (26px), `--text-3xl` (32px), then `--text-4xl`/`--text-5xl`/`--text-6xl` (40/48/60px) for display. Steps widen as they climb, roughly 1.1x at the interface end and 1.25x at the display end: small sizes need fine gradations to separate a label from a table cell, large ones need daylight to read as a hierarchy at all.
+
+This replaced **34 distinct literal sizes** spread across the component stylesheets, including six half-pixel values (`9.5px`, `10.5px`, `11.5px`, `12.5px`, `13.5px`, `14.5px`) that made two panels meaning the same thing land a half-pixel apart. **Pick a step by the job it does, not by which number matches the mock** — each token carries a comment in `styles.scss` naming its role (eyebrows and table headers, pills and badges, captions, default interface text, body copy, and so on up).
+
+**`clamp()` takes tokens on both ends** rather than raw px: `clamp(var(--text-3xl), 7vw, var(--text-6xl))` on the hero title, and the same pattern on `.page-header__title`, `.theme__title`, `.judge-review` title, `.sponsors__wordmark` and the hero countdown. The `vw` middle term is the only literal left in a font-size anywhere.
+
+**Adding a step is a last resort.** If a size feels wrong, the usual answer is that the element wants a different existing step, not a new rung between two of them — that is exactly how the previous 34 accumulated.
+
 **Roboto Serif is loaded from Google Fonts in `src/index.html`**, in the same request as Roboto, as a variable font on the optical-size and weight axes (`opsz,wght@8..144,400..800`). The `opsz` axis is why one face covers a 13px panel title and a 60px hero; `font-optical-sizing: auto` is set on the heading rule. **Adding a weight means editing that URL** — the range currently stops at 800, and a heading set to 900 silently synthesises.
 
 ## Commands
