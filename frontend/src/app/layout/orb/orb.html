@@ -1,12 +1,12 @@
 @if (visible()) {
   <!-- position: fixed, so this never enters page layout and cannot reflow copy. -->
+  <!-- #anchor and #core are written to directly by the animation loop; their
+       transforms are not bound, so the frame rate costs no change detection. -->
   <div
+    #anchor
     class="orb"
     [class.orb--placed]="spot() !== null"
     [class.orb--flip]="panelOnRight()"
-    [class.orb--landing]="landing()"
-    [style.transform]="spot() ? 'translate(' + spot()!.x + 'px, ' + spot()!.y + 'px)' : null"
-    [attr.data-hop]="hops()"
     (mouseenter)="open.set(true)"
     (mouseleave)="close()"
   >
@@ -42,7 +42,7 @@
       "
       (click)="toggle()"
     >
-      <span class="orb__core" aria-hidden="true"></span>
+      <span #core class="orb__core" aria-hidden="true"></span>
       <span class="orb__sheen" aria-hidden="true"></span>
     </button>
   </div>

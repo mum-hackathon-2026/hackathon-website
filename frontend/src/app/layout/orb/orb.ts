@@ -2,15 +2,19 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   HostListener,
   computed,
+  effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth';
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { PhaseService } from '../../core/event/phase';
+import { SpringState, idleOffset, stepSpring, stretchFor } from './orb-motion';
 import { Point, Rect, chooseSpot, isComfortable } from './orb-placement';
 
 /**
@@ -83,19 +87,8 @@ export class Orb {
    */
   readonly panelOnRight = signal(false);
 
-  /**
-   * Drives the landing squash. Cleared and re-set around a frame so the CSS
-   * animation actually restarts — re-applying the same class in one tick would
-   * not replay it.
-   */
-  readonly landing = signal(false);
-
-  /**
-   * Bumped on every landing so the template can replay the hop animation. A
-   * boolean would not retrigger for a second hop; the counter lands in the DOM
-   * as an attribute, which is what restarts it.
-   */
-  readonly hops = signal(0);
+  private readonly anchor = viewChild<ElementRef<HTMLElement>>('anchor');
+  private readonly core = viewChild<ElementRef<HTMLElement>>('core');
 
   readonly firstName = computed(() => this.auth.user()?.name.split(' ')[0] ?? '');
 
@@ -115,6 +108,12 @@ export class Orb {
 
   private settleTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** Null until the first placement; after that the loop owns it. */
+  private spring: SpringState | null = null;
+  private frame: number | null = null;
+  private lastFrameMs = 0;
+  private startedMs = 0;
+
   constructor() {
     // One subscription does all the arrival jobs: retarget the URL, drop any
     // panel that would otherwise hang over the page you land on, and hop to a
@@ -132,10 +131,20 @@ export class Orb {
 
     inject(DestroyRef).onDestroy(() => {
       navigations.unsubscribe();
+      this.stopLoop();
       if (this.settleTimer !== null) clearTimeout(this.settleTimer);
     });
 
     this.afterLayout(() => this.hop());
+
+    // The anchor only exists while the orb is visible, so the loop follows the
+    // element rather than the component: it starts when the orb appears on a
+    // public route and stops again on the admin or judge trees.
+    effect(() => {
+      const element = this.anchor();
+      if (element && !prefersReducedMotion()) this.startLoop();
+      else this.stopLoop();
+    });
   }
 
   toggle(): void {
@@ -186,10 +195,13 @@ export class Orb {
 
     this.spot.set(next);
     this.panelOnRight.set(next.x < window.innerWidth / 2);
-    this.hops.update((n) => n + 1);
 
-    this.landing.set(false);
-    this.afterLayout(() => this.landing.set(true));
+    // The very first placement has nowhere to travel from, so it starts where
+    // it lands rather than flying in from the viewport origin.
+    if (this.spring === null) {
+      this.spring = { at: next, velocity: { x: 0, y: 0 } };
+      this.paint(this.spring, 0);
+    }
   }
 
   /**
@@ -218,6 +230,63 @@ export class Orb {
     return rects;
   }
 
+  /**
+   * The animation loop.
+   *
+   * Writes transforms straight to the elements rather than through a signal:
+   * a bound style would run change detection sixty times a second for a value
+   * only these two nodes care about.
+   */
+  private startLoop(): void {
+    if (this.frame !== null || typeof requestAnimationFrame !== 'function') return;
+
+    this.startedMs = now();
+    this.lastFrameMs = this.startedMs;
+
+    const tick = () => {
+      const at = now();
+      const dt = (at - this.lastFrameMs) / 1000;
+      this.lastFrameMs = at;
+
+      const target = this.spot();
+      if (target) {
+        this.spring = stepSpring(
+          this.spring ?? { at: target, velocity: { x: 0, y: 0 } },
+          target,
+          dt,
+        );
+        this.paint(this.spring, at - this.startedMs);
+      }
+
+      this.frame = requestAnimationFrame(tick);
+    };
+
+    this.frame = requestAnimationFrame(tick);
+  }
+
+  private stopLoop(): void {
+    if (this.frame === null) return;
+    cancelAnimationFrame(this.frame);
+    this.frame = null;
+  }
+
+  /** Put the current motion state on screen. */
+  private paint(spring: SpringState, elapsedMs: number): void {
+    const anchor = this.anchor()?.nativeElement;
+    if (!anchor) return;
+
+    const drift = idleOffset(elapsedMs);
+    anchor.style.transform = `translate(${(spring.at.x + drift.x).toFixed(2)}px, ${(spring.at.y + drift.y).toFixed(2)}px)`;
+
+    const core = this.core()?.nativeElement;
+    if (!core) return;
+
+    // Stretch lives on the core so it composes with the button's hover scale
+    // instead of fighting it for the same transform property.
+    const stretch = stretchFor(spring.velocity);
+    core.style.transform = `rotate(${stretch.angle.toFixed(3)}rad) scale(${stretch.scaleX.toFixed(3)}, ${stretch.scaleY.toFixed(3)}) rotate(${(-stretch.angle).toFixed(3)}rad)`;
+  }
+
   /** Run once the browser has laid the new DOM out. */
   private afterLayout(run: () => void): void {
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => run());
@@ -229,6 +298,11 @@ export class Orb {
     if (this.settleTimer !== null) clearTimeout(this.settleTimer);
     this.settleTimer = setTimeout(run, SETTLE_MS);
   }
+}
+
+/** Monotonic where available, so a clock change cannot jolt the spring. */
+function now(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
 
 function prefersReducedMotion(): boolean {
