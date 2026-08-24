@@ -1,6 +1,7 @@
 .sponsors {
   padding: clamp(48px, 8vw, 80px) 24px;
-  background: var(--color-surface-alt);
+  /* Still reads as a distinct band, but a tinted one rather than a lid. */
+  background: rgba(250, 250, 250, 0.72);
 }
 
 .sponsors__inner {

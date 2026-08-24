@@ -1,6 +1,7 @@
+/* No background: the page's own backdrop shows through here, and the sections
+   below decide for themselves where to sit on it and where to cover it. */
 :host {
   display: block;
-  background: var(--color-surface);
   color: var(--color-ink);
 }
 

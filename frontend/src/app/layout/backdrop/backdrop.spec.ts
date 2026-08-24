@@ -1,0 +1,42 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Backdrop } from './backdrop';
+
+describe('Backdrop', () => {
+  let fixture: ComponentFixture<Backdrop>;
+
+  function host(): HTMLElement {
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  function layer(): HTMLElement {
+    return host().querySelector<HTMLElement>('.backdrop')!;
+  }
+
+  beforeEach(async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({ imports: [Backdrop] }).compileComponents();
+    fixture = TestBed.createComponent(Backdrop);
+    await fixture.whenStable();
+  });
+
+  it('renders the grid and one well per brand colour', () => {
+    expect(layer()).toBeTruthy();
+    expect(host().querySelectorAll('.backdrop__well').length).toBe(4);
+  });
+
+  // It covers the whole viewport. If it ever took pointer events it would
+  // swallow every click on the site, so this is the contract that matters.
+  it('is transparent to the pointer', () => {
+    expect(getComputedStyle(layer()).pointerEvents).toBe('none');
+  });
+
+  it('is hidden from assistive tech, being decoration', () => {
+    expect(layer().getAttribute('aria-hidden')).toBe('true');
+  });
+
+  // Decoration must not be readable, or a screen reader would announce the
+  // page as having content it does not.
+  it('carries no text', () => {
+    expect(host().textContent?.trim()).toBe('');
+  });
+});
