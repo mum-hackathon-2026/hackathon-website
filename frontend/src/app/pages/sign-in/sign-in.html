@@ -2,7 +2,8 @@
   <p class="section-eyebrow section-eyebrow--center">Authentication</p>
   <h1 class="section-heading section-heading--center">Sign in to Monash Hackathon</h1>
   <p class="sign-in__blurb">
-    Only registered participants, judges, and administrators in the database are allowed to sign in.
+    You can only sign in if an organiser has already registered you as a participant, judge or
+    administrator.
   </p>
 
   @if (errorMessage()) {
@@ -30,7 +31,7 @@
     <div #googleBtnContainer class="sign-in__google-btn"></div>
 
     @if (isLoading()) {
-      <p class="sign-in__loading">Authenticating with server...</p>
+      <p class="sign-in__loading">Signing you in...</p>
     }
   </div>
 
@@ -40,7 +41,7 @@
 
   <div class="sign-in__manual-section">
     <button type="button" class="sign-in__toggle-btn" (click)="toggleManualInput()">
-      {{ showManualInput() ? 'Hide ID Token Input' : 'Paste Google ID Token directly' }}
+      {{ showManualInput() ? 'Hide ID token input' : 'Paste a Google ID token directly' }}
     </button>
 
     @if (showManualInput()) {
@@ -57,15 +58,15 @@
           class="sign-in__submit-token-btn"
           [disabled]="!manualToken().trim() || isLoading()"
         >
-          Verify & Sign In
+          Verify and sign in
         </button>
       </form>
     }
   </div>
 
   <div class="sign-in__demo-section">
-    <h2 class="sign-in__subheading">Demo / Testing Accounts</h2>
-    <p class="sign-in__subblurb">Use demo accounts below for UI testing when offline.</p>
+    <h2 class="sign-in__subheading">Demo accounts</h2>
+    <p class="sign-in__subblurb">For testing the interface without a backend.</p>
 
     <ul class="sign-in__accounts">
       @for (role of roles; track role) {

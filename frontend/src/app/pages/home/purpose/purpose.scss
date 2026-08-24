@@ -22,7 +22,7 @@
 .purpose__item {
   padding-top: 14px;
   border-top: 2px solid var(--color-blue);
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.65;
   color: var(--color-body);
 }
@@ -52,7 +52,7 @@
 /* A count, not a title — sans with tabular figures, per the type roles. */
 .purpose__value {
   font-family: var(--font-numeric);
-  font-size: 32px;
+  font-size: var(--text-3xl);
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -61,7 +61,7 @@
 
 .purpose__label {
   margin: 6px 0 0;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   line-height: 1.45;
   color: var(--color-muted);
 }

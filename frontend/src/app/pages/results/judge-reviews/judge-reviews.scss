@@ -18,7 +18,7 @@
 
 .reviews__label {
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-ink);
 }
@@ -42,12 +42,12 @@
 }
 
 .reviews__score-name {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-muted);
 }
 
 .reviews__score-value {
-  font-size: 11.5px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--color-ink);
@@ -55,7 +55,7 @@
 
 .reviews__text {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.65;
   color: var(--color-body);
 }

@@ -2,8 +2,7 @@
 
 @if (!screeningEnabled()) {
   <p class="banner banner--muted">
-    Screening is off — <code>event_settings.screening_enabled</code> is false, so these checks are
-    advisory and gate nothing.
+    Screening is switched off, so these checks are advisory and stop nobody.
   </p>
 }
 
@@ -97,15 +96,16 @@
 }
 
 <p class="note">
-  Eligibility is worked out from the address and <code>users.email_verified</code>, not stored:
+  Eligibility is worked out each time from the address and whether it has been confirmed. It is not
+  recorded anywhere.
   @if (studentDomain) {
-    anything on <code>&#64;{{ studentDomain }}</code> that has confirmed itself is eligible.
+    Anyone on <code>&#64;{{ studentDomain }}</code> who has confirmed their address is eligible.
   } @else {
-    the event is open to students from any university, so no domain identifies one and a confirmed
-    address is the only part that checks itself — whether someone is a student is a manual call.
+    The event is open to students from any university, so no single domain identifies one. A
+    confirmed address is the only part that checks itself, and whether someone is a student is a
+    manual call.
   }
-  The design draft instead shows a student ID behind a reveal toggle and offers Verify and Flag per
-  person. <code>users</code> has neither a student ID column nor an eligibility one, so both would
-  need a migration first — and until then a stored answer could only disagree with the address it
-  was meant to check.
+  The design draft also shows a student ID behind a reveal toggle and offers Verify and Flag per
+  person. Neither the ID nor a stored eligibility answer is kept, so both need building before they
+  can mean anything here.
 </p>

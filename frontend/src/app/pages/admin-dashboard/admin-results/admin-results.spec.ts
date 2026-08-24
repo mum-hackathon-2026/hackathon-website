@@ -174,6 +174,6 @@ describe('AdminResults', () => {
     await setUp();
 
     // The caveat is the honest part of this screen; it must not be dropped.
-    expect(text()).toContain('event_settings.results_published_at');
+    expect(text()).toContain('opens the participant results page');
   });
 });

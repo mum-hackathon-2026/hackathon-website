@@ -118,20 +118,18 @@ export class Progress {
         id: 'under-review' as const,
         label: 'Under review',
         accent: 'amber' as const,
-        description:
-          judgingDone
-            ? 'All assigned judge reviews have been submitted for your project.'
-            : 'Judges are scoring your submission against the evaluation criteria.',
+        description: judgingDone
+          ? 'All assigned judge reviews have been submitted for your project.'
+          : 'Judges are scoring your submission against the evaluation criteria.',
         at: null,
       },
       {
         id: 'judging-complete' as const,
         label: 'Judging complete',
         accent: 'blue' as const,
-        description:
-          judgingDone
-            ? 'Every score is in for your team. Final rankings are being verified.'
-            : 'Every score is in. Final rankings are being verified.',
+        description: judgingDone
+          ? 'Every score is in for your team. Final rankings are being verified.'
+          : 'Every score is in. Final rankings are being verified.',
         at: null,
       },
       {
@@ -182,7 +180,8 @@ export class Progress {
         };
       case 'judging-complete':
         return {
-          message: 'All assigned judges have submitted their scores. Results will be published once verified.',
+          message:
+            'All assigned judges have submitted their scores. Results will be published once verified.',
           urgent: false,
           cta: null,
         };

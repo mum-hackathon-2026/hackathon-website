@@ -50,6 +50,28 @@
      stay sans so tabular figures keep lining up in columns. Aliased rather than
      inlined so a numeric readout is never mistaken for a title at a glance. */
   --font-numeric: var(--font-sans);
+
+  /* The type scale. Every font-size in the app comes from this ramp — no
+     component sets a literal px size, so two panels that mean the same thing
+     cannot end up 0.5px apart. Steps widen as they climb (about 1.1x at the
+     interface end, 1.25x at the display end): small sizes need fine gradations
+     to separate a label from a table cell, large ones need daylight between
+     them to read as a hierarchy at all.
+
+     Each step below names the job it does. Pick by role, not by which number
+     happens to match the mock. */
+  --text-3xs: 10px; /* eyebrows, table headers, zone stamps, tags */
+  --text-2xs: 11px; /* pills, badges, metadata */
+  --text-xs: 12px; /* captions, help text, secondary copy */
+  --text-sm: 13px; /* default interface text: cells, controls, list rows */
+  --text-md: 15px; /* body copy, card and panel titles */
+  --text-lg: 18px; /* subsection titles */
+  --text-xl: 22px; /* section titles */
+  --text-2xl: 26px; /* page titles */
+  --text-3xl: 32px; /* the largest title on a page */
+  --text-4xl: 40px; /* display */
+  --text-5xl: 48px; /* display */
+  --text-6xl: 60px; /* display: the hero wordmark and the 404 numeral */
 }
 
 *,
@@ -124,7 +146,7 @@ html {
   border-radius: 6px;
   background: var(--color-surface);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-body);
   /* Anchors styled as buttons must not keep their underline. */
@@ -177,7 +199,7 @@ html {
   border: none;
   background: none;
   font-family: var(--font-sans);
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-blue);
   cursor: pointer;
@@ -200,7 +222,7 @@ html {
 
 .field-label {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-body);
 }
@@ -210,7 +232,7 @@ html {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--color-ink);
 }
 
@@ -224,7 +246,7 @@ html {
 .section-eyebrow {
   margin: 0 0 16px;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -236,7 +258,7 @@ html {
 .section-heading {
   margin: 0 0 40px;
   font-family: var(--font-serif);
-  font-size: 26px;
+  font-size: var(--text-2xl);
   font-weight: 700;
   line-height: 1.2;
   color: var(--color-ink);

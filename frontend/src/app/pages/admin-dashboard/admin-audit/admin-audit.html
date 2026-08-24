@@ -85,10 +85,8 @@
 }
 
 <p class="note">
-  Entries are never edited or removed from here — an audit log that the dashboard could rewrite
-  would not be one. They also outlive the people in them:
-  <code>audit_log.actor_user_id</code> is <code>ON DELETE SET NULL</code>, so deleting an account
-  anonymises its trail rather than deleting it, and those rows read "Deleted user". The
-  <code>details</code> column is <code>jsonb</code> that nothing validates, so it is not shown —
-  displaying it would imply a structure it does not have.
+  Entries cannot be edited or removed here. An audit log this dashboard could rewrite would not be
+  worth keeping. They also outlive the people in them: deleting an account anonymises its trail
+  rather than erasing it, and those entries read "Deleted user". Each entry can carry extra detail,
+  which is not shown, because nothing checks that it was recorded the same way twice.
 </p>

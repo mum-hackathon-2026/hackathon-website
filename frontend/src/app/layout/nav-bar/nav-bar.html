@@ -30,7 +30,7 @@
           [attr.aria-expanded]="profileOpen()"
           aria-haspopup="menu"
           [attr.aria-label]="
-            currentUser.name + ' — ' + roleLabels[currentUser.role] + '. Open account menu'
+            currentUser.name + ', ' + roleLabels[currentUser.role] + '. Open account menu'
           "
           (click)="toggleProfile()"
         >

@@ -10,18 +10,24 @@ export interface GuideBand {
   readonly description: string;
 }
 
-const RUBRIC_DESCRIPTIONS: Record<string, { weak: string; developing: string; strong: string; excellent: string }> = {
+const RUBRIC_DESCRIPTIONS: Record<
+  string,
+  { weak: string; developing: string; strong: string; excellent: string }
+> = {
   'System Design & Architecture': {
     weak: 'Architecture is unclear or key components are missing.',
     developing: 'A basic architecture is shown, but important links or decisions are unclear.',
     strong: 'Architecture and data flow are clear, with sensible component choices.',
-    excellent: 'Architecture is coherent, well justified and supported by the prototype or other technical evidence.',
+    excellent:
+      'Architecture is coherent, well justified and supported by the prototype or other technical evidence.',
   },
   'Working Core Prototype': {
     weak: 'The core function does not work or is only shown through slides or mock-ups.',
-    developing: 'Part of the core works, but key steps rely on placeholders, manual workarounds or unstable connections.',
+    developing:
+      'Part of the core works, but key steps rely on placeholders, manual workarounds or unstable connections.',
     strong: 'The main flow works end-to-end with only minor gaps.',
-    excellent: 'The core flow works reliably end-to-end and clearly shows that the main technical idea has been built.',
+    excellent:
+      'The core flow works reliably end-to-end and clearly shows that the main technical idea has been built.',
   },
   'Technology Integration (TBC)': {
     weak: 'Integration is missing, superficial or disconnected from the solution.',
@@ -33,13 +39,15 @@ const RUBRIC_DESCRIPTIONS: Record<string, { weak: string; developing: string; st
     weak: 'Major technical risks are untested or ignored.',
     developing: 'Some risks are tested, but important questions remain.',
     strong: 'Key risks are tested and important limitations are understood.',
-    excellent: 'Critical assumptions are validated with clear evidence and there is a credible path to completion.',
+    excellent:
+      'Critical assumptions are validated with clear evidence and there is a credible path to completion.',
   },
   'Problem Statement Understanding': {
     weak: 'Limited understanding of the problem or who it affects.',
     developing: 'The problem is understood at a basic level, but context or needs are unclear.',
     strong: 'Clear understanding of the problem and relevant users or stakeholders.',
-    excellent: 'Strong, well-supported understanding of the problem, its context and why it matters.',
+    excellent:
+      'Strong, well-supported understanding of the problem, its context and why it matters.',
   },
   'Innovation & Solution Approach': {
     weak: 'The idea is generic or poorly suited to the problem.',
@@ -102,13 +110,17 @@ export class CriterionCard {
           label: 'Weak',
           range: '0–6',
           type: 'weak',
-          description: desc?.weak ?? 'The core function does not work or is only shown through slides or mock-ups.',
+          description:
+            desc?.weak ??
+            'The core function does not work or is only shown through slides or mock-ups.',
         },
         {
           label: 'Developing',
           range: '7–12',
           type: 'dev',
-          description: desc?.developing ?? 'Part of the core works, but key steps rely on placeholders or manual workarounds.',
+          description:
+            desc?.developing ??
+            'Part of the core works, but key steps rely on placeholders or manual workarounds.',
         },
         {
           label: 'Strong',
@@ -120,7 +132,9 @@ export class CriterionCard {
           label: 'Excellent',
           range: '19–25',
           type: 'exc',
-          description: desc?.excellent ?? 'The core flow works reliably end-to-end and proves the main technical idea.',
+          description:
+            desc?.excellent ??
+            'The core flow works reliably end-to-end and proves the main technical idea.',
         },
       ];
     }
@@ -131,25 +145,29 @@ export class CriterionCard {
           label: 'Weak',
           range: '0–3',
           type: 'weak',
-          description: desc?.weak ?? 'Architecture/integration is unclear or key components are missing.',
+          description:
+            desc?.weak ?? 'Architecture/integration is unclear or key components are missing.',
         },
         {
           label: 'Developing',
           range: '4–7',
           type: 'dev',
-          description: desc?.developing ?? 'Basic setup is shown, but important links or questions remain.',
+          description:
+            desc?.developing ?? 'Basic setup is shown, but important links or questions remain.',
         },
         {
           label: 'Strong',
           range: '8–11',
           type: 'strong',
-          description: desc?.strong ?? 'Clear structure and data flow, with sensible component choices.',
+          description:
+            desc?.strong ?? 'Clear structure and data flow, with sensible component choices.',
         },
         {
           label: 'Excellent',
           range: '12–15',
           type: 'exc',
-          description: desc?.excellent ?? 'Coherent, well justified and validated with clear evidence.',
+          description:
+            desc?.excellent ?? 'Coherent, well justified and validated with clear evidence.',
         },
       ];
     }
@@ -159,25 +177,31 @@ export class CriterionCard {
         label: 'Weak',
         range: '0–2',
         type: 'weak',
-        description: desc?.weak ?? 'Limited understanding of the problem or generic idea with unclear value.',
+        description:
+          desc?.weak ?? 'Limited understanding of the problem or generic idea with unclear value.',
       },
       {
         label: 'Developing',
         range: '3–5',
         type: 'dev',
-        description: desc?.developing ?? 'Basic understanding and workable approach, but limited differentiation.',
+        description:
+          desc?.developing ??
+          'Basic understanding and workable approach, but limited differentiation.',
       },
       {
         label: 'Strong',
         range: '6–7',
         type: 'strong',
-        description: desc?.strong ?? 'Clear understanding, thoughtful approach, and realistic next steps.',
+        description:
+          desc?.strong ?? 'Clear understanding, thoughtful approach, and realistic next steps.',
       },
       {
         label: 'Excellent',
         range: '8–10',
         type: 'exc',
-        description: desc?.excellent ?? 'Strong understanding, highly original approach, and strong practical value.',
+        description:
+          desc?.excellent ??
+          'Strong understanding, highly original approach, and strong practical value.',
       },
     ];
   });

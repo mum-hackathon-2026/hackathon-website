@@ -18,13 +18,13 @@
 
 .confirm__heading {
   margin: 0 0 8px;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 700;
 }
 
 .confirm__body {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   line-height: 1.6;
   color: var(--color-muted);
 }

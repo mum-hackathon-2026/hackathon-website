@@ -2,7 +2,7 @@
   <app-page-header
     eyebrow="Participant"
     title="My submission"
-    subtitle="Submit your project on the form, then check that it landed here."
+    subtitle="Submit your project on the form, then check here that it arrived."
   />
 
   @if (!team()) {
@@ -10,7 +10,7 @@
     <section class="submission__card">
       <h2 class="submission__subheading">You need a team first</h2>
       <p class="submission__help">
-        Submissions belong to a team, so register one before starting your entry.
+        A submission belongs to a team, so register your team before you start an entry.
       </p>
       <a class="button button--primary" routerLink="/participant/team">Go to My team</a>
     </section>
@@ -36,7 +36,7 @@
     >
       @if (submission(); as record) {
         <p class="submission__locked-summary">
-          {{ record.projectTitle || 'Untitled project' }} — {{ record.status }}
+          {{ record.projectTitle || 'Untitled project' }} ({{ record.status }})
         </p>
       }
     </app-state-locked>
@@ -74,7 +74,7 @@
         <!-- Header / Title -->
         <div class="submission-showcase__header">
           <div class="submission-showcase__title-block">
-            <span class="submission-showcase__eyebrow">Project Entry</span>
+            <span class="submission-showcase__eyebrow">Your entry</span>
             <h2 class="submission-showcase__title">
               {{ record.projectTitle || 'Untitled Project' }}
             </h2>
@@ -89,7 +89,7 @@
         <!-- Description / Summary -->
         @if (record.description) {
           <div class="submission-showcase__summary-box">
-            <h3 class="submission-showcase__section-title">Overview & Summary</h3>
+            <h3 class="submission-showcase__section-title">Description</h3>
             <p class="submission-showcase__description">{{ record.description }}</p>
           </div>
         }
@@ -103,7 +103,7 @@
             <div class="submission-showcase__rep-details">
               <div class="submission-showcase__rep-name-row">
                 <span class="submission-showcase__rep-name">{{ record.representativeName }}</span>
-                <span class="submission-showcase__rep-pill">Team Representative</span>
+                <span class="submission-showcase__rep-pill">Team contact</span>
               </div>
               <div class="submission-showcase__rep-meta">
                 @if (record.representativeEmail) {
@@ -134,7 +134,7 @@
 
         <!-- Deliverables / Links Grid -->
         <div class="submission-showcase__deliverables">
-          <h3 class="submission-showcase__section-title">Project Deliverables</h3>
+          <h3 class="submission-showcase__section-title">What you sent</h3>
           <div class="submission-grid">
             <!-- GitHub Link -->
             <div class="deliverable-card" [class.deliverable-card--empty]="!record.githubUrl">
@@ -146,7 +146,7 @@
                 </svg>
               </div>
               <div class="deliverable-card__content">
-                <span class="deliverable-card__label">GitHub Repository</span>
+                <span class="deliverable-card__label">Repository</span>
                 @if (record.githubUrl) {
                   <a
                     class="deliverable-card__link"
@@ -175,7 +175,7 @@
                 </svg>
               </div>
               <div class="deliverable-card__content">
-                <span class="deliverable-card__label">Live Prototype / Demo</span>
+                <span class="deliverable-card__label">Live demo</span>
                 @if (record.deployedUrl) {
                   <a
                     class="deliverable-card__link"
@@ -202,7 +202,7 @@
                 </svg>
               </div>
               <div class="deliverable-card__content">
-                <span class="deliverable-card__label">Slide Deck & Documentation</span>
+                <span class="deliverable-card__label">Slide deck</span>
                 @if (record.slideDeckUrl) {
                   <a
                     class="deliverable-card__link"
@@ -229,7 +229,7 @@
                 </svg>
               </div>
               <div class="deliverable-card__content">
-                <span class="deliverable-card__label">Video Demo (5 Min Max)</span>
+                <span class="deliverable-card__label">Video demo</span>
                 @if (record.videoDemoUrl) {
                   <a
                     class="deliverable-card__link"
@@ -258,10 +258,7 @@
                 clip-rule="evenodd"
               />
             </svg>
-            <span
-              >Submission Finalized — Your project is locked and ready for evaluation by the
-              judges.</span
-            >
+            <span>Submitted. Your entry is locked and will go to the judges.</span>
           </div>
         </div>
       </section>

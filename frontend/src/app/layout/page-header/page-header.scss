@@ -15,7 +15,7 @@
 
 .page-header__eyebrow {
   margin: 0 0 6px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -24,7 +24,7 @@
 
 .page-header__title {
   margin: 0;
-  font-size: clamp(22px, 4vw, 30px);
+  font-size: clamp(var(--text-xl), 4vw, var(--text-3xl));
   font-weight: 700;
   line-height: 1.15;
   color: var(--color-ink);
@@ -32,7 +32,7 @@
 
 .page-header__subtitle {
   margin: 6px 0 0;
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.5;
   color: var(--color-muted);
 }

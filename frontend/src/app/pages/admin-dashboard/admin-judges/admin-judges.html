@@ -11,7 +11,7 @@
 
 <section class="panel" aria-labelledby="add-judge-heading">
   <div class="panel__header">
-    <h2 class="panel__title" id="add-judge-heading">Register Judges</h2>
+    <h2 class="panel__title" id="add-judge-heading">Register judges</h2>
     <div class="mode-tabs" role="tablist" aria-label="Judge registration mode">
       <button
         type="button"
@@ -21,7 +21,7 @@
         [attr.aria-selected]="entryMode() === 'single'"
         (click)="entryMode.set('single')"
       >
-        <span class="mode-tab__icon">👤</span> Single Judge
+        <span class="mode-tab__icon">👤</span> Single judge
       </button>
       <button
         type="button"
@@ -31,7 +31,7 @@
         [attr.aria-selected]="entryMode() === 'batch'"
         (click)="entryMode.set('batch')"
       >
-        <span class="mode-tab__icon">📋</span> Batch Register
+        <span class="mode-tab__icon">📋</span> Batch register
       </button>
       <button
         type="button"
@@ -49,7 +49,7 @@
   @if (entryMode() === 'single') {
     <form class="assign assign--grid" (ngSubmit)="registerSingle()">
       <div class="assign__field">
-        <label class="assign__label" for="judge-name-input">Full Name</label>
+        <label class="assign__label" for="judge-name-input">Full name</label>
         <input
           id="judge-name-input"
           class="input"
@@ -63,7 +63,7 @@
       </div>
 
       <div class="assign__field">
-        <label class="assign__label" for="judge-email-input">Email Address</label>
+        <label class="assign__label" for="judge-email-input">Email address</label>
         <input
           id="judge-email-input"
           class="input"
@@ -82,7 +82,7 @@
           class="button button--primary"
           [disabled]="pending() || !singleFullName().trim() || !singleEmail().trim()"
         >
-          Register Judge
+          Register judge
         </button>
       </div>
     </form>
@@ -92,7 +92,10 @@
     <div class="batch-box">
       <label class="assign__label" for="judge-batch-input">
         Paste or type judge details (one per line):
-        <span class="batch-hint-format">Format: <code>Full Name, email@example.com</code> or copy-pasted columns from Sheets</span>
+        <span class="batch-hint-format"
+          >Format: <code>Full Name, email@example.com</code> or copy-pasted columns from
+          Sheets</span
+        >
       </label>
       <textarea
         id="judge-batch-input"
@@ -153,7 +156,7 @@
           <option value="">Select somebody…</option>
           @for (person of addable(); track person.userId) {
             <option [value]="person.userId">
-              {{ person.fullName }} — {{ person.teamName || 'no team' }}
+              {{ person.fullName }} · {{ person.teamName || 'no team' }}
             </option>
           }
         </select>
@@ -166,7 +169,8 @@
   }
 
   <p class="assign__hint">
-    Judges are registered directly by admins. Once added, judges can sign in using their Google account to access the Judge Portal and review assigned submissions.
+    Judges are registered directly by admins. Once added, judges can sign in using their Google
+    account to access the Judge Portal and review assigned submissions.
   </p>
 </section>
 
@@ -267,12 +271,10 @@
 }
 
 <p class="note">
-  There is no active or inactive judge: <code>users</code> has no status column — V1 had one and V2
-  dropped it for hard delete — so being a judge is holding <code>users.role = 'judge'</code>, and
-  Remove sets that back to <code>'participant'</code>. It does not touch their assignments. Only
-  deleting the account does that, because <code>assignments.judge_id</code> is
-  <code>ON DELETE CASCADE</code> and a role change is not a delete — so a judge still holding teams
-  has to be reassigned in Assignments first, and until they are, Remove is refused.
+  A judge is not marked active or inactive. Someone is a judge for as long as they hold the judge
+  role, and Remove hands that role back to participant. Remove does not clear their assignments, so
+  a judge still holding teams has to be reassigned under Assignments first. Until they are, Remove
+  is refused.
 </p>
 
 @if (confirming(); as person) {
@@ -282,7 +284,7 @@
     [body]="
       'They are on ' +
       person.teamName +
-      ', so they would be judging the event they are entered in. Nothing in the schema stops it — users.role and team_members are independent — so this is a call for an organiser, not a rule.'
+      ', so they would be judging the event they are entered in. Nothing here prevents that, so it is a call for an organiser rather than a rule.'
     "
     confirmLabel="Add anyway"
     (confirmed)="confirmAdd()"

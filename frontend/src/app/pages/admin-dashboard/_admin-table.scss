@@ -8,7 +8,7 @@
 
 .lede {
   margin: 0 0 16px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-muted);
 }
 
@@ -18,7 +18,7 @@
   margin: 0 0 14px;
   padding: 10px 14px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
@@ -62,13 +62,13 @@
   width: 100%;
   border-collapse: collapse;
   background: var(--color-surface);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .grid th {
   padding: 9px 14px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 10.5px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -104,7 +104,7 @@
 .grid__issue {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-red-ink);
 }
 
@@ -122,13 +122,13 @@
 }
 
 .grid__settled {
-  font-size: 11.5px;
+  font-size: var(--text-2xs);
   color: var(--color-subtle);
 }
 
 .grid__links a {
   color: var(--color-blue-ink);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .grid__links a + a {
@@ -142,7 +142,7 @@
   padding: 2px 8px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-muted);
   white-space: nowrap;
 }
@@ -180,18 +180,18 @@
   border: 1px dashed var(--color-faint);
   border-radius: 8px;
   text-align: center;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   color: var(--color-muted);
 }
 
 .note {
   margin: 16px 0 0;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   line-height: 1.6;
   color: var(--color-muted);
 }
 
 .note code {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-body);
 }

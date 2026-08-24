@@ -39,37 +39,39 @@ export const FAQS: readonly Faq[] = [
   {
     question: 'Who can participate?',
     answer:
-      'Any currently enrolled university student — undergraduate or postgraduate, and not ' +
-      `only ${site.university}. Register with your university address so we can confirm you ` +
-      `are enrolled. ${teamSizeSentence}`,
+      'Any currently enrolled university student, undergraduate or postgraduate. You do not ' +
+      `have to be at ${site.university}. Register with your university address so we can ` +
+      `confirm you are enrolled. ${teamSizeSentence}`,
   },
   {
     question: 'Do I need to know how to code?',
     answer:
-      'Not exclusively. We encourage diverse teams with designers, product thinkers, and domain ' +
-      'experts. That said, projects must include a working prototype or demo, so at least one ' +
-      'team member should be comfortable building.',
+      'Not everyone on the team does. Designers, product people and anyone who knows the ' +
+      'problem area are all worth having. But every project needs a working prototype or demo, ' +
+      'so at least one person has to be comfortable building.',
   },
   {
     question: 'What should I submit?',
     answer:
-      'A GitHub repository with your code, a short video demo (3 minutes max), a live deployment ' +
-      'if possible, and a one-page project brief. Full submission guidelines are emailed after ' +
-      'registration.',
+      'A GitHub repository with your code, a video demo of 3 minutes or less, a one-page ' +
+      'project brief, and a live deployment if you have one. We email the full submission ' +
+      'guidelines after you register.',
   },
   {
     question: 'How are submissions judged?',
     answer:
       'In two stages. Judges from Averis score every eligible submission against ' +
       site.judgingCriteria.map((c) => `${c.name} (${c.weight}%)`).join(', ') +
-      ', working asynchronously over the two days after the deadline, and the ten ' +
-      'highest-scoring teams are shortlisted as finalists. Those ten then pitch live on ' +
-      'Final Pitch Day, and that round decides the winners.',
+      '. They score in their own time over the two days after the deadline, and the ten ' +
+      'highest-scoring teams are shortlisted as finalists. Those ten pitch live on Final ' +
+      'Pitch Day, and that round decides the winners.',
   },
   {
     question: 'Are there prizes?',
     answer:
-      'Three cash prizes — RM 5,000 for 1st place, RM 3,000 for 2nd place, and RM 1,000 for 3rd place, presented at the end of Final Pitch Day. Every finalist team also presents to the panel, which is a valuable credential on your record whatever the result.',
+      'Three cash prizes, handed out at the end of Final Pitch Day: RM 5,000 for 1st place, ' +
+      'RM 3,000 for 2nd, RM 1,000 for 3rd. Every finalist team pitches to the Averis panel ' +
+      'regardless of where it places.',
   },
 ];
 
@@ -86,37 +88,37 @@ export const EXTRA_FAQS: readonly Faq[] = [
         ? 'Yes. Solo entries are accepted, though most teams find the workload easier to share. ' +
           `The registration form takes up to ${settings.maxTeamSize} people, so name everyone ` +
           'you already have when you fill it in.'
-        : `No — every team needs at least ${settings.minTeamSize} members. The registration form ` +
-          'asks for the whole team at once, so sort out who you are entering with first.',
+        : `No. Every team needs at least ${settings.minTeamSize} members, and the registration ` +
+          'form asks for the whole team at once, so sort out who you are entering with first.',
   },
   {
     question: 'How do I register my team?',
     answer:
-      'One person fills in the registration form for the whole team, naming everyone at once — ' +
-      `${teamSizePhrase}. There is no join code and nobody registers ` +
+      'One person fills in the registration form for the whole team, naming everyone at once ' +
+      `(${teamSizePhrase}). There is no join code and nobody registers ` +
       'separately. Once your entry is imported, everyone named on it can sign in with the Google ' +
       'account they gave and see the team on the My Team page.',
   },
   {
     question: 'Can we use external APIs or libraries?',
     answer:
-      'Yes — any publicly available library, framework or free-tier API is fair game. All code ' +
-      'you submit must be written during the hackathon period, though; prior work cannot be ' +
+      'Yes. Any publicly available library, framework or free-tier API is fair game. The code ' +
+      'you submit has to be written during the hackathon itself, though. Prior work cannot be ' +
       'entered.',
   },
   {
     question: 'Where do I submit?',
     answer:
       'On the submission form, linked from the My Submission page. You need a project title, a ' +
-      'description and a link to your repository; a live demo link is optional but strongly ' +
-      'recommended. Anyone on the team can send it, and sending it again before the deadline ' +
+      'description and a link to your repository. A live demo link is optional, but send one if ' +
+      'you have it. Anyone on the team can submit, and submitting again before the deadline ' +
       'replaces your earlier entry.',
   },
   {
     question: 'What happens if my team has an eligibility issue?',
     answer:
-      'Contact the hackathon directors below before registration closes. Teams with an ' +
-      'unresolved eligibility issue are locked from submitting until it is cleared.',
+      'Contact the hackathon directors below before registration closes. A team with an ' +
+      'unresolved eligibility issue cannot submit until it is cleared.',
   },
 ];
 
@@ -131,9 +133,9 @@ export const ALL_FAQS: readonly Faq[] = [...FAQS, ...EXTRA_FAQS];
  * administrative third.
  */
 export const EVENT_PURPOSE: readonly string[] = [
-  'Solve an authentic industry challenge, set by the people who actually have it.',
-  'Sharpen the technical, teamwork and pitching skills a structured competition demands.',
-  'Meet industry directly — the networking and career openings that come with it are the point, not a side effect.',
+  'Work on a real industry problem, set by the company that actually has it.',
+  'Get practice at building, working in a team and pitching, all against a deadline.',
+  'Meet the Averis engineers who judge the event. Contacts and job leads come out of that.',
 ];
 
 export interface ScaleFigure {
@@ -312,7 +314,7 @@ export const ORGANIZERS: readonly Organizer[] = [
     accent: 'blue',
     department: site.organisedBy,
     email: 'ang.ling@monash.edu',
-    bio: 'Oversees the hackathon programme end to end, coordinating planning, partner engagements, and event execution.',
+    bio: 'Runs the hackathon programme, and is the person to contact about planning, partners or anything to do with the event itself.',
   },
   {
     name: 'Ming Dong',
@@ -321,6 +323,6 @@ export const ORGANIZERS: readonly Organizer[] = [
     accent: 'green',
     department: site.organisedBy,
     email: 'ming.dong@monash.edu',
-    bio: 'Co-directs the hackathon, managing technical challenge design, judging operations, and participant experience.',
+    bio: 'Co-directs the hackathon, and looks after the technical challenge, the judging process and how the event runs for participants.',
   },
 ];

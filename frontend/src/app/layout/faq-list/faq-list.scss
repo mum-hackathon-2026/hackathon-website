@@ -34,7 +34,7 @@
 }
 
 .faq__question-text {
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 600;
   line-height: 1.4;
   color: var(--color-ink);
@@ -71,7 +71,7 @@
 .faq__answer {
   margin: 0 0 18px;
   padding-right: 40px;
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.7;
   color: var(--color-muted);
 }

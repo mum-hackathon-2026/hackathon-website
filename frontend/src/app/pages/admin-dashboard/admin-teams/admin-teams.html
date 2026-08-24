@@ -136,10 +136,8 @@
 }
 
 <p class="note">
-  The design draft has a Lock action here. The database has no locked status —
-  <code>teams.status</code> allows only forming, complete, disqualified and withdrawn — so locking
-  would be rejected on write. Withdraw and Disqualify are the settled states that do exist. Adding a
-  real lock means a migration first.
+  The design draft has a Lock action here. Locking is not built: a team can only be forming,
+  complete, withdrawn or disqualified, so Withdraw and Disqualify are the actions that exist.
 </p>
 
 <!-- ── Rename ─────────────────────────────────────────────────────────────── -->

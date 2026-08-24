@@ -74,7 +74,7 @@
 
           <p class="note">
             Averaged across {{ mine.judgeCount }} judges. Each criterion's weight and maximum are
-            frozen at scoring time, so a published result never shifts underneath you.
+            fixed at scoring time, so a published result does not change afterwards.
           </p>
         }
       }
@@ -90,7 +90,7 @@
       <!-- ── Awards ─────────────────────────────────────────────────────── -->
 
       @case ('awards') {
-        <h3 class="section-title">Prize Winners</h3>
+        <h3 class="section-title">Prize winners</h3>
         <ul class="awards">
           @for (award of overallAwards(); track award.id) {
             <li class="awards__card" [class.awards__card--mine]="award.isMine">
@@ -100,14 +100,15 @@
                   <span class="awards__you">Your team</span>
                 }
               </div>
-              <p class="awards__team">{{ award.teamName }} — {{ award.projectTitle }}</p>
+              <p class="awards__team">{{ award.teamName }} · {{ award.projectTitle }}</p>
               <p class="awards__description">{{ award.description }}</p>
             </li>
           }
         </ul>
 
         <p class="note">
-          Cash prizes are awarded to the top three teams based on final verified evaluations — RM 5,000 for 1st place, RM 3,000 for 2nd place, and RM 1,000 for 3rd place.
+          The top three teams take a cash prize: RM 5,000 for 1st place, RM 3,000 for 2nd, RM 1,000
+          for 3rd.
         </p>
       }
 

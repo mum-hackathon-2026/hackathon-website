@@ -1,6 +1,7 @@
 .sponsors {
   padding: clamp(48px, 8vw, 80px) 24px;
-  background: var(--color-surface-alt);
+  /* Still reads as a distinct band, but a tinted one rather than a lid. */
+  background: rgba(250, 250, 250, 0.72);
 }
 
 .sponsors__inner {
@@ -35,7 +36,7 @@
    is a <span> rather than a heading, so it names the serif itself. */
 .sponsors__wordmark {
   font-family: var(--font-serif);
-  font-size: clamp(28px, 5vw, 38px);
+  font-size: clamp(var(--text-2xl), 5vw, var(--text-4xl));
   font-weight: 700;
   /* Serifs need the extra air the sans did not: tracking relaxed to 0. */
   letter-spacing: 0;
@@ -44,7 +45,7 @@
 
 .sponsors__note {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.5;
   color: var(--color-muted);
 }

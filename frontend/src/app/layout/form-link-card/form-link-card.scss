@@ -7,14 +7,14 @@
 
 .form-link-card__heading {
   margin: 0 0 4px;
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 700;
   color: var(--color-ink);
 }
 
 .form-link-card__description {
   margin: 0 0 14px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.6;
   color: var(--color-muted);
 }
@@ -28,7 +28,7 @@
 
 .form-link-card__note {
   margin: 12px 0 0;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   line-height: 1.6;
   color: var(--color-subtle);
 }

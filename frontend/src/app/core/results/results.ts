@@ -273,15 +273,15 @@ export class ResultsService {
     }[] = [
       {
         title: '1st Place Overall · RM 5,000',
-        description: 'Awarded RM 5,000 cash prize for achieving the highest weighted score across all evaluation criteria.',
+        description: 'Highest weighted score across every judging criterion.',
       },
       {
         title: '2nd Place Overall · RM 3,000',
-        description: 'Awarded RM 3,000 cash prize for achieving the second-highest weighted score across all evaluation criteria.',
+        description: 'Second-highest weighted score across every judging criterion.',
       },
       {
         title: '3rd Place Overall · RM 1,000',
-        description: 'Awarded RM 1,000 cash prize for achieving the third-highest weighted score across all evaluation criteria.',
+        description: 'Third-highest weighted score across every judging criterion.',
       },
     ];
 

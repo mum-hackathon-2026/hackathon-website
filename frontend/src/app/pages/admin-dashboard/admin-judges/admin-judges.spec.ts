@@ -43,7 +43,8 @@ describe('AdminJudges', () => {
 
     fixture = TestBed.createComponent(AdminJudges);
     await fixture.whenStable();
-  }  async function select(id: string, value: string) {
+  }
+  async function select(id: string, value: string) {
     if (id === 'judge-add') {
       const promoteTab = Array.from(host().querySelectorAll<HTMLButtonElement>('.mode-tab')).find(
         (b) => b.textContent?.includes('Promote'),
@@ -89,20 +90,24 @@ describe('AdminJudges', () => {
     emailInput.dispatchEvent(new Event('input'));
     await fixture.whenStable();
 
-    const submitBtn = host().querySelector<HTMLButtonElement>('.assign--grid button[type="submit"]')!;
+    const submitBtn = host().querySelector<HTMLButtonElement>(
+      '.assign--grid button[type="submit"]',
+    )!;
     submitBtn.click();
     await fixture.whenStable();
 
     expect(admin.judges().length).toBe(before + 1);
-    expect(text()).toContain('Dr. Alan Turing (alan.turing@enigma.org) has been registered as a judge.');
+    expect(text()).toContain(
+      'Dr. Alan Turing (alan.turing@enigma.org) has been registered as a judge.',
+    );
   });
 
   it('batch registers multiple judges from textarea', async () => {
     await setUp();
     const before = admin.judges().length;
 
-    const batchTab = Array.from(host().querySelectorAll<HTMLButtonElement>('.mode-tab')).find(
-      (b) => b.textContent?.includes('Batch'),
+    const batchTab = Array.from(host().querySelectorAll<HTMLButtonElement>('.mode-tab')).find((b) =>
+      b.textContent?.includes('Batch'),
     );
     batchTab?.click();
     await fixture.whenStable();

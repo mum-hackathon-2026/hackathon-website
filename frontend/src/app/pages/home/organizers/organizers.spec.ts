@@ -75,7 +75,7 @@ describe('OrganizersSection', () => {
 
   it('marks the people up as a list under one heading', () => {
     expect(host().querySelector('ul.organizers__grid')).toBeTruthy();
-    expect(host().querySelector('h2')!.textContent).toContain('The team making it happen.');
+    expect(host().querySelector('h2')!.textContent).toContain('Who runs it.');
   });
 
   // Walks PARTNERS rather than naming the three bodies, so the proposal's
@@ -85,13 +85,15 @@ describe('OrganizersSection', () => {
       return Array.from(host().querySelectorAll<HTMLElement>('.organizers__partner'));
     }
 
-    it('names every partner with its role and what it does', () => {
+    it('names every partner with its role, and nothing more', () => {
       expect(partnerCards().length).toBe(PARTNERS.length);
 
       partnerCards().forEach((card, i) => {
         expect(textOf(card, '.organizers__partner-role')).toBe(PARTNERS[i].role);
         expect(textOf(card, '.organizers__partner-name')).toBe(PARTNERS[i].name);
-        expect(textOf(card, '.organizers__partner-does')).toBe(PARTNERS[i].responsibility);
+        // The card is a logo and a name. `responsibility` is deliberately not
+        // rendered here; the section says who runs it, not who does what.
+        expect(card.querySelector('.organizers__partner-does')).toBeNull();
       });
     });
 

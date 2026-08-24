@@ -230,6 +230,6 @@ describe('AdminTeams', () => {
       button.textContent?.trim(),
     );
     expect(labels).not.toContain('Lock');
-    expect(text()).toContain('The database has no locked status');
+    expect(text()).toContain('Locking is not built');
   });
 });

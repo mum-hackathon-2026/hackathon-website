@@ -1,5 +1,5 @@
 <p class="lede">
-  One row in <code>event_settings</code>. Every date is Malaysian time (MYT, UTC+8).
+  One set of settings for the whole event. Every date is Malaysian time (MYT, UTC+8).
 </p>
 
 @if (error(); as message) {
@@ -108,14 +108,14 @@
       <span class="toggle__text">
         <span class="toggle__label">Judging is open</span>
         <span class="toggle__hint">
-          Judges can only score while this is on. V1 models it as a switch rather than a date
-          window, so it is yours to flip — closing it stops every review in progress from being
+          Judges can only score while this is on. It is a switch rather than a scheduled window, so
+          opening and closing it is your call. Closing it stops every review in progress from being
           submitted.
         </span>
       </span>
     </label>
 
-    <div class="field" style="margin-top: 18px;">
+    <div class="field" style="margin-top: 18px">
       <label class="field__label" for="judges-per-team">Judges per team</label>
       <input
         id="judges-per-team"
@@ -128,7 +128,8 @@
         (ngModelChange)="updateNumber('judgesPerTeam', $event)"
       />
       <p class="field__hint">
-        How many judges are expected to evaluate each submitted team (controls under-assigned alerts and completion metrics).
+        How many judges are expected to evaluate each submitted team (controls under-assigned alerts
+        and completion metrics).
       </p>
     </div>
   </section>
@@ -204,9 +205,8 @@
 </form>
 
 <p class="note">
-  Changes are recorded in the <code>audit_log</code> and show up in the Audit Log section, naming
-  the fields that moved. <code>event_settings</code> is a single row constrained to
-  <code>id = 1</code>, so there is nothing to create and nothing to delete here.
+  Changes are recorded in the Audit Log section, naming the fields that moved. There is one set of
+  settings for the whole event, so there is nothing to create and nothing to delete here.
 </p>
 
 @if (confirming()) {

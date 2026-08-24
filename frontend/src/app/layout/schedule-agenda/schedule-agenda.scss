@@ -4,14 +4,14 @@
 
 .agenda__title {
   margin: 0 0 6px;
-  font-size: 20px;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--color-ink);
 }
 
 .agenda__intro {
   margin: 0 0 28px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.6;
   color: var(--color-muted);
 }
@@ -43,14 +43,14 @@
 
 .agenda__name {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--color-ink);
 }
 
 .agenda__dates {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-blue-ink);
   font-variant-numeric: tabular-nums;
@@ -59,7 +59,7 @@
 
 .agenda__venue {
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -68,7 +68,7 @@
 
 .agenda__summary {
   margin: 8px 0 0;
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   line-height: 1.6;
   color: var(--color-body);
 }

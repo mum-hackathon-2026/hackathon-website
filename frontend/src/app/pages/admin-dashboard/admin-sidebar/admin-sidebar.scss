@@ -14,7 +14,7 @@
 
 .rail__event {
   margin: 0 0 3px;
-  font-size: 9px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -24,7 +24,7 @@
 .rail__title {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-ink);
 }
@@ -42,7 +42,7 @@
   margin-bottom: 1px;
   padding: 8px 10px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-body);
   text-decoration: none;
 }
@@ -64,7 +64,7 @@
   border-radius: 999px;
   background: var(--color-amber-tint);
   color: var(--color-amber-ink);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: center;

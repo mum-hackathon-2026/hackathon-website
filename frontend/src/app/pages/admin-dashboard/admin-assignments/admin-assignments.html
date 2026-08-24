@@ -25,7 +25,7 @@
         <option value="">Select a team…</option>
         @for (team of assignableTeams(); track team.teamId) {
           <option [value]="team.teamId">
-            {{ team.teamName }} — {{ team.judges.length }} assigned
+            {{ team.teamName }} · {{ team.judges.length }} assigned
           </option>
         }
       </select>
@@ -42,7 +42,7 @@
       >
         <option value="">Select a judge…</option>
         @for (judge of judgeOptions(); track judge.userId) {
-          <option [value]="judge.userId">{{ judge.name }} — {{ judge.assigned }} assigned</option>
+          <option [value]="judge.userId">{{ judge.name }} · {{ judge.assigned }} assigned</option>
         }
       </select>
     </div>
@@ -146,10 +146,9 @@
 }
 
 <p class="note">
-  Removing a judge deletes the <code>assignments</code> row, and
-  <code>scores.assignment_id</code> is <code>ON DELETE CASCADE</code> — so any scores they had
-  already given go with it, and re-assigning starts them from nothing. A judge who has not opened
-  the review yet loses nothing, so only the others ask first.
+  Removing a judge from a team also removes any scores they had already given it, and putting them
+  back starts the review from nothing. A judge who has not opened the review yet loses nothing, so
+  it is only the others worth checking with first.
 </p>
 
 @if (removing(); as target) {

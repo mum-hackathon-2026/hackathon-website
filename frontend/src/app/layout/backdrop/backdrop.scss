@@ -1,0 +1,135 @@
+/* The dot grid.
+
+   24px spacing on a 1.5px dot covers about 1.2% of the area, which is what
+   keeps this readable under body text. Both are tokens so the density can be
+   tuned in one place rather than in three rules. */
+:host {
+  --dot-gap: 24px;
+  --dot-size: 1.5px;
+  /* How much colour reaches the dots. The wells are strong and the mask is
+     sparse, so this is the dial that matters. */
+  --field-strength: 0.55;
+}
+
+/* Sits behind everything: fixed to the viewport, out of the layout, and
+   invisible to the pointer so it can never intercept a click meant for the
+   page. Content paints over it because it is the only thing here at z-index
+   -1; the page's own backgrounds are translucent so it shows through. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: var(--field-strength);
+
+  /* The grid itself. It masks the wells rather than being painted, so a dot is
+     bright where a well sits under it and invisible where none does. The mask
+     lives on this container, which never moves — that is the whole effect. */
+  --dot-mask: radial-gradient(
+    circle at center,
+    #000 0,
+    #000 var(--dot-size),
+    transparent calc(var(--dot-size) + 0.5px)
+  );
+  -webkit-mask-image: var(--dot-mask);
+  mask-image: var(--dot-mask);
+  -webkit-mask-size: var(--dot-gap) var(--dot-gap);
+  mask-size: var(--dot-gap) var(--dot-gap);
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+}
+
+/* Each well is one soft field of colour. Separate elements rather than four
+   background layers on one, so each can drift on its own timing: moving them
+   together would read as one sheet sliding, which is the thing this is not. */
+.backdrop__well {
+  position: absolute;
+  width: 78vmax;
+  height: 78vmax;
+  border-radius: 50%;
+  /* Transform only, so the drift is composited and costs no layout or paint. */
+  will-change: transform;
+}
+
+.backdrop__well--blue {
+  top: -22vmax;
+  left: -18vmax;
+  background: radial-gradient(circle closest-side, var(--color-blue), transparent);
+  animation: backdrop-drift-a 71s ease-in-out infinite;
+}
+
+.backdrop__well--red {
+  top: -14vmax;
+  right: -24vmax;
+  background: radial-gradient(circle closest-side, var(--color-red), transparent);
+  animation: backdrop-drift-b 89s ease-in-out infinite;
+}
+
+.backdrop__well--green {
+  bottom: -26vmax;
+  left: -10vmax;
+  background: radial-gradient(circle closest-side, var(--color-green), transparent);
+  animation: backdrop-drift-c 103s ease-in-out infinite;
+}
+
+.backdrop__well--yellow {
+  bottom: -20vmax;
+  right: -16vmax;
+  background: radial-gradient(circle closest-side, var(--color-yellow), transparent);
+  animation: backdrop-drift-d 79s ease-in-out infinite;
+}
+
+/* Long, and deliberately co-prime-ish periods (71s, 79s, 89s, 103s) so the
+   four never fall back into the same arrangement on any timescale a reader
+   would notice. The distances are large because the wells are large: this
+   should read as the light changing, not as shapes moving. */
+@keyframes backdrop-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(14vmax, 9vmax, 0);
+  }
+}
+
+@keyframes backdrop-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-11vmax, 13vmax, 0);
+  }
+}
+
+@keyframes backdrop-drift-c {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(12vmax, -10vmax, 0);
+  }
+}
+
+@keyframes backdrop-drift-d {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-13vmax, -8vmax, 0);
+  }
+}
+
+/* The global reduce block already collapses these durations. Stopping them
+   outright is the honest version: the grid keeps its colour, and nothing on
+   the page moves. */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop__well {
+    animation: none;
+    will-change: auto;
+  }
+}

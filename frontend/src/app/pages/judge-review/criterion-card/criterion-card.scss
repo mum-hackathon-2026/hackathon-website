@@ -16,20 +16,20 @@
 
 .criterion__title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 700;
   color: var(--color-ink);
 }
 
 .criterion__desc {
   margin: 4px 0 0;
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   color: var(--color-muted);
   line-height: 1.4;
 }
 
 .criterion__weight {
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 700;
   color: var(--color-blue);
 }
@@ -47,12 +47,14 @@
 }
 
 .guide-tag {
-  font-size: 11.5px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   padding: 3px 9px;
   border-radius: 5px;
   cursor: help;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   user-select: none;
 
   &:hover,
@@ -99,12 +101,17 @@
   color: #f8fafc;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.45),
+    0 8px 10px -6px rgba(0, 0, 0, 0.35);
   z-index: 60;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    visibility 0.18s ease;
 
   &::after {
     content: '';
@@ -136,7 +143,7 @@
 }
 
 .guide-tooltip__badge {
-  font-size: 10px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -166,14 +173,14 @@
 
 .guide-tooltip__range {
   font-family: var(--font-numeric);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   color: #94a3b8;
 }
 
 .guide-tooltip__body {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--text-2xs);
   line-height: 1.45;
   color: #e2e8f0;
 }
@@ -209,19 +216,19 @@
 
 .criterion__mark-value {
   font-family: var(--font-numeric);
-  font-size: 22px;
+  font-size: var(--text-xl);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--color-ink);
 }
 
 .criterion__mark-max {
-  font-size: 12.5px;
+  font-size: var(--text-xs);
   color: var(--color-muted);
 }
 
 .criterion__unscored {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-style: italic;
   color: var(--color-faint);
 }
@@ -243,7 +250,7 @@
 
 .criterion__contribution {
   margin: 6px 0 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-muted);
 
   strong {
@@ -260,7 +267,7 @@
 
 .criterion__note {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.6;
   color: var(--color-body);
 }

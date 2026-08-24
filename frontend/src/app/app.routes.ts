@@ -1,34 +1,39 @@
 import { Routes } from '@angular/router';
 import { adminGuard, judgeGuard, participantGuard, signedInGuard } from './core/auth/role-guard';
 import { Home } from './pages/home/home';
-import { NotFound } from './pages/not-found/not-found';
-import { MySubmission } from './pages/my-submission/my-submission';
-import { MyTeam } from './pages/my-team/my-team';
-import { Organizers } from './pages/organizers/organizers';
-import { Progress } from './pages/progress/progress';
-import { Results } from './pages/results/results';
-import { SignIn } from './pages/sign-in/sign-in';
-import { Timeline } from './pages/timeline/timeline';
+
+// Home is the only page imported eagerly. It is where most visits land, so
+// making it lazy would put a round trip in front of the first paint. Every
+// other page loads on demand: see the note above the admin dashboard for why
+// this matters here specifically.
 
 export const routes: Routes = [
   { path: '', component: Home, title: 'Monash Hackathon 2026' },
-  { path: 'timeline', component: Timeline, title: 'Timeline · Monash Hackathon 2026' },
-  { path: 'organizers', component: Organizers, title: 'Organisers · Monash Hackathon 2026' },
+  {
+    path: 'timeline',
+    loadComponent: () => import('./pages/timeline/timeline').then((m) => m.Timeline),
+    title: 'Timeline · Monash Hackathon 2026',
+  },
+  {
+    path: 'organizers',
+    loadComponent: () => import('./pages/organizers/organizers').then((m) => m.Organizers),
+    title: 'Organisers · Monash Hackathon 2026',
+  },
   {
     path: 'participant/team',
-    component: MyTeam,
+    loadComponent: () => import('./pages/my-team/my-team').then((m) => m.MyTeam),
     canActivate: [participantGuard],
     title: 'My team · Monash Hackathon 2026',
   },
   {
     path: 'participant/submission',
-    component: MySubmission,
+    loadComponent: () => import('./pages/my-submission/my-submission').then((m) => m.MySubmission),
     canActivate: [participantGuard],
     title: 'My submission · Monash Hackathon 2026',
   },
   {
     path: 'participant/progress',
-    component: Progress,
+    loadComponent: () => import('./pages/progress/progress').then((m) => m.Progress),
     canActivate: [participantGuard],
     title: 'Progress · Monash Hackathon 2026',
   },
@@ -78,11 +83,19 @@ export const routes: Routes = [
   // Every signed-in role sees results, so this is gated on sign-in, not a role.
   {
     path: 'results',
-    component: Results,
+    loadComponent: () => import('./pages/results/results').then((m) => m.Results),
     canActivate: [signedInGuard],
     title: 'Results · Monash Hackathon 2026',
   },
-  { path: 'sign-in', component: SignIn, title: 'Sign in · Monash Hackathon 2026' },
+  {
+    path: 'sign-in',
+    loadComponent: () => import('./pages/sign-in/sign-in').then((m) => m.SignIn),
+    title: 'Sign in · Monash Hackathon 2026',
+  },
   // Must stay last: the wildcard matches anything the routes above did not.
-  { path: '**', component: NotFound, title: 'Page not found · Monash Hackathon 2026' },
+  {
+    path: '**',
+    loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound),
+    title: 'Page not found · Monash Hackathon 2026',
+  },
 ];

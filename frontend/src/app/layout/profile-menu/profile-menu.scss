@@ -28,7 +28,7 @@
   border-radius: 50%;
   background: var(--role-tint);
   color: var(--role-ink);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
@@ -46,13 +46,13 @@
 }
 
 .profile-menu__name {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-ink);
 }
 
 .profile-menu__email {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-subtle);
 }
 
@@ -63,7 +63,7 @@
   border-radius: 10px;
   background: var(--role-tint);
   color: var(--role-ink);
-  font-size: 10px;
+  font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -84,7 +84,7 @@
   border-radius: 6px;
   background: none;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-red);
   text-align: left;
