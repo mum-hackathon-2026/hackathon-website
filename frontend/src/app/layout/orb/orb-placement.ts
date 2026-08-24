@@ -33,8 +33,15 @@ export interface PlacementRequest {
   readonly random?: () => number;
 }
 
-/** Candidate points per axis. 9x9 is fine-grained enough to find real gaps. */
-const GRID = 9;
+/**
+ * Candidate points per axis.
+ *
+ * 13 rather than 9 because the viable band outside a text column is narrow —
+ * far enough out to clear the text, not so far as to leave the page — and a
+ * coarse grid can step straight over it. The cost is 169 points against the
+ * text on screen, which happens only on a navigation or once scrolling stops.
+ */
+const GRID = 13;
 
 /** Breathing room between the orb's edge and any text, in pixels. */
 const COMFORT = 24;
@@ -61,7 +68,18 @@ const MOTION_SLACK = 22;
  * strands it against the edge of the display, away from anything being read.
  * This keeps it in orbit around the content instead.
  */
-const ROAM_MARGIN = 140;
+const ROAM_MARGIN = 80;
+
+/**
+ * The share of comfortable spots kept, nearest the middle of the page first.
+ *
+ * Clearance alone always favours the outermost point of the emptiest region,
+ * which on a zoomed-out browser is the far edge of the window. Ranking what is
+ * left by distance from the centre of the content and keeping only the inner
+ * portion pulls the orb back in, while still leaving enough candidates that
+ * where it goes next is not predictable.
+ */
+const CENTRE_BIAS = 0.4;
 
 /**
  * The box the text on screen occupies, or null when there is none.
@@ -108,10 +126,13 @@ export function isComfortable(point: Point, radius: number, obstacles: readonly 
 /**
  * Pick somewhere clear to land.
  *
- * Scores a grid of candidates by surrounding empty space and takes one of the
- * best. "One of" rather than "the best": among spots that are all comfortably
- * clear the orb should not be predictable, so it chooses at random from the top
- * band, preferring a spot far enough from the current one to read as a hop.
+ * Scores a grid of candidates by surrounding empty space, keeps the ones with
+ * real clearance, then narrows those to the portion nearest the middle of the
+ * page and picks at random among them. Random rather than best, because the
+ * orb should not be predictable; narrowed by centre first, because clearance
+ * on its own always points at the outermost empty pixel, which is the edge of
+ * the window. A spot far enough from the current one is preferred, so the hop
+ * reads as movement.
  *
  * When nothing is comfortable — a dense page with text everywhere — it still
  * returns the roomiest point rather than giving up, so the orb is never left
@@ -174,13 +195,27 @@ export function chooseSpot(request: PlacementRequest): Point {
     band = scored.filter((entry) => entry.clearance >= best - 1);
   }
 
+  // Of the spots that are clear, favour those nearest the middle of the page.
+  // Without this the orb drifts to whichever clear point is furthest out, which
+  // is the edge of the window rather than anywhere near what is being read.
+  const centre = content
+    ? { x: (content.left + content.right) / 2, y: (content.top + content.bottom) / 2 }
+    : { x: viewport.width / 2, y: viewport.height / 2 };
+
+  const inward = [...band].sort(
+    (a, b) =>
+      Math.hypot(a.point.x - centre.x, a.point.y - centre.y) -
+      Math.hypot(b.point.x - centre.x, b.point.y - centre.y),
+  );
+  const central = inward.slice(0, Math.max(1, Math.round(inward.length * CENTRE_BIAS)));
+
   // Prefer a visible hop, but never at the cost of landing on text.
   const travelled = current
-    ? band.filter(
+    ? central.filter(
         (entry) => Math.hypot(entry.point.x - current.x, entry.point.y - current.y) >= MIN_TRAVEL,
       )
-    : band;
-  const pool = travelled.length > 0 ? travelled : band;
+    : central;
+  const pool = travelled.length > 0 ? travelled : central;
 
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))].point;
 }

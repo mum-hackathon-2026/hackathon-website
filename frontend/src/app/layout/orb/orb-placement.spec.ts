@@ -165,24 +165,77 @@ describe('chooseSpot', () => {
 
   // The page is a centred column, so a wide display has large empty gutters.
   // Scoring alone would send the orb into one and strand it at the screen edge.
-  it('stays near the content instead of sailing into a wide gutter', () => {
-    const wide = { width: 1920, height: 900 };
+  describe('on a wide display', () => {
     // A 1120px column centred on 1920px leaves 400px of empty gutter each side.
+    const wide = { width: 1920, height: 900 };
     const column = [rect(400, 80, 1520, 860)];
 
-    for (let i = 0; i < 20; i++) {
-      const spot = chooseSpot({
-        viewport: wide,
-        obstacles: column,
-        radius: RADIUS,
-        topInset: TOP_INSET,
-        current: null,
-        random: () => i / 20,
-      });
-
-      expect(spot.x).toBeGreaterThan(400 - 140 - 1);
-      expect(spot.x).toBeLessThan(1520 + 140 + 1);
+    function spots() {
+      return Array.from({ length: 20 }, (_unused, i) =>
+        chooseSpot({
+          viewport: wide,
+          obstacles: column,
+          radius: RADIUS,
+          topInset: TOP_INSET,
+          current: null,
+          random: () => i / 20,
+        }),
+      );
     }
+
+    it('never strays far outside the content', () => {
+      for (const spot of spots()) {
+        expect(spot.x).toBeGreaterThan(400 - 81);
+        expect(spot.x).toBeLessThan(1520 + 81);
+      }
+    });
+
+    // Someone zoomed out has a wide window and a narrow column. Clearance alone
+    // points at the far edge of the window every time; the orb should hug the
+    // page instead.
+    it('hugs the column rather than the window edge', () => {
+      const windowEdge = Math.min(...spots().map((spot) => Math.min(spot.x, wide.width - spot.x)));
+      const columnEdge = Math.min(
+        ...spots().map((spot) => Math.min(Math.abs(spot.x - 400), Math.abs(spot.x - 1520))),
+      );
+
+      expect(columnEdge).toBeLessThan(windowEdge);
+    });
+
+    it('stays within the middle band of the window', () => {
+      for (const spot of spots()) {
+        expect(spot.x).toBeGreaterThan(wide.width * 0.15);
+        expect(spot.x).toBeLessThan(wide.width * 0.85);
+      }
+    });
+  });
+
+  // A real page is many separate boxes with gaps between sections and cards,
+  // not one solid block. The orb should use those gaps rather than shuttling
+  // between the same two points in the side margins.
+  it('finds varied places to sit on a realistic page', () => {
+    const wide = { width: 1680, height: 900 };
+    const sections = [
+      rect(340, 100, 1340, 260), // hero
+      rect(340, 360, 1340, 470), // a section
+      rect(340, 560, 1340, 700), // another
+      rect(340, 790, 1340, 870), // footer
+    ];
+
+    const seen = new Set(
+      Array.from({ length: 24 }, (_unused, i) =>
+        chooseSpot({
+          viewport: wide,
+          obstacles: sections,
+          radius: RADIUS,
+          topInset: TOP_INSET,
+          current: null,
+          random: () => i / 24,
+        }),
+      ).map((spot) => `${Math.round(spot.x)},${Math.round(spot.y)}`),
+    );
+
+    expect(seen.size).toBeGreaterThan(3);
   });
 
   // The target is not where the orb ends up: the spring oversteps and the bob
