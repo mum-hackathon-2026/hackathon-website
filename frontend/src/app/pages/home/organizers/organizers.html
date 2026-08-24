@@ -1,28 +1,25 @@
 <section class="organizers">
   <div class="organizers__inner">
     <p class="section-eyebrow section-eyebrow--center">Organizers</p>
-    <h2 class="section-heading section-heading--center">The team making it happen.</h2>
+    <h2 class="section-heading section-heading--center">Who runs it.</h2>
 
     <ul class="organizers__partners">
       @for (partner of partners; track partner.name) {
         <li class="organizers__partner">
-          <div class="organizers__partner-top">
-            @if (partner.logo) {
-              <div class="organizers__partner-logo-box">
-                <img
-                  [src]="partner.logo"
-                  [alt]="partner.name + ' logo'"
-                  class="organizers__partner-logo"
-                  loading="lazy"
-                />
-              </div>
-            }
-            <div class="organizers__partner-meta">
-              <p class="organizers__partner-role">{{ partner.role }}</p>
-              <p class="organizers__partner-name">{{ partner.name }}</p>
+          @if (partner.logo) {
+            <div class="organizers__partner-logo-box">
+              <img
+                [src]="partner.logo"
+                [alt]="partner.name + ' logo'"
+                class="organizers__partner-logo"
+                loading="lazy"
+              />
             </div>
+          }
+          <div class="organizers__partner-meta">
+            <p class="organizers__partner-role">{{ partner.role }}</p>
+            <p class="organizers__partner-name">{{ partner.name }}</p>
           </div>
-          <p class="organizers__partner-does">{{ partner.responsibility }}</p>
         </li>
       }
     </ul>
