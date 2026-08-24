@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { provideRouter } from '@angular/router';
 import { AuthService, SESSION_STORAGE } from '../../core/auth/auth';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG } from '../../core/event/event-config';
 import { TeamService } from '../../core/team/team';
