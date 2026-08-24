@@ -71,6 +71,7 @@ export interface JudgingCriterion {
   /** Stands in for the database-assigned id. Never persisted. */
   readonly id: number;
   readonly title: string;
+  readonly description?: string;
   readonly maxScore: number;
   readonly weight: number;
   readonly displayOrder: number;
@@ -81,6 +82,7 @@ export interface JudgingCriterion {
 export interface CriterionScoreView {
   readonly criteriaId: number;
   readonly title: string;
+  readonly description?: string;
   readonly maxScore: number;
   readonly weight: number;
   /** null when this criterion has no `scores` row yet. */
@@ -100,6 +102,8 @@ export interface AssignmentView {
   readonly summary: string;
   readonly githubUrl: string;
   readonly deployedUrl: string;
+  readonly slideDeckUrl: string;
+  readonly videoDemoUrl: string;
   readonly memberCount: number;
   readonly status: AssignmentStatus;
   readonly assignedAt: Date;
@@ -212,8 +216,16 @@ const SEED: readonly SeedAssignment[] = [
       'The strongest submission I reviewed. The adaptive scheduling is genuinely novel and ' +
       'the demo held up under questioning. I would like to have seen evidence of testing ' +
       'with real students.',
-    fractions: [0.9, 0.9, 0.85, 0.9],
-    comments: ['Genuinely novel approach.', 'Clean architecture.', '', 'Confident delivery.'],
+    fractions: [0.9, 0.9, 0.85, 0.9, 0.9, 0.85, 0.9],
+    comments: [
+      'Genuinely novel approach.',
+      'Clean architecture.',
+      '',
+      'Confident delivery.',
+      'Clear problem framing.',
+      'Creative solution.',
+      'High potential value.',
+    ],
   },
   {
     id: 2,
@@ -343,6 +355,7 @@ export class JudgeService {
           criteriaData.map((c) => ({
             id: c.id,
             title: c.title,
+            description: c.description || '',
             maxScore: Number(c.maxScore) || MAX_SCORE,
             weight: Number(c.weight) || 1,
             displayOrder: c.displayOrder ?? 0,
@@ -381,6 +394,7 @@ export class JudgeService {
               return {
                 criteriaId: c.id,
                 title: c.title,
+                description: c.description || '',
                 maxScore,
                 weight,
                 score,
@@ -402,6 +416,8 @@ export class JudgeService {
               summary: a.summary || '',
               githubUrl: a.githubUrl || '',
               deployedUrl: a.deployedUrl || '',
+              slideDeckUrl: a.slideDeckUrl || '',
+              videoDemoUrl: a.videoDemoUrl || '',
               memberCount: a.memberCount ?? 0,
               status: a.status as AssignmentStatus,
               assignedAt: a.assignedAt ? new Date(a.assignedAt) : new Date(),
@@ -435,7 +451,8 @@ export class JudgeService {
       .map((criterion, i) => ({
         id: i + 1,
         title: criterion.name,
-        maxScore: MAX_SCORE,
+        description: '',
+        maxScore: criterion.weight,
         weight: criterion.weight,
         displayOrder: i,
         isActive: true,
@@ -739,6 +756,7 @@ export class JudgeService {
       return {
         criteriaId: criterion.id,
         title: criterion.title,
+        description: criterion.description || '',
         maxScore: criterion.maxScore,
         weight: criterion.weight,
         score: row?.score ?? null,
@@ -760,6 +778,8 @@ export class JudgeService {
       summary: seed.summary,
       githubUrl: seed.githubUrl,
       deployedUrl: seed.deployedUrl,
+      slideDeckUrl: '',
+      videoDemoUrl: '',
       memberCount: seed.memberCount,
       status: assignment.status,
       assignedAt: assignment.assignedAt,

@@ -100,7 +100,7 @@ describe('JudgePortal', () => {
       const resume = el.querySelectorAll('.resume__card');
       expect(resume.length).toBe(1);
       expect(resume[0].textContent).toContain('DataForge');
-      expect(resume[0].textContent).toContain('1 of 4 criteria scored');
+      expect(resume[0].textContent).toContain('1 of 7 criteria scored');
     });
 
     it('lists every assignment on the assignments tab', async () => {
@@ -230,9 +230,9 @@ describe('JudgePortal', () => {
       const cards = host().querySelectorAll('.done__card');
       expect(cards.length).toBe(1);
       expect(cards[0].textContent).toContain('NeuralNest');
-      // 0.9·30 + 0.9·30 + 0.85·25 + 0.9·15 = 88.75 → 88.8
+      // 0.9·15 + 0.9·25 + 0.85·15 + 0.9·15 + 0.9·10 + 0.85·10 + 0.9·10 = 88.75 → 88.8
       expect(host().querySelector('.done__score')?.textContent).toContain('88.8');
-      expect(host().querySelectorAll('.done__chip').length).toBe(4);
+      expect(host().querySelectorAll('.done__chip').length).toBe(7);
     });
   });
 

@@ -48,6 +48,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/event/**").permitAll()
+                        .requestMatchers("/api/results").permitAll()
                         .requestMatchers("/api/webhooks/**", "/api/webhook/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("admin")
                         .requestMatchers("/api/judge/**").hasAuthority("judge")

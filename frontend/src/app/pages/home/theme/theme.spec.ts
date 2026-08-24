@@ -93,13 +93,13 @@ describe('ThemeSection', () => {
 
     it('follows the settings when an organiser changes the limits', async () => {
       const fixture = await render();
-      expect(blurb(fixture)).toContain('up to 4 members');
+      expect(blurb(fixture)).toContain('2 to 5 members');
 
       const result = await TestBed.inject(EventSettingsService).update({ maxTeamSize: 6 });
       expect(result.ok, 'raising the cap should be accepted').toBe(true);
       await fixture.whenStable();
 
-      expect(blurb(fixture)).toContain('up to 6 members');
+      expect(blurb(fixture)).toContain('2 to 6 members');
     });
   });
 });

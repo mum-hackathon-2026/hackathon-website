@@ -17,6 +17,8 @@ function row(
     summary: 'A summary.',
     githubUrl: 'https://github.com/example/repo',
     deployedUrl: 'https://example.com',
+    slideDeckUrl: '',
+    videoDemoUrl: '',
     memberCount: 4,
     status,
     assignedAt: new Date('2026-10-10T09:00:00+08:00'),

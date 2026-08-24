@@ -12,9 +12,10 @@ const CONFIG: EventConfig = {
     submissionDeadlineAt: new Date('2026-10-09T23:59:00+08:00'),
     judgingOpen: false,
     resultsPublishedAt: new Date('2026-10-19T10:00:00+08:00'),
-    minTeamSize: 1,
-    maxTeamSize: 4,
+    minTeamSize: 2,
+    maxTeamSize: 5,
     screeningEnabled: false,
+    judgesPerTeam: 3,
   },
   site: {
     university: 'Monash University Malaysia',
@@ -25,8 +26,7 @@ const CONFIG: EventConfig = {
     teamRegistrationFormUrl: 'https://forms.gle/test-team-registration',
     projectSubmissionFormUrl: 'https://forms.gle/test-project-submission',
     studentEmailDomain: 'student.monash.edu',
-    // Three tracks, because the seed indexes teams into 0, 1 and 2.
-    tracks: ['Open Innovation', 'Sustainability', 'HealthTech'],
+    tracks: ['Open Innovation'],
     judgingCriteria: [
       { name: 'Innovation', weight: 30 },
       { name: 'Technical Execution', weight: 30 },
@@ -96,7 +96,7 @@ describe('ResultsService', () => {
       setUp();
       const rows = results.rankings();
 
-      expect(rows.length).toBe(results.totalTeams);
+      expect(rows.length).toBe(results.totalTeams());
       expect(rows[0].teamName).toBe('NeuralNest');
       for (let i = 1; i < rows.length; i++) {
         expect(rows[i].finalScore!).toBeLessThanOrEqual(rows[i - 1].finalScore!);
@@ -149,8 +149,7 @@ describe('ResultsService', () => {
       const byTeam = new Map(results.rankings().map((r) => [r.teamName, r.trackLabel]));
 
       expect(byTeam.get('NeuralNest')).toBe('Open Innovation');
-      expect(byTeam.get('EcoTrace')).toBe('Sustainability');
-      expect(byTeam.get('DataForge')).toBe('HealthTech');
+      expect(byTeam.get('Quantum Leap')).toBe('Open Innovation');
     });
 
     it('marks no row as mine when the reader has no team', () => {
@@ -256,28 +255,18 @@ describe('ResultsService', () => {
      * cannot disagree. Hardcoding a winner here would let a seed change ship a
      * page that crowns one team and ranks another first.
      */
-    it('awards the top three overall to the top three ranked teams', () => {
+    it('awards the top three cash prizes to the top three ranked teams', () => {
       setUp();
       const rows = results.rankings();
-      const overall = results.awards().filter((a) => a.category === 'overall');
+      const overall = results.awards();
 
+      expect(overall.length).toBe(3);
       expect(overall.map((a) => a.teamName)).toEqual(rows.slice(0, 3).map((r) => r.teamName));
       expect(overall.map((a) => a.title)).toEqual([
-        '1st Place Overall',
-        '2nd Place Overall',
-        '3rd Place Overall',
+        '1st Place Overall · RM 5,000',
+        '2nd Place Overall · RM 3,000',
+        '3rd Place Overall · RM 1,000',
       ]);
-    });
-
-    it('gives every track its highest-scoring team', () => {
-      setUp();
-      const rows = results.rankings();
-
-      for (const track of CONFIG.site.tracks) {
-        const award = results.awards().find((a) => a.title === `Best ${track}`)!;
-        const best = rows.find((r) => r.trackLabel === track)!;
-        expect(award.teamName).toBe(best.teamName);
-      }
     });
 
     it('names the project as well as the team on every award', () => {

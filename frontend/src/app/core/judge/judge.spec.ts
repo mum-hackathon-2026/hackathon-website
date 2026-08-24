@@ -71,21 +71,21 @@ describe('weightedTotal', () => {
   });
 
   it('reaches exactly 100 when every criterion is maxed', () => {
-    expect(weightedTotal(rowsAt([1, 1, 1, 1]))).toBeCloseTo(100, 6);
+    expect(weightedTotal(rowsAt([1, 1, 1, 1, 1, 1, 1]))).toBeCloseTo(100, 6);
   });
 
   it('halves when every criterion is half', () => {
-    expect(weightedTotal(rowsAt([0.5, 0.5, 0.5, 0.5]))).toBeCloseTo(50, 6);
+    expect(weightedTotal(rowsAt([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]))).toBeCloseTo(50, 6);
   });
 
   it('gives a partial total when only some criteria are scored', () => {
-    // Innovation alone, at full marks, is worth exactly its own weight.
+    // System Design & Architecture alone, at full marks, is worth exactly its own weight.
     expect(weightedTotal(rowsAt([1]))).toBeCloseTo(criteria[0].weight, 6);
   });
 
   it('weights each criterion by its own share', () => {
-    // 8/10·30 + 9/10·30 + 7.5/10·25 + 6/10·15 = 78.75
-    expect(weightedTotal(rowsAt([0.8, 0.9, 0.75, 0.6]))).toBeCloseTo(78.75, 6);
+    // 0.8*15 + 0.9*25 + 0.75*15 + 0.6*15 + 0.8*10 + 0.8*10 + 0.8*10 = 78.75
+    expect(weightedTotal(rowsAt([0.8, 0.9, 0.75, 0.6, 0.8, 0.8, 0.8]))).toBeCloseTo(78.75, 6);
   });
 
   it('uses the snapshots, not the live criteria', () => {
@@ -167,7 +167,7 @@ describe('JudgeService', () => {
       await service.saveDraft(PENDING, draftAt(service, 0.5));
 
       const view = service.viewFor(PENDING)!;
-      expect(view.scoredCount).toBe(4);
+      expect(view.scoredCount).toBe(service.criteria().length);
       expect(view.weightedTotal).toBeCloseTo(50, 6);
       expect(view.allScored).toBe(true);
     });
@@ -175,7 +175,7 @@ describe('JudgeService', () => {
     it('deletes the row when a score is cleared rather than storing a null', async () => {
       const service = setUp();
       await service.saveDraft(PENDING, draftAt(service, 0.8));
-      expect(service.viewFor(PENDING)?.scoredCount).toBe(4);
+      expect(service.viewFor(PENDING)?.scoredCount).toBe(service.criteria().length);
 
       const cleared = draftAt(service, 0.8);
       await service.saveDraft(PENDING, {
@@ -184,7 +184,7 @@ describe('JudgeService', () => {
       });
 
       const view = service.viewFor(PENDING)!;
-      expect(view.scoredCount).toBe(3);
+      expect(view.scoredCount).toBe(service.criteria().length - 1);
       expect(view.scores[0].score).toBeNull();
       expect(view.scores[0].contribution).toBeNull();
       expect(view.allScored).toBe(false);
@@ -323,9 +323,9 @@ describe('JudgeService', () => {
     it('rejects anything outside it', async () => {
       expect(await save(setUp(), -0.01)).toEqual({
         ok: false,
-        error: 'Innovation must be between 0 and 10.',
+        error: 'System Design & Architecture must be between 0 and 15.',
       });
-      expect((await save(setUp(), 10.01)).ok).toBe(false);
+      expect((await save(setUp(), 15.01)).ok).toBe(false);
       expect((await save(setUp(), Number.NaN)).ok).toBe(false);
       expect((await save(setUp(), Number.POSITIVE_INFINITY)).ok).toBe(false);
     });
@@ -361,7 +361,7 @@ describe('JudgeService', () => {
         overallFeedback: '',
       });
 
-      expect(result).toEqual({ ok: false, error: 'Innovation was scored twice.' });
+      expect(result).toEqual({ ok: false, error: 'System Design & Architecture was scored twice.' });
     });
 
     it('refuses an assignment belonging to another judge', async () => {

@@ -31,8 +31,9 @@ class EventSettingsRepositoryTest {
         assertThat(settings.isJudgingOpen()).isFalse();
         assertThat(settings.isScreeningEnabled()).isFalse();
         assertThat(settings.getResultsPublishedAt()).isNull();
-        assertThat(settings.getMinTeamSize()).isEqualTo(1);
-        assertThat(settings.getMaxTeamSize()).isEqualTo(4);
+        assertThat(settings.getMinTeamSize()).isEqualTo(2);
+        assertThat(settings.getMaxTeamSize()).isEqualTo(5);
+        assertThat(settings.getJudgesPerTeam()).isEqualTo(3);
         assertThat(settings.getUpdatedBy()).isNull();
         assertThat(eventSettingsRepository.count())
                 .as("event_settings is a singleton")

@@ -10,9 +10,10 @@ const BASE: EventConfig = {
     submissionDeadlineAt: new Date('2026-10-09T23:59:00+08:00'),
     judgingOpen: false,
     resultsPublishedAt: new Date('2026-10-19T10:00:00+08:00'),
-    minTeamSize: 1,
-    maxTeamSize: 4,
+    minTeamSize: 2,
+    maxTeamSize: 5,
     screeningEnabled: false,
+    judgesPerTeam: 3,
   },
   site: {
     university: 'Monash University Malaysia',

@@ -72,8 +72,8 @@ describe('EVENT_CONFIG', () => {
      * site would accept a team the insert then rejects.
      */
     it('matches the limits the database defaults to', () => {
-      expect(settings.minTeamSize).toBe(1);
-      expect(settings.maxTeamSize).toBe(4);
+      expect(settings.minTeamSize).toBe(2);
+      expect(settings.maxTeamSize).toBe(5);
     });
 
     // V1 constrains the pair, not either field alone.

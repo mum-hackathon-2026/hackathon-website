@@ -36,7 +36,7 @@
           <div class="headline">
             <div class="headline__rank">
               <span class="headline__rank-value"> {{ mine.tied ? '=' : '' }}#{{ mine.rank }} </span>
-              <span class="headline__rank-label">of {{ totalTeams }} teams</span>
+              <span class="headline__rank-label">of {{ totalTeams() }} teams</span>
             </div>
             <div class="headline__meta">
               <h2 class="headline__project">{{ mine.projectTitle }}</h2>
@@ -90,7 +90,7 @@
       <!-- ── Awards ─────────────────────────────────────────────────────── -->
 
       @case ('awards') {
-        <h3 class="section-title">Overall</h3>
+        <h3 class="section-title">Prize Winners</h3>
         <ul class="awards">
           @for (award of overallAwards(); track award.id) {
             <li class="awards__card" [class.awards__card--mine]="award.isMine">
@@ -106,25 +106,8 @@
           }
         </ul>
 
-        <h3 class="section-title">By track</h3>
-        <ul class="awards">
-          @for (award of trackAwards(); track award.id) {
-            <li class="awards__card" [class.awards__card--mine]="award.isMine">
-              <div class="awards__heading">
-                <h4 class="awards__title">{{ award.title }}</h4>
-                @if (award.isMine) {
-                  <span class="awards__you">Your team</span>
-                }
-              </div>
-              <p class="awards__team">{{ award.teamName }} — {{ award.projectTitle }}</p>
-              <p class="awards__description">{{ award.description }}</p>
-            </li>
-          }
-        </ul>
-
         <p class="note">
-          Overall and track awards follow directly from the final scores. Special awards are a
-          committee decision and are announced at the ceremony.
+          Cash prizes are awarded to the top three teams based on final verified evaluations — RM 5,000 for 1st place, RM 3,000 for 2nd place, and RM 1,000 for 3rd place.
         </p>
       }
 

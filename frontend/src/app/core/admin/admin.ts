@@ -280,6 +280,7 @@ const SETTING_LABELS = (key: keyof EventSettingsPatch): string =>
     minTeamSize: 'minimum team size',
     maxTeamSize: 'maximum team size',
     screeningEnabled: 'screening',
+    judgesPerTeam: 'judges per team',
   })[key] ?? key;
 
 /**
@@ -995,8 +996,9 @@ export class AdminService {
   /** Owns `event_settings`; this service writes through it so one copy stays authoritative. */
   private readonly eventSettings = inject(EventSettingsService);
   private readonly http = inject(HttpClient, { optional: true });
-  private readonly apiBaseUrl =
-    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080/api';
+  private readonly apiBaseUrl = (
+    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080'
+  ).replace(/\/api$/, '');
 
   private readonly liveTeams = signal<readonly AdminTeamRow[] | null>(null);
   private readonly liveParticipants = signal<readonly AdminParticipantRow[] | null>(null);
@@ -1004,6 +1006,7 @@ export class AdminService {
   private readonly liveAssignments = signal<readonly AdminAssignmentRow[] | null>(null);
   private readonly liveAudit = signal<readonly AuditEntry[] | null>(null);
   private readonly liveStats = signal<AdminStats | null>(null);
+  private readonly liveResults = signal<readonly AdminResultRow[] | null>(null);
 
   /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
   private readonly rows = signal<readonly SeedTeam[]>(SEED);
@@ -1041,6 +1044,7 @@ export class AdminService {
         this.liveAssignments.set(null);
         this.liveAudit.set(null);
         this.liveStats.set(null);
+        this.liveResults.set(null);
       }
     });
   }
@@ -1050,7 +1054,7 @@ export class AdminService {
     try {
       const token = this.auth.token();
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const [overview, teams, participants, judges, assignments, audit] = await Promise.all([
+      const [overview, teams, participants, judges, assignments, audit, results] = await Promise.all([
         firstValueFrom(
           this.http.get<{ stats: AdminStats; recentAudit: any[] }>(
             `${this.apiBaseUrl}/api/admin/overview`,
@@ -1066,6 +1070,7 @@ export class AdminService {
           this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/assignments`, { headers }),
         ),
         firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/audit`, { headers })),
+        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/results`, { headers })),
       ]);
 
       if (overview?.stats) {
@@ -1102,6 +1107,14 @@ export class AdminService {
           audit.map((al: any) => ({
             ...al,
             at: new Date(al.at),
+          })),
+        );
+      }
+      if (results) {
+        this.liveResults.set(
+          results.map((r: any) => ({
+            ...r,
+            publishedAt: r.publishedAt ? new Date(r.publishedAt) : null,
           })),
         );
       }
@@ -1168,7 +1181,7 @@ export class AdminService {
       return this.liveTeams()!;
     }
     const tracks = this.config.site.tracks;
-    const { minTeamSize } = this.config.settings;
+    const minTeamSize = this.eventSettings.minTeamSize();
     const judgingOpen = this.phaseService.judgingOpen();
 
     const reviews = this.reviewsByTeam();
@@ -1293,6 +1306,9 @@ export class AdminService {
   private readonly publishedAt = signal<ReadonlyMap<number, Date>>(new Map());
 
   readonly results = computed<readonly AdminResultRow[]>(() => {
+    if (this.liveResults() !== null) {
+      return this.liveResults()!;
+    }
     const byId = new Map(this.teams().map((team) => [team.teamId, team]));
     const published = this.publishedAt();
 
@@ -1763,13 +1779,40 @@ export class AdminService {
    * results page, and `unpublishResults` closes it again.
    */
   publishResults(): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const publishable = this.results().filter((row) => row.finalScore !== null);
       if (publishable.length === 0) {
         return { ok: false, error: 'No team has a score yet, so there is nothing to publish.' };
       }
       if (publishable.every((row) => row.publishedAt !== null)) {
         return { ok: false, error: 'Every scored result is already published.' };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          const res = await firstValueFrom(
+            this.http.post<any[]>(
+              `${this.apiBaseUrl}/api/admin/results/publish`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          if (res) {
+            this.liveResults.set(
+              res.map((r: any) => ({
+                ...r,
+                publishedAt: r.publishedAt ? new Date(r.publishedAt) : null,
+              })),
+            );
+          }
+          void this.refreshAll();
+          this.log('result', 'Results published', `${publishable.length} teams`);
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to publish results.';
+          return { ok: false, error: errorMsg };
+        }
       }
 
       const at = new Date();
@@ -1789,9 +1832,28 @@ export class AdminService {
 
   /** Clears every `published_at`, putting the results back out of sight. */
   unpublishResults(): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const count = this.results().filter((row) => row.publishedAt !== null).length;
       if (count === 0) return { ok: false, error: 'Nothing is published.' };
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/results/unpublish`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          this.log('result', 'Results unpublished', `${count} teams`);
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to unpublish results.';
+          return { ok: false, error: errorMsg };
+        }
+      }
 
       this.publishedAt.set(new Map());
       // Closes the participant page again, for the same reason publishing opens it.
@@ -1816,6 +1878,37 @@ export class AdminService {
   async updateSettings(patch: EventSettingsPatch): Promise<AdminActionResult> {
     this.inFlight.update((n) => n + 1);
     try {
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        const headers = { Authorization: `Bearer ${token}` };
+        const body: Record<string, any> = {
+          eventName: patch.eventName,
+          registrationOpensAt: patch.registrationOpensAt ? patch.registrationOpensAt.toISOString() : null,
+          registrationClosesAt: patch.registrationClosesAt ? patch.registrationClosesAt.toISOString() : null,
+          submissionDeadlineAt: patch.submissionDeadlineAt ? patch.submissionDeadlineAt.toISOString() : null,
+          resultsPublishedAt: patch.resultsPublishedAt ? patch.resultsPublishedAt.toISOString() : null,
+          judgingOpen: patch.judgingOpen,
+          minTeamSize: patch.minTeamSize,
+          maxTeamSize: patch.maxTeamSize,
+          screeningEnabled: patch.screeningEnabled,
+          judgesPerTeam: patch.judgesPerTeam,
+        };
+
+        try {
+          const res = await firstValueFrom(
+            this.http.patch<any>(`${this.apiBaseUrl}/api/admin/settings`, body, { headers }),
+          );
+          if (res) {
+            this.eventSettings.applyBackendSettings(res);
+          }
+          await this.refreshAll();
+          return { ok: true };
+        } catch (e: any) {
+          const errorMsg = e.error?.error || e.message || 'Failed to save event settings.';
+          return { ok: false, error: errorMsg };
+        }
+      }
+
       const before = this.eventSettings.settings();
       const result = await this.eventSettings.update(patch);
       if (!result.ok) return result;

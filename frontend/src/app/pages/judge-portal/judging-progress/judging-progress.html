@@ -1,18 +1,50 @@
 @if (stats(); as s) {
-  <ul class="tiles">
-    <li class="tiles__tile">
+  <ul class="tiles" role="list">
+    <li
+      class="tiles__tile"
+      tabindex="0"
+      role="button"
+      title="View all assigned teams"
+      (click)="selectFilter('all')"
+      (keydown.enter)="selectFilter('all')"
+      (keydown.space)="selectFilter('all'); $event.preventDefault()"
+    >
       <span class="tiles__value">{{ s.total }}</span>
       <span class="tiles__label">Assigned</span>
     </li>
-    <li class="tiles__tile tiles__tile--green">
+    <li
+      class="tiles__tile tiles__tile--green"
+      tabindex="0"
+      role="button"
+      title="View completed reviews"
+      (click)="selectFilter('completed')"
+      (keydown.enter)="selectFilter('completed')"
+      (keydown.space)="selectFilter('completed'); $event.preventDefault()"
+    >
       <span class="tiles__value">{{ s.completed }}</span>
       <span class="tiles__label">Completed</span>
     </li>
-    <li class="tiles__tile tiles__tile--amber">
+    <li
+      class="tiles__tile tiles__tile--amber"
+      tabindex="0"
+      role="button"
+      title="View in-progress reviews"
+      (click)="selectFilter('in_progress')"
+      (keydown.enter)="selectFilter('in_progress')"
+      (keydown.space)="selectFilter('in_progress'); $event.preventDefault()"
+    >
       <span class="tiles__value">{{ s.inProgress }}</span>
       <span class="tiles__label">In progress</span>
     </li>
-    <li class="tiles__tile">
+    <li
+      class="tiles__tile"
+      tabindex="0"
+      role="button"
+      title="View not started reviews"
+      (click)="selectFilter('pending')"
+      (keydown.enter)="selectFilter('pending')"
+      (keydown.space)="selectFilter('pending'); $event.preventDefault()"
+    >
       <span class="tiles__value">{{ s.pending }}</span>
       <span class="tiles__label">Not started</span>
     </li>

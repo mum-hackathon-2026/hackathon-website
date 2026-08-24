@@ -10,4 +10,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     /** Every judge assigned to one team. */
     List<Assignment> findByTeamId(Long teamId);
+
+    /** Check whether a judge is already assigned to a team. */
+    java.util.Optional<Assignment> findByJudgeIdAndTeamId(Long judgeId, Long teamId);
 }

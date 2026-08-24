@@ -15,16 +15,37 @@
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+    border-color: var(--color-blue);
+    outline: none;
+  }
 }
 
 .tiles__tile--green {
   border-color: color-mix(in srgb, var(--color-green) 30%, transparent);
   background: var(--color-green-tint);
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--color-green);
+  }
 }
 
 .tiles__tile--amber {
   border-color: color-mix(in srgb, var(--color-yellow) 40%, transparent);
   background: var(--color-amber-tint);
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--color-amber-ink);
+  }
 }
 
 .tiles__value {

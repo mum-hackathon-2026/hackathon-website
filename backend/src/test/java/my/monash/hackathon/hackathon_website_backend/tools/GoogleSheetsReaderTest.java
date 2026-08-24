@@ -126,6 +126,12 @@ class GoogleSheetsReaderTest {
                 "Member 1: Year of Study",
                 "Member 1: Semester",
                 "Member 1: Dietary Restrictions",
+                "Member 2: Full Name (First & Family Name)",
+                "Member 2: Email Address",
+                "Member 2: Phone / WhatsApp Number",
+                "Member 2: Resume / CV (PDF)",
+                "Member 2: LinkedIn Profile URL",
+                "Member 2: GitHub Profile URL",
                 "Do you want to add another team member?",
                 "Do you want to add another team member?"
         );
@@ -137,19 +143,25 @@ class GoogleSheetsReaderTest {
                 "+60 11-111 1111",
                 "Male",
                 "Monash",
-                "Solo Squad",
+                "Duo Squad",
                 "Real Leader",
                 "leader@example.com",
                 "+60 12-000 0000",
                 "https://drive.google.com/file/d/leader/view",
                 "https://www.linkedin.com/in/leader",
                 "https://github.com/leader",
-                "No",
+                "Yes",
                 "Monash University",
                 "Computer Science",
                 "Year 2",
                 "Semester 1",
                 "None",
+                "Second Member",
+                "second@example.com",
+                "+60 12-111 1111",
+                "https://drive.google.com/file/d/second/view",
+                "https://www.linkedin.com/in/second",
+                "https://github.com/second",
                 "No",
                 "No"
         ));
@@ -158,7 +170,7 @@ class GoogleSheetsReaderTest {
         assertThat(sheet.rows()).hasSize(1);
 
         TeamRow team = TeamRow.from(sheet.rows().getFirst());
-        assertThat(team.teamName()).isEqualTo("Solo Squad");
+        assertThat(team.teamName()).isEqualTo("Duo Squad");
         assertThat(team.leader().fullName()).isEqualTo("Real Leader");
         assertThat(team.leader().phone()).isEqualTo("+60 12-000 0000");
     }

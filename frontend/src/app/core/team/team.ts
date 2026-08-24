@@ -131,6 +131,7 @@ function seedMembers(): TeamMember[] {
     { userId: 106, teamId: 103, joinedAt },
     { userId: 107, teamId: 103, joinedAt },
     { userId: 108, teamId: 103, joinedAt },
+    { userId: 109, teamId: 103, joinedAt },
   ];
 }
 

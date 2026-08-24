@@ -75,11 +75,13 @@ public class JudgeBackendService {
                     .map(score -> {
                         JudgingCriteria criterion = criteriaMap.get(score.getCriteria().getId());
                         String title = criterion != null ? criterion.getTitle() : "Criterion #" + score.getCriteria().getId();
+                        String description = criterion != null && criterion.getDescription() != null ? criterion.getDescription() : "";
                         BigDecimal maxScore = score.getCriteriaMaxScoreSnapshot();
                         BigDecimal weight = score.getCriteriaWeightSnapshot();
                         return new CriterionScoreResponse(
                                 score.getCriteria().getId(),
                                 title,
+                                description,
                                 maxScore,
                                 weight,
                                 score.getScore(),
@@ -291,9 +293,11 @@ public class JudgeBackendService {
                 .map(score -> {
                     JudgingCriteria criterion = criteriaMap.get(score.getCriteria().getId());
                     String title = criterion != null ? criterion.getTitle() : "Criterion #" + score.getCriteria().getId();
+                    String description = criterion != null && criterion.getDescription() != null ? criterion.getDescription() : "";
                     return new CriterionScoreResponse(
                             score.getCriteria().getId(),
                             title,
+                            description,
                             score.getCriteriaMaxScoreSnapshot(),
                             score.getCriteriaWeightSnapshot(),
                             score.getScore(),

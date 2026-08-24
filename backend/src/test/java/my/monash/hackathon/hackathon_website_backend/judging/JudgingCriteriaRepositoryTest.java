@@ -55,6 +55,7 @@ class JudgingCriteriaRepositoryTest {
 
     @Test
     void findsOnlyActiveCriteriaInDisplayOrder() {
+        judgingCriteriaRepository.deleteAll();
         judgingCriteriaRepository.save(orderedCriteria("Third Thing", 30, true));
         judgingCriteriaRepository.save(orderedCriteria("First Thing", 10, true));
         judgingCriteriaRepository.save(orderedCriteria("Retired Thing", 20, false));

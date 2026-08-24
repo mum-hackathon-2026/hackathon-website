@@ -231,16 +231,20 @@ describe('Results', () => {
       expect(mine[0].textContent).toContain('Quantum Leap');
     });
 
-    it('names one winner per configured track', async () => {
+    it('names the top three cash prize winners', async () => {
       const { fixture, host } = await render();
       await openTab(fixture, host, 'Awards');
 
       const titles = Array.from(host.querySelectorAll('.awards__title')).map((el) =>
         el.textContent?.trim(),
       );
-      for (const track of DEFAULT_EVENT_CONFIG.site.tracks) {
-        expect(titles).toContain(`Best ${track}`);
-      }
+      expect(titles.length).toBe(3);
+      expect(titles[0]).toContain('1st Place Overall');
+      expect(titles[0]).toContain('RM 5,000');
+      expect(titles[1]).toContain('2nd Place Overall');
+      expect(titles[1]).toContain('RM 3,000');
+      expect(titles[2]).toContain('3rd Place Overall');
+      expect(titles[2]).toContain('RM 1,000');
     });
   });
 });

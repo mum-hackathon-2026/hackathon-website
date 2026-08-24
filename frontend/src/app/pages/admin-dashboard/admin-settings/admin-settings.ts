@@ -24,6 +24,7 @@ interface SettingsDraft {
   minTeamSize: number;
   maxTeamSize: number;
   screeningEnabled: boolean;
+  judgesPerTeam: number;
 }
 
 const MYT_MINUTES = 8 * 60;
@@ -130,7 +131,10 @@ export class AdminSettings {
   }
 
   /** Numbers arrive from the DOM as strings; an empty box must not become 0. */
-  protected updateNumber(field: 'minTeamSize' | 'maxTeamSize', value: string): void {
+  protected updateNumber(
+    field: 'minTeamSize' | 'maxTeamSize' | 'judgesPerTeam',
+    value: string,
+  ): void {
     const parsed = Number.parseInt(value, 10);
     this.update(field, Number.isNaN(parsed) ? 0 : parsed);
   }
@@ -153,6 +157,7 @@ export class AdminSettings {
       minTeamSize: draft.minTeamSize,
       maxTeamSize: draft.maxTeamSize,
       screeningEnabled: draft.screeningEnabled,
+      judgesPerTeam: draft.judgesPerTeam,
     });
 
     if (result.ok) {
@@ -189,6 +194,7 @@ function toDraft(settings: EventSettings): SettingsDraft {
     minTeamSize: settings.minTeamSize,
     maxTeamSize: settings.maxTeamSize,
     screeningEnabled: settings.screeningEnabled,
+    judgesPerTeam: settings.judgesPerTeam,
   };
 }
 

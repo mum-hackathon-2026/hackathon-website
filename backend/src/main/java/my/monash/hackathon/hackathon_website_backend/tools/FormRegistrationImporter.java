@@ -645,8 +645,8 @@ public final class FormRegistrationImporter {
         System.out.println("A member block is all six columns or none at all: "
                 + String.join(", ", TeamRow.fieldLabels()) + ".");
         System.out.println("Member 1 is the leader and every row has one, so its six columns are "
-                + "always required. Members 2-4 may be left out of the form entirely, but a team "
-                + "with fewer than four members leaves those columns EMPTY - it does not omit "
+                + "always required. Members 2-5 may be left out of the form entirely, but a team "
+                + "with fewer than five members leaves those columns EMPTY - it does not omit "
                 + "them. A block with only some of its columns is a mis-titled question, and "
                 + "importing it would silently store nulls for data the form did collect.");
         System.out.println();
@@ -799,7 +799,7 @@ public final class FormRegistrationImporter {
                   Team Name
                   Member 1 Name, Member 1 Email, Member 1 Phone, Member 1 Resume,
                   Member 1 LinkedIn, Member 1 GitHub
-                  ... and the same six for Member 2, Member 3 and Member 4.
+                  ... and the same six for Member 2, Member 3, Member 4 and Member 5.
 
                 Member N GitHub is the PERSON's GitHub account, collected so admins can
                 screen applicants. It is not a project repository - this tool never

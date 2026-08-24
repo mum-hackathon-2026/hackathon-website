@@ -244,7 +244,7 @@ class FormRegistrationImporterTest {
         Path file = csv("one-bad-row.csv",
                 header(4),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Good Team") + ","
-                        + member("Alpha One") + "," + NO_MEMBER + "," + NO_MEMBER + "," + NO_MEMBER,
+                        + member("Alpha One") + "," + member("Beta Two") + "," + NO_MEMBER + "," + NO_MEMBER,
                 "2026/08/01 9:05:00 AM GMT+8," + team("Bad Team") + ","
                         + "Broken Person,not-an-email,+60 12-000 0000,"
                         + "https://drive.google.com/file/d/broken/view,"
@@ -261,7 +261,7 @@ class FormRegistrationImporterTest {
                 .doesNotContain("1 row need a human");
 
         // A rejection does not cost the good row its import.
-        assertThat(countUsers()).isEqualTo(1);
+        assertThat(countUsers()).isEqualTo(2);
         assertThat(countTeams()).isEqualTo(1);
     }
 
@@ -392,17 +392,23 @@ class FormRegistrationImporterTest {
                         + "Member 1: LinkedIn Profile URL,Member 1: GitHub Profile URL,"
                         + "Do you want to add another team member?,Member 1: University,Member 1: Major,"
                         + "Member 1: Year of Study,Member 1: Semester,Member 1: Dietary Restrictions,"
+                        + "Member 2: Full Name (First & Family Name),Member 2: Email Address,"
+                        + "Member 2: Phone / WhatsApp Number,Member 2: Resume / CV (PDF),"
+                        + "Member 2: LinkedIn Profile URL,Member 2: GitHub Profile URL,"
                         + "Do you want to add another team member?",
                 "2026/08/01 9:00:00 AM GMT+8,Primary Guy,primary@" + EMAIL_DOMAIN + ",+60 11-111 1111,Male,Monash,"
                         + team("Unknown Cols") + ",Real Leader," + email("Real Leader") + ",+60 12-000 0000,"
                         + "https://drive.google.com/file/d/real/view,https://www.linkedin.com/in/real,"
-                        + "https://github.com/real,No,Monash,CS,Y2,S1,None,No");
+                        + "https://github.com/real,Yes,Monash,CS,Y2,S1,None,"
+                        + "Second Member," + email("Second Member") + ",+60 12-111 1111,"
+                        + "https://drive.google.com/file/d/sec/view,https://www.linkedin.com/in/sec,"
+                        + "https://github.com/sec,No");
 
         Run run = runImporter("--file=" + file);
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
         assertThat(run.output()).contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0");
-        assertThat(countUsers()).isEqualTo(1);
+        assertThat(countUsers()).isEqualTo(2);
 
         // Ensure leader's phone was stored, not primary contact's phone
         assertThat(queryString("select phone from users where email = ?", email("Real Leader")))
@@ -412,8 +418,8 @@ class FormRegistrationImporterTest {
     @Test
     void exitCodeIsTwoWhenTheDatabaseIsUnreachable() throws IOException {
         Path file = csv("unreachable.csv",
-                header(1),
-                "2026/08/01 9:00:00 AM GMT+8," + team("Anyone") + "," + member("Alpha One"));
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Anyone") + "," + member("Alpha One") + "," + member("Beta Two"));
 
         // Port 1 is reserved and nothing listens on it, so this refuses immediately.
         PrintStream originalOut = System.out;

@@ -87,7 +87,7 @@ class JudgeControllerTest {
     @Test
     void saveDraftReturnsUpdatedAssignment() throws Exception {
         var scoreResp = new CriterionScoreResponse(
-                1L, "Innovation", new BigDecimal("10.00"), new BigDecimal("25.00"),
+                1L, "Innovation", "How novel is the approach", new BigDecimal("10.00"), new BigDecimal("25.00"),
                 new BigDecimal("8.50"), "Great idea", new BigDecimal("10.00"), new BigDecimal("25.00")
         );
         var resp = new JudgeAssignmentResponse(
@@ -109,7 +109,7 @@ class JudgeControllerTest {
     @Test
     void completeReviewReturnsCompletedAssignment() throws Exception {
         var scoreResp = new CriterionScoreResponse(
-                1L, "Innovation", new BigDecimal("10.00"), new BigDecimal("25.00"),
+                1L, "Innovation", "How novel is the approach", new BigDecimal("10.00"), new BigDecimal("25.00"),
                 new BigDecimal("9.00"), "Outstanding", new BigDecimal("10.00"), new BigDecimal("25.00")
         );
         var resp = new JudgeAssignmentResponse(

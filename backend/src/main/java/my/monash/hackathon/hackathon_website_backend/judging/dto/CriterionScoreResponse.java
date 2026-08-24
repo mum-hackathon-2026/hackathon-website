@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public record CriterionScoreResponse(
         Long criteriaId,
         String title,
+        String description,
         BigDecimal maxScore,
         BigDecimal weight,
         BigDecimal score,

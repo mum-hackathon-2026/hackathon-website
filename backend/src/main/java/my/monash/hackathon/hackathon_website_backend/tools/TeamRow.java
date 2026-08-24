@@ -27,8 +27,9 @@ import java.util.stream.Collectors;
  */
 final class TeamRow {
 
-    /** The blocks the form is expected to produce. */
-    static final int MAX_TEAM_SIZE = 4;
+    /** The blocks the form is expected to produce (2 to 5 members). */
+    static final int MIN_TEAM_SIZE = 2;
+    static final int MAX_TEAM_SIZE = 5;
 
     /**
      * How far past the maximum to keep looking for member blocks. A form that grew a
@@ -214,9 +215,9 @@ final class TeamRow {
         if (filled.isEmpty()) {
             throw new InvalidRowException("no members at all");
         }
-        if (filled.size() > MAX_TEAM_SIZE) {
+        if (filled.size() < MIN_TEAM_SIZE || filled.size() > MAX_TEAM_SIZE) {
             throw new InvalidRowException("team size is " + filled.size()
-                    + "; teams must have between 1 and " + MAX_TEAM_SIZE + " members");
+                    + "; teams must have between " + MIN_TEAM_SIZE + " and " + MAX_TEAM_SIZE + " members");
         }
 
         List<Member> members = new ArrayList<>();

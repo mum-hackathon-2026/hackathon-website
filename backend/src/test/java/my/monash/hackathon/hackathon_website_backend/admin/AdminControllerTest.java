@@ -144,4 +144,69 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$[0].name").value("Dr. Jane Doe"))
                 .andExpect(jsonPath("$[1].name").value("Prof. John Smith"));
     }
+
+    @Test
+    void getSettingsReturnsEventSettings() throws Exception {
+        var settingsDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.EventSettingsDto(
+                1L, "Averis Hackathon 2026", null, null, null, null, true, 2, 4, false, 3, "Admin User"
+        );
+        when(adminService.getSettings()).thenReturn(settingsDto);
+
+        mockMvc.perform(get("/api/admin/settings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventName").value("Averis Hackathon 2026"))
+                .andExpect(jsonPath("$.judgingOpen").value(true))
+                .andExpect(jsonPath("$.minTeamSize").value(2))
+                .andExpect(jsonPath("$.maxTeamSize").value(4))
+                .andExpect(jsonPath("$.judgesPerTeam").value(3));
+    }
+
+    @Test
+    void updateSettingsReturnsUpdatedSettings() throws Exception {
+        var updated = new my.monash.hackathon.hackathon_website_backend.admin.dto.EventSettingsDto(
+                1L, "Updated Hackathon Name", null, null, null, null, false, 1, 5, true, 2, "Admin User"
+        );
+        when(adminService.updateSettings(any(), any())).thenReturn(updated);
+
+        mockMvc.perform(patch("/api/admin/settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"eventName\":\"Updated Hackathon Name\",\"minTeamSize\":1,\"maxTeamSize\":5,\"judgesPerTeam\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventName").value("Updated Hackathon Name"))
+                .andExpect(jsonPath("$.maxTeamSize").value(5))
+                .andExpect(jsonPath("$.judgesPerTeam").value(2));
+    }
+
+    @Test
+    void getResultsReturnsRankings() throws Exception {
+        var resultDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminResultDto(
+                1L, "ByteBuilders", "Project AI", "AI Track",
+                new java.math.BigDecimal("92.50"), 1, "winner", 3, false, true, "complete", "submitted", null, List.of()
+        );
+        when(adminService.getResults()).thenReturn(List.of(resultDto));
+
+        mockMvc.perform(get("/api/admin/results"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].teamName").value("ByteBuilders"))
+                .andExpect(jsonPath("$[0].rank").value(1))
+                .andExpect(jsonPath("$[0].outcome").value("winner"))
+                .andExpect(jsonPath("$[0].finalScore").value(92.50));
+    }
+
+    @Test
+    void publishAndUnpublishResultsSucceeds() throws Exception {
+        var resultDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminResultDto(
+                1L, "ByteBuilders", "Project AI", "AI Track",
+                new java.math.BigDecimal("92.50"), 1, "winner", 3, false, true, "complete", "submitted", null, List.of()
+        );
+        when(adminService.publishResults(any())).thenReturn(List.of(resultDto));
+
+        mockMvc.perform(post("/api/admin/results/publish"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].teamName").value("ByteBuilders"));
+
+        mockMvc.perform(post("/api/admin/results/unpublish"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true));
+    }
 }

@@ -111,13 +111,13 @@ describe('MySubmission', () => {
       description: 'Adaptive learning.',
       githubUrl: 'https://github.com/example/edupath',
       deployedUrl: '',
-      trackLabel: DEFAULT_EVENT_CONFIG.site.tracks[1],
+      trackLabel: DEFAULT_EVENT_CONFIG.site.tracks[0],
     });
     await fixture.whenStable();
 
     expect(host().querySelector('.submission-showcase')).toBeTruthy();
     expect(text()).toContain('EduPath');
-    expect(text()).toContain(DEFAULT_EVENT_CONFIG.site.tracks[1]);
+    expect(text()).toContain(DEFAULT_EVENT_CONFIG.site.tracks[0]);
     expect(
       host().querySelector<HTMLAnchorElement>('.deliverable-card__link')?.getAttribute('href'),
     ).toBe('https://github.com/example/edupath');

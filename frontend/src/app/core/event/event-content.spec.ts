@@ -34,7 +34,7 @@ describe('event content', () => {
     it('states the team size the settings allow', () => {
       const eligibility = FAQS.find((faq) => faq.question === 'Who can participate?')!;
 
-      expect(eligibility.answer).toContain(`up to ${settings.maxTeamSize} members`);
+      expect(eligibility.answer).toContain(`${settings.minTeamSize} to ${settings.maxTeamSize} members`);
       expect(eligibility.answer).toContain(site.university);
     });
 

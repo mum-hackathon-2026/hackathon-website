@@ -26,6 +26,7 @@ export interface EventSettings {
   readonly minTeamSize: number;
   readonly maxTeamSize: number;
   readonly screeningEnabled: boolean;
+  readonly judgesPerTeam: number;
 }
 
 export interface SiteCopy {
@@ -105,9 +106,10 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     resultsPublishedAt: new Date('2026-09-25T12:00:00+08:00'),
     // V1's defaults. Changing these means a V2 migration too, or the site and
     // the database disagree about who may enter.
-    minTeamSize: 1,
-    maxTeamSize: 4,
+    minTeamSize: 2,
+    maxTeamSize: 5,
     screeningEnabled: false,
+    judgesPerTeam: 3,
   },
   site: {
     university: 'Monash University Malaysia',
@@ -123,12 +125,15 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
       'https://docs.google.com/forms/d/e/1FAIpQLSfCQhQtxsp6J1vMzayBDNzYIpZD-cN-YD2DB1dUbHPAep0RlA/viewform?usp=header',
     // Open to students from any university, so no single domain identifies one.
     studentEmailDomain: null,
-    tracks: ['Open Innovation', 'Sustainability', 'HealthTech'],
+    tracks: ['Open Innovation'],
     judgingCriteria: [
-      { name: 'Innovation', weight: 30 },
-      { name: 'Technical Execution', weight: 30 },
-      { name: 'Impact & Feasibility', weight: 25 },
-      { name: 'Presentation & Demo', weight: 15 },
+      { name: 'System Design & Architecture', weight: 15 },
+      { name: 'Working Core Prototype', weight: 25 },
+      { name: 'Technology Integration (TBC)', weight: 15 },
+      { name: 'Technical Feasibility & Validation', weight: 15 },
+      { name: 'Problem Statement Understanding', weight: 10 },
+      { name: 'Innovation & Solution Approach', weight: 10 },
+      { name: 'Practical Value & Potential', weight: 10 },
     ],
   },
 };

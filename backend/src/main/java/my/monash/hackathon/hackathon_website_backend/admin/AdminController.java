@@ -150,4 +150,46 @@ public class AdminController {
     public ResponseEntity<List<AuditLogDto>> getAudit() {
         return ResponseEntity.ok(adminService.getAuditLogs());
     }
+
+    @GetMapping("/settings")
+    public ResponseEntity<my.monash.hackathon.hackathon_website_backend.admin.dto.EventSettingsDto> getSettings() {
+        return ResponseEntity.ok(adminService.getSettings());
+    }
+
+    @PatchMapping("/settings")
+    public ResponseEntity<?> updateSettings(
+            @RequestBody my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateEventSettingsRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var updated = adminService.updateSettings(request, currentUser);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/results")
+    public ResponseEntity<List<my.monash.hackathon.hackathon_website_backend.admin.dto.AdminResultDto>> getResults() {
+        return ResponseEntity.ok(adminService.getResults());
+    }
+
+    @PostMapping("/results/publish")
+    public ResponseEntity<?> publishResults(@AuthenticationPrincipal User currentUser) {
+        try {
+            var published = adminService.publishResults(currentUser);
+            return ResponseEntity.ok(published);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/results/unpublish")
+    public ResponseEntity<?> unpublishResults(@AuthenticationPrincipal User currentUser) {
+        try {
+            adminService.unpublishResults(currentUser);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

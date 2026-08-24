@@ -108,20 +108,20 @@ describe('EventSettingsService', () => {
 
     /** The pair is what V1 constrains, so a patch is checked against the merge. */
     it('refuses a minimum that would exceed the existing maximum', async () => {
-      const settings = serviceWith({ minTeamSize: 1, maxTeamSize: 4 });
+      const settings = serviceWith({ minTeamSize: 2, maxTeamSize: 5 });
 
-      expect(await settings.update({ minTeamSize: 5 })).toEqual({
+      expect(await settings.update({ minTeamSize: 6 })).toEqual({
         ok: false,
         error: 'The maximum team size cannot be below the minimum.',
       });
-      expect(settings.minTeamSize()).toBe(1);
+      expect(settings.minTeamSize()).toBe(2);
     });
 
     it('accepts both halves of the pair moving together', async () => {
-      const settings = serviceWith({ minTeamSize: 1, maxTeamSize: 4 });
+      const settings = serviceWith({ minTeamSize: 2, maxTeamSize: 5 });
 
-      expect((await settings.update({ minTeamSize: 5, maxTeamSize: 6 })).ok).toBe(true);
-      expect(settings.maxTeamSize()).toBe(6);
+      expect((await settings.update({ minTeamSize: 6, maxTeamSize: 7 })).ok).toBe(true);
+      expect(settings.maxTeamSize()).toBe(7);
     });
 
     it('refuses a registration window that closes before it opens', async () => {

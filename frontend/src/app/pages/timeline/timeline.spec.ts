@@ -105,7 +105,9 @@ describe('Timeline', () => {
     const host = await renderAt(BEFORE_REGISTRATION);
 
     const first = host.querySelector('.timeline__description')?.textContent ?? '';
-    expect(first).toContain(`up to ${DEFAULT_EVENT_CONFIG.settings.maxTeamSize} members`);
+    expect(first).toContain(
+      `${DEFAULT_EVENT_CONFIG.settings.minTeamSize} to ${DEFAULT_EVENT_CONFIG.settings.maxTeamSize} members`,
+    );
   });
 
   /**

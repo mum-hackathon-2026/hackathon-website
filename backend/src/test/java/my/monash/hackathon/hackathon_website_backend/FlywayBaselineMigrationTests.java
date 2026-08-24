@@ -65,8 +65,8 @@ class FlywayBaselineMigrationTests {
 
         MigrateResult result = flyway.migrate();
 
-        assertThat(result.migrationsExecuted).isEqualTo(5);
-        assertThat(result.targetSchemaVersion).isEqualTo("5");
+        assertThat(result.migrationsExecuted).isEqualTo(8);
+        assertThat(result.targetSchemaVersion).isEqualTo("8");
 
         Map<String, Object> baselineRow = jdbcTemplate.queryForMap(
                 "select version, description, success from flyway_schema_history where version = ?",
@@ -113,6 +113,33 @@ class FlywayBaselineMigrationTests {
                 .isEqualTo(Boolean.TRUE);
         assertThat(submissionFieldsRow.get("description")).isEqualTo("submission additional fields");
 
+        Map<String, Object> seedCriteriaRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "6");
+
+        assertThat(seedCriteriaRow.get("success"))
+                .as("V6 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(seedCriteriaRow.get("description")).isEqualTo("seed judging criteria");
+
+        Map<String, Object> judgesPerTeamRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "7");
+
+        assertThat(judgesPerTeamRow.get("success"))
+                .as("V7 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(judgesPerTeamRow.get("description")).isEqualTo("judges per team setting");
+
+        Map<String, Object> teamSizeRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "8");
+
+        assertThat(teamSizeRow.get("success"))
+                .as("V8 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(teamSizeRow.get("description")).isEqualTo("team size range update");
+
         List<String> actualTables = jdbcTemplate.queryForList(
                 """
                 select table_name
@@ -132,8 +159,9 @@ class FlywayBaselineMigrationTests {
                 jdbcTemplate.queryForMap("select * from event_settings where id = 1");
         assertThat(settings.get("judging_open")).isEqualTo(Boolean.FALSE);
         assertThat(settings.get("results_published_at")).isNull();
-        assertThat(settings.get("min_team_size")).isEqualTo(1);
-        assertThat(settings.get("max_team_size")).isEqualTo(4);
+        assertThat(settings.get("min_team_size")).isEqualTo(2);
+        assertThat(settings.get("max_team_size")).isEqualTo(5);
+        assertThat(settings.get("judges_per_team")).isEqualTo(3);
     }
 
     /**
