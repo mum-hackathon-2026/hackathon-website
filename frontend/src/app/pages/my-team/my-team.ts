@@ -44,5 +44,20 @@ export class MyTeam {
 
   protected readonly registrationClosesAt = this.settings.registrationClosesAt;
   protected readonly maxTeamSize = this.settings.maxTeamSize;
+
+  /**
+   * How many people the form expects, as a phrase.
+   *
+   * Names BOTH ends once solo entries are not allowed: "up to 5 people" is true
+   * but omits the minimum, and this card is the last thing a visitor reads
+   * before opening the form. Branches rather than hardcoding the range so it
+   * still reads correctly if the minimum ever returns to 1.
+   */
+  protected readonly teamSizePhrase = computed(() => {
+    const min = this.settings.minTeamSize();
+    const max = this.settings.maxTeamSize();
+    return min === 1 ? `up to ${max} people` : `${min} to ${max} people`;
+  });
+
   protected readonly formUrl = this.config.site.teamRegistrationFormUrl;
 }

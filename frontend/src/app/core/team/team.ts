@@ -82,6 +82,7 @@ const DIRECTORY: Record<number, { name: string; email: string; initials: string 
   106: { name: 'Elena Petrova', email: 'epetrova@student.monash.edu', initials: 'EP' },
   107: { name: 'Farid Yusof', email: 'fyusof@student.monash.edu', initials: 'FY' },
   108: { name: 'Grace Okoro', email: 'gokoro@student.monash.edu', initials: 'GO' },
+  109: { name: 'Hafiz Rahman', email: 'hrahman@student.monash.edu', initials: 'HR' },
 };
 
 function seedTeams(): Team[] {
@@ -127,10 +128,14 @@ function seedMembers(): TeamMember[] {
     { userId: 102, teamId: 101, joinedAt },
     { userId: 103, teamId: 102, joinedAt },
     { userId: 104, teamId: 102, joinedAt },
+    // 'Full House' is seeded AT maxTeamSize so the join-when-full path has
+    // something to reject. V6 raised the cap from 4 to 5, so this grew a fifth
+    // member with it - a four-person team is no longer full.
     { userId: 105, teamId: 103, joinedAt },
     { userId: 106, teamId: 103, joinedAt },
     { userId: 107, teamId: 103, joinedAt },
     { userId: 108, teamId: 103, joinedAt },
+    { userId: 109, teamId: 103, joinedAt },
   ];
 }
 

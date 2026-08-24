@@ -66,7 +66,7 @@ class GoogleSheetsReaderTest {
         CsvReader.Row row = sheet.rows().getFirst();
         assertThat(row.lineNumber()).isEqualTo(2);
 
-        TeamRow team = TeamRow.from(row);
+        TeamRow team = TeamRow.from(row, LIMITS);
         assertThat(team.teamName()).isEqualTo("Binary Beasts");
         assertThat(team.members()).hasSize(2);
 
@@ -104,6 +104,9 @@ class GoogleSheetsReaderTest {
         assertThat(GoogleSheetsReader.formatCellValue(null)).isEmpty();
     }
 
+    /** The live limits, so these parse tests exercise the same shape the importer does. */
+    private static final TeamRow.SizeLimits LIMITS = new TeamRow.SizeLimits(2, 5);
+
     @Test
     void unknownColumnsAreIgnoredSilently() {
         List<Object> header = List.of(
@@ -127,6 +130,12 @@ class GoogleSheetsReaderTest {
                 "Member 1: Semester",
                 "Member 1: Dietary Restrictions",
                 "Do you want to add another team member?",
+                "Member 2: Full Name (First & Family Name)",
+                "Member 2: Email Address",
+                "Member 2: Phone / WhatsApp Number",
+                "Member 2: Resume / CV (PDF)",
+                "Member 2: LinkedIn Profile URL",
+                "Member 2: GitHub Profile URL",
                 "Do you want to add another team member?"
         );
 
@@ -137,7 +146,7 @@ class GoogleSheetsReaderTest {
                 "+60 11-111 1111",
                 "Male",
                 "Monash",
-                "Solo Squad",
+                "Pair Squad",
                 "Real Leader",
                 "leader@example.com",
                 "+60 12-000 0000",
@@ -151,14 +160,21 @@ class GoogleSheetsReaderTest {
                 "Semester 1",
                 "None",
                 "No",
+                "Second Member",
+                "second@example.com",
+                "+60 12-000 0001",
+                "https://drive.google.com/file/d/second/view",
+                "https://www.linkedin.com/in/second",
+                "https://github.com/second",
                 "No"
         ));
 
         CsvReader.Sheet sheet = GoogleSheetsReader.parseValues(List.of(header, dataRow));
         assertThat(sheet.rows()).hasSize(1);
 
-        TeamRow team = TeamRow.from(sheet.rows().getFirst());
-        assertThat(team.teamName()).isEqualTo("Solo Squad");
+        TeamRow team = TeamRow.from(sheet.rows().getFirst(), LIMITS);
+        assertThat(team.teamName()).isEqualTo("Pair Squad");
+        assertThat(team.members()).hasSize(2);
         assertThat(team.leader().fullName()).isEqualTo("Real Leader");
         assertThat(team.leader().phone()).isEqualTo("+60 12-000 0000");
     }

@@ -21,6 +21,11 @@ class EventSettingsRepositoryTest {
     /**
      * V1 seeds this row, so the application never has to handle it being absent. Every
      * seeded value is deliberately inert — an unconfigured site cannot expose itself.
+     *
+     * <p>The team size is the exception: V1 seeds 1 / 4 and V6 updates it to 2 / 5, so what
+     * is asserted here is the migrated end state rather than V1's literal. V6 leaves V1's
+     * seed alone on purpose — V1 is immutable, and correcting the row afterwards is what
+     * lets a fresh database and an existing one finish in the same place.
      */
     @Test
     void readsTheRowSeededByV1() {
@@ -31,8 +36,8 @@ class EventSettingsRepositoryTest {
         assertThat(settings.isJudgingOpen()).isFalse();
         assertThat(settings.isScreeningEnabled()).isFalse();
         assertThat(settings.getResultsPublishedAt()).isNull();
-        assertThat(settings.getMinTeamSize()).isEqualTo(1);
-        assertThat(settings.getMaxTeamSize()).isEqualTo(4);
+        assertThat(settings.getMinTeamSize()).isEqualTo(2);
+        assertThat(settings.getMaxTeamSize()).isEqualTo(5);
         assertThat(settings.getUpdatedBy()).isNull();
         assertThat(eventSettingsRepository.count())
                 .as("event_settings is a singleton")

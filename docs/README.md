@@ -8,11 +8,24 @@ It is **structural only**. It defines the tables, their columns, the primary key
 
 It does **not** specify data types, `ON DELETE` behaviour, CHECK vocabularies, or team size limits. Those were left to be decided separately, and the sections below track how far that has got.
 
-**The PDF is no longer the whole schema.** `V2__hard_delete_and_status_cleanup.sql`, `V3__form_registration.sql` and `V4__add_user_github_url.sql` changed things the diagram still shows the old way — read V1 through V4, or read the live database, before trusting a slide.
+**The PDF is no longer the whole schema.** `V2__hard_delete_and_status_cleanup.sql`, `V3__form_registration.sql`, `V4__add_user_github_url.sql`, `V5__submission_additional_fields.sql` and `V6__team_size_two_to_five.sql` changed things the diagram still shows the old way — read V1 through V6, or read the live database, before trusting a slide.
 
 ## Ratified — settled, do not reopen
 
-**V2, V3 and V4 closed these.** The migration files carry the full reasoning for each; this is the summary.
+**V2, V3, V4 and V6 closed these.** The migration files carry the full reasoning for each; this is the summary.
+
+### V6 — team size is 2–5, and it lives in `event_settings`
+
+The proposal's team-size conflict is settled: **teams are 2 to 5 people. Solo entries are no longer accepted.**
+
+- **`V6__team_size_two_to_five.sql` is an `UPDATE`, not an `INSERT`.** V1 seeds the `event_settings` singleton at `id = 1`, so the row already exists; V6 corrects `min_team_size` to 2 and `max_team_size` to 5 on it.
+- **V1's seed still says 1 / 4, deliberately.** V1 is immutable — editing its seed would change its checksum and break every database that has already applied it. A fresh database runs V1 (1/4) then V6 (2/5); an existing one runs V6 alone. Both finish at 2/5.
+- **No constraint changed.** V1's `check (min_team_size >= 1 and min_team_size <= max_team_size)` already admits 2 / 5. The range is a policy the organisers set, not a shape the schema fixes.
+- **The column DEFAULTs are still `1` and `4`.** V6 changes the seeded row, not the DEFAULT, so `EventSettings`'s `minTeamSize = 1` / `maxTeamSize = 4` field initialisers still match the DEFAULT they mirror. Do not "fix" them.
+
+> **These two columns are now the only place the limits live.** `FormRegistrationImporter` reads both from the singleton row at import time; it used to carry its own constant, which is exactly why this policy change needed a code edit at all. There is no fallback: **if the row is missing or either value is null the importer aborts with exit `2` and imports nothing**, because importing a season's registrations against guessed limits is worse than not importing them.
+>
+> **Changing the limits again is an `UPDATE` plus a form change — no code change.** Update `event_settings`, then add or remove the matching `Member N: ...` block on the Google Form.
 
 ### V4 — `users.github_url`, and the two columns that share its name
 
@@ -31,7 +44,7 @@ The registration form collects **three links per person** so an admin can screen
 
 ### V3 — registration moved to a Google Form
 
-Registration no longer happens on the site. A Google Form collects **one row per team** — a leader plus up to three more members, 1–4 in total — and captures a name, email, phone number, Google Drive resume link and LinkedIn URL for each person. `backend/.../tools/FormRegistrationImporter.java` reads the exported sheet into the database.
+Registration no longer happens on the site. A Google Form collects **one row per team** — a leader plus up to four more members, **2–5 in total** — and captures a name, email, phone number, Google Drive resume link and LinkedIn URL for each person. `backend/.../tools/FormRegistrationImporter.java` reads the exported sheet into the database.
 
 - **`users.google_sub` is nullable.** A `google_sub` only ever comes back from a real OAuth sign-in, so form registration cannot produce one. **A NULL means "registered but has never signed in."** It is filled in on first Google sign-in by matching on email.
 - **`users` is the sign-in allowlist.** `AuthController` looks the email up and returns 403 if it is absent, so being in the table *is* the permission. Form-registered people never log in through the form; their row is what later lets them in.
@@ -86,7 +99,7 @@ The rule is **all six columns or none at all**, and it applies to each of the fo
 
 - **Member 1 is the leader**, every row has one, so its six columns are always required.
 - **Members 2–4 may be left out of the form entirely.** A sheet that only ever collects pairs has no Member 3 or Member 4 columns, and that is a legitimate shape — the report says `(no columns - not collected)` and the run proceeds.
-- **A block with only some of its columns halts the run.** That is a mis-titled question, not a smaller team: a team with fewer than four members leaves those columns *empty*, it does not omit them. Before this guard existed, a question titled `Member 2 Project GitHub` imported the row, reported `rejected=0` and stored a null GitHub URL the form had actually collected.
+- **A block with only some of its columns halts the run.** That is a mis-titled question, not a smaller team: a team smaller than the maximum leaves those columns *empty*, it does not omit them. Before this guard existed, a question titled `Member 2 Project GitHub` imported the row, reported `rejected=0` and stored a null GitHub URL the form had actually collected.
 
 **Two columns with the same title also halt the run.** Google Forms lets two questions share a title, and values are keyed by normalised header, so the second column would silently win. Titles differing only in case or punctuation were already refused; exact duplicates now are too.
 
@@ -94,7 +107,7 @@ The rule is **all six columns or none at all**, and it applies to each of the fo
 
 `--dry-run` does the identical work and then rolls back instead of committing, so every CHECK, UNIQUE index and foreign key really does fire rather than being approximated.
 
-Rejections are reported per row and never stop the run — duplicate email, a person listed on two teams, a duplicate team name, a team outside 1–4, a malformed email, and a resume, LinkedIn or GitHub value that is not a URL. Every other row still imports; a human reads the report and chases the rest.
+Rejections are reported per row and never stop the run — duplicate email, a person listed on two teams, a duplicate team name, a team outside the permitted size, a malformed email, and a resume, LinkedIn or GitHub value that is not a URL. Every other row still imports; a human reads the report and chases the rest.
 
 The **last line is machine-readable** and its keys are stable, for the day this runs unattended:
 
@@ -146,7 +159,7 @@ The frontend codes against these strings verbatim, so they have at least been re
 
 - **Column data types** — e.g. `audit_log.details` is implemented as `jsonb`; the diagram just says `details`.
 - **`ON DELETE` behaviour beyond what V2 settled.** V2 ratified `assignments.judge_id` and the hard-delete cascade set that follows from it. The remaining rules were written in V1 and have not been separately reviewed.
-- **Team size limits** — `min_team_size` and `max_team_size` are seeded as 1 and 4, which no document confirms.
+- ~~**Team size limits**~~ — **settled by V6.** See the ratified section above.
 
 Additionally, `created_at` on `users`, `teams` and `judging_criteria` is an addition beyond the diagram. (`audit_log.created_at` is in the diagram.)
 

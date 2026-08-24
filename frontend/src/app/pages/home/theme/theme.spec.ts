@@ -91,15 +91,20 @@ describe('ThemeSection', () => {
       expect(blurb(fixture)).not.toContain('solo');
     });
 
+    /*
+     * Renders on the real default config (2-5) rather than pinning a range, so
+     * this keeps measuring what it is named for: the blurb follows the live
+     * settings signal. The two tests above pin each branch of the wording.
+     */
     it('follows the settings when an organiser changes the limits', async () => {
       const fixture = await render();
-      expect(blurb(fixture)).toContain('up to 4 members');
+      expect(blurb(fixture)).toContain('Teams can have 2 to 5 members.');
 
       const result = await TestBed.inject(EventSettingsService).update({ maxTeamSize: 6 });
       expect(result.ok, 'raising the cap should be accepted').toBe(true);
       await fixture.whenStable();
 
-      expect(blurb(fixture)).toContain('up to 6 members');
+      expect(blurb(fixture)).toContain('Teams can have 2 to 6 members.');
     });
   });
 });

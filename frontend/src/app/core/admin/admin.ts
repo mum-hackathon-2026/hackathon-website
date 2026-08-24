@@ -204,6 +204,27 @@ export interface AuditEntry {
 }
 
 /**
+ * What `/api/admin/*` actually puts on the wire.
+ *
+ * Identical to the domain types above except that instants arrive as ISO
+ * strings, because JSON has no date. Each one is derived with `Omit` rather
+ * than written out again, so adding a field to the domain type carries the
+ * wire type with it instead of leaving the two to drift — the same reason the
+ * specs elsewhere walk an exported map instead of transcribing its contents.
+ */
+type Wire<T, K extends keyof T> = Omit<T, K> & { readonly [P in K]: string | null };
+
+type WireAdminTeamRow = Wire<AdminTeamRow, 'submittedAt'>;
+type WireAuditEntry = Omit<AuditEntry, 'at'> & { readonly at: string };
+type WireAdminAssignment = Omit<AdminAssignment, 'assignedAt' | 'completedAt'> & {
+  readonly assignedAt: string;
+  readonly completedAt: string | null;
+};
+type WireAdminAssignmentRow = Omit<AdminAssignmentRow, 'judges'> & {
+  readonly judges: readonly WireAdminAssignment[];
+};
+
+/**
  * Why a row is not fit to publish as it stands. Reported, never blocking — an
  * organiser may well publish a disqualified team's row, since `disqualified` is
  * one of the outcomes `team_results_outcome_check` allows.
@@ -1047,20 +1068,36 @@ export class AdminService {
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const [overview, teams, participants, judges, assignments, audit] = await Promise.all([
         firstValueFrom(
-          this.http.get<{ stats: AdminStats; recentAudit: any[] }>(
+          this.http.get<{ stats: AdminStats; recentAudit: readonly WireAuditEntry[] }>(
             `${this.apiBaseUrl}/api/admin/overview`,
             { headers },
           ),
         ),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/teams`, { headers })),
         firstValueFrom(
-          this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/participants`, { headers }),
+          this.http.get<readonly WireAdminTeamRow[]>(`${this.apiBaseUrl}/api/admin/teams`, {
+            headers,
+          }),
         ),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/judges`, { headers })),
         firstValueFrom(
-          this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/assignments`, { headers }),
+          this.http.get<readonly AdminParticipantRow[]>(
+            `${this.apiBaseUrl}/api/admin/participants`,
+            { headers },
+          ),
         ),
-        firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/audit`, { headers })),
+        firstValueFrom(
+          this.http.get<readonly AdminJudge[]>(`${this.apiBaseUrl}/api/admin/judges`, { headers }),
+        ),
+        firstValueFrom(
+          this.http.get<readonly WireAdminAssignmentRow[]>(
+            `${this.apiBaseUrl}/api/admin/assignments`,
+            { headers },
+          ),
+        ),
+        firstValueFrom(
+          this.http.get<readonly WireAuditEntry[]>(`${this.apiBaseUrl}/api/admin/audit`, {
+            headers,
+          }),
+        ),
       ]);
 
       if (overview?.stats) {
@@ -1068,7 +1105,7 @@ export class AdminService {
       }
       if (teams) {
         this.liveTeams.set(
-          teams.map((t: any) => ({
+          teams.map((t) => ({
             ...t,
             submittedAt: t.submittedAt ? new Date(t.submittedAt) : null,
           })),
@@ -1082,9 +1119,9 @@ export class AdminService {
       }
       if (assignments) {
         this.liveAssignments.set(
-          assignments.map((a: any) => ({
+          assignments.map((a) => ({
             ...a,
-            judges: a.judges.map((j: any) => ({
+            judges: a.judges.map((j) => ({
               ...j,
               assignedAt: new Date(j.assignedAt),
               completedAt: j.completedAt ? new Date(j.completedAt) : null,
@@ -1094,7 +1131,7 @@ export class AdminService {
       }
       if (audit) {
         this.liveAudit.set(
-          audit.map((al: any) => ({
+          audit.map((al) => ({
             ...al,
             at: new Date(al.at),
           })),

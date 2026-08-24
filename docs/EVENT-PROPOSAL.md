@@ -129,15 +129,15 @@ Estimated expenditure, inclusive of 6% tax charges.
 
 Facts from this proposal that map onto the hackathon website's data model.
 
-### ⚠️ Team size conflict — needs resolving
+### ✅ Team size conflict — resolved by V6
 
-The proposal states **5 participants per team**. The current implementation caps teams at **4**:
+The proposal states **5 participants per team**. The implementation used to cap teams at **4**:
 
-- `event_settings.max_team_size` is seeded at 4
-- The Google Form has 4 member blocks (`Member 1` – `Member 4`)
-- `TeamRow.MAX_TEAM_SIZE` rejects any team with more than 4 members
+- `event_settings.max_team_size` was seeded at 4
+- The Google Form had 4 member blocks (`Member 1` – `Member 4`)
+- `TeamRow.MAX_TEAM_SIZE` was a constant rejecting any team above 4 — **this constant no longer exists**
 
-If 5 is correct, three things change: the seeded `max_team_size` value (an admin-editable row, not a migration), a fifth member block in the form, and the importer's constant plus its header aliases.
+**RESOLVED — 5 is correct, and the minimum is 2.** `V6__team_size_two_to_five.sql` updates the `event_settings` singleton to `min_team_size = 2`, `max_team_size = 5`, and the importer now reads both values from that row at import time instead of holding a constant. The form needs a fifth `Member 5: ...` block; its header aliases already follow the generic per-block rule, so no code change was needed for them. **Changing the range again is an `UPDATE` on `event_settings` plus a form change — no code, no migration.**
 
 ### Dates for `event_settings`
 

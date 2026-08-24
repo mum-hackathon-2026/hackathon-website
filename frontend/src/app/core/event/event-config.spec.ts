@@ -67,13 +67,20 @@ describe('EVENT_CONFIG', () => {
 
   describe('team size', () => {
     /*
-     * These are V1's column defaults. Changing them here without a migration
-     * leaves the site and the database disagreeing about who may enter — the
-     * site would accept a team the insert then rejects.
+     * These mirror the `event_settings` row as V6 leaves it, NOT V1's column
+     * defaults — V1 seeds 1/4 and V6 updates the row to 2/5, so the migrated
+     * state is what the site has to agree with. Changing them here without the
+     * matching database change leaves the site and the database disagreeing
+     * about who may enter: the site would accept a team the importer rejects.
      */
-    it('matches the limits the database defaults to', () => {
-      expect(settings.minTeamSize).toBe(1);
-      expect(settings.maxTeamSize).toBe(4);
+    it('matches the limits the migrated database holds', () => {
+      expect(settings.minTeamSize).toBe(2);
+      expect(settings.maxTeamSize).toBe(5);
+    });
+
+    /* Solo entries ended with V6, and a good deal of copy branches on it. */
+    it('does not admit solo entries', () => {
+      expect(settings.minTeamSize).toBeGreaterThan(1);
     });
 
     // V1 constrains the pair, not either field alone.

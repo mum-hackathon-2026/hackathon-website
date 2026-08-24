@@ -6,20 +6,13 @@ import { Router, provideRouter } from '@angular/router';
 import { AuthService, SESSION_STORAGE } from '../../core/auth/auth';
 import { participantGuard } from '../../core/auth/role-guard';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG } from '../../core/event/event-config';
-import {
-  DURING_JUDGING,
-  DURING_REGISTRATION,
-  DURING_SUBMISSION,
-} from '../../core/event/event-config.testing';
+import { DURING_REGISTRATION, DURING_SUBMISSION } from '../../core/event/event-config.testing';
 import { SubmissionService } from '../../core/submission/submission';
 import { TeamService } from '../../core/team/team';
 import { MySubmission } from './my-submission';
 
 @Component({ template: 'stub' })
 class Stub {}
-
-/** The judging window: submissions closed, results not yet out. */
-const AFTER_DEADLINE = DURING_JUDGING;
 
 describe('MySubmission', () => {
   let fixture: ComponentFixture<MySubmission>;

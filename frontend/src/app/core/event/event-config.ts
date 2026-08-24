@@ -103,10 +103,17 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     // Pitch Day (26 September) decides the winners, but the site has no column
     // for that instant — `resultsPublishedAt` is what gates the results page.
     resultsPublishedAt: new Date('2026-09-25T12:00:00+08:00'),
-    // V1's defaults. Changing these means a V2 migration too, or the site and
-    // the database disagree about who may enter.
-    minTeamSize: 1,
-    maxTeamSize: 4,
+    // Mirrors `event_settings` as V6 leaves it: teams are 2–5 and solo entries
+    // are not accepted. V1 seeds 1/4 and V6 corrects the row, so 2/5 is the
+    // migrated state this seed has to match — not V1's literal.
+    //
+    // These are the SEED for `EventSettingsService`, and the database is the
+    // real owner. Changing them here changes only what the site says; the
+    // limits the registration importer enforces come from `event_settings`,
+    // which is an UPDATE plus a form change and no code at all. Change both or
+    // the site and the database disagree about who may enter.
+    minTeamSize: 2,
+    maxTeamSize: 5,
     screeningEnabled: false,
   },
   site: {

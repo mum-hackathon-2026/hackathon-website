@@ -105,7 +105,14 @@ describe('Timeline', () => {
     const host = await renderAt(BEFORE_REGISTRATION);
 
     const first = host.querySelector('.timeline__description')?.textContent ?? '';
-    expect(first).toContain(`up to ${DEFAULT_EVENT_CONFIG.settings.maxTeamSize} members`);
+    // Branches as `MilestoneService` does: "up to N" only reads correctly when
+    // one person is a legal team, which V6 ended.
+    const { minTeamSize, maxTeamSize } = DEFAULT_EVENT_CONFIG.settings;
+    expect(first).toContain(
+      minTeamSize === 1
+        ? `up to ${maxTeamSize} members`
+        : `${minTeamSize} to ${maxTeamSize} members`,
+    );
   });
 
   /**
