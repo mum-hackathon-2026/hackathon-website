@@ -219,13 +219,29 @@ describe('Orb', () => {
       expect(panel()).toBeNull();
     });
 
-    it('closes when the pointer leaves the orb entirely', async () => {
+    it('closes once the pointer has been gone a moment', async () => {
       await open();
 
       host().querySelector('.orb')!.dispatchEvent(new Event('mouseleave'));
+      await vi.advanceTimersByTimeAsync(300);
       await fixture.whenStable();
 
       expect(panel()).toBeNull();
+    });
+
+    // The pointer clipping the edge of the orb on its way to the panel used to
+    // dismiss it before it could be reached.
+    it('holds the panel open through a brief slip off the orb', async () => {
+      await open();
+      const orb = host().querySelector('.orb')!;
+
+      orb.dispatchEvent(new Event('mouseleave'));
+      await vi.advanceTimersByTimeAsync(80);
+      orb.dispatchEvent(new Event('mouseenter'));
+      await vi.advanceTimersByTimeAsync(300);
+      await fixture.whenStable();
+
+      expect(panel()).toBeTruthy();
     });
 
     // Otherwise the panel would still be hanging open over the page you landed on.

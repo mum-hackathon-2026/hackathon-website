@@ -40,6 +40,9 @@ const NAV_INSET = 72;
 /** Quiet period after scrolling or resizing before the orb reconsiders. */
 const SETTLE_MS = 180;
 
+/** Grace after the pointer leaves, so a near miss does not dismiss the panel. */
+const LEAVE_GRACE_MS = 220;
+
 const MS_PER_MINUTE = 60_000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
@@ -78,6 +81,16 @@ export class Orb {
   readonly open = signal(false);
   readonly signedIn = this.auth.isSignedIn;
 
+  /** True from the moment the pointer arrives until it has really gone. */
+  private readonly hovered = signal(false);
+
+  /**
+   * While the pointer is on it, or its panel is open, the orb holds still.
+   * A target that drifts out from under the cursor is not charming, it is a
+   * thing you cannot click.
+   */
+  private readonly settled = computed(() => this.open() || this.hovered());
+
   /** Null until the first measurement, when the stylesheet's corner applies. */
   readonly spot = signal<Point | null>(null);
 
@@ -106,12 +119,18 @@ export class Orb {
   });
 
   private settleTimer: ReturnType<typeof setTimeout> | null = null;
+  private leaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Null until the first placement; after that the loop owns it. */
   private spring: SpringState | null = null;
   private frame: number | null = null;
   private lastFrameMs = 0;
-  private startedMs = 0;
+  /**
+   * Time the idle bob has been running. Advanced by the loop rather than read
+   * off the clock, so holding still is simply declining to advance it — the
+   * bob resumes from where it paused instead of jumping.
+   */
+  private driftMs = 0;
 
   constructor() {
     // One subscription does all the arrival jobs: retarget the URL, drop any
@@ -122,6 +141,8 @@ export class Orb {
     const navigations = this.router.events.subscribe((event) => {
       if (!(event instanceof NavigationEnd)) return;
       this.url.set(event.urlAfterRedirects);
+      this.cancelLeave();
+      this.hovered.set(false);
       this.open.set(false);
       // The incoming page has not laid out yet, so measuring now would read the
       // outgoing one. A frame's delay is enough for the new DOM to exist.
@@ -131,6 +152,7 @@ export class Orb {
     inject(DestroyRef).onDestroy(() => {
       navigations.unsubscribe();
       this.stopLoop();
+      this.cancelLeave();
       if (this.settleTimer !== null) clearTimeout(this.settleTimer);
     });
 
@@ -152,6 +174,30 @@ export class Orb {
 
   close(): void {
     this.open.set(false);
+  }
+
+  onPointerEnter(): void {
+    this.cancelLeave();
+    this.hovered.set(true);
+    this.open.set(true);
+  }
+
+  /**
+   * Closing is deferred a moment. The pointer crossing a corner of the panel,
+   * or clipping the edge of the orb on its way in, should not dismiss it.
+   */
+  onPointerLeave(): void {
+    this.cancelLeave();
+    this.leaveTimer = setTimeout(() => {
+      this.hovered.set(false);
+      this.close();
+    }, LEAVE_GRACE_MS);
+  }
+
+  private cancelLeave(): void {
+    if (this.leaveTimer === null) return;
+    clearTimeout(this.leaveTimer);
+    this.leaveTimer = null;
   }
 
   @HostListener('document:keydown.escape')
@@ -183,6 +229,9 @@ export class Orb {
   private hop(): void {
     if (!this.visible() || typeof window === 'undefined') return;
     if (prefersReducedMotion()) return;
+    // Moving out from under a pointer that is reaching for it would be the
+    // worst possible moment; the next scroll or navigation will pick it up.
+    if (this.settled()) return;
 
     const next = chooseSpot({
       viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -239,8 +288,7 @@ export class Orb {
   private startLoop(): void {
     if (this.frame !== null || typeof requestAnimationFrame !== 'function') return;
 
-    this.startedMs = now();
-    this.lastFrameMs = this.startedMs;
+    this.lastFrameMs = now();
 
     const tick = () => {
       const at = now();
@@ -254,7 +302,10 @@ export class Orb {
           target,
           dt,
         );
-        this.paint(this.spring, at - this.startedMs);
+        // Held still under the pointer: the spring still settles onto its
+        // target, but the bob stops advancing so the orb stays put.
+        if (!this.settled()) this.driftMs += dt * 1000;
+        this.paint(this.spring, this.driftMs);
       }
 
       this.frame = requestAnimationFrame(tick);

@@ -7,8 +7,8 @@
     class="orb"
     [class.orb--placed]="spot() !== null"
     [class.orb--flip]="panelOnRight()"
-    (mouseenter)="open.set(true)"
-    (mouseleave)="close()"
+    (mouseenter)="onPointerEnter()"
+    (mouseleave)="onPointerLeave()"
   >
     @if (open()) {
       <div class="orb__panel" role="dialog" aria-label="Hackathon shortcut">
