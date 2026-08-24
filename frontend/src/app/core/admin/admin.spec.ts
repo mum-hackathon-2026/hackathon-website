@@ -418,6 +418,29 @@ describe('AdminService', () => {
       expect(admin.judges().find((j) => j.userId === person.userId)!.assigned).toBe(1);
     });
 
+    it('registers a single judge by full name and email', async () => {
+      const admin = serviceWith();
+      const result = await admin.registerJudge('Dr. Ada Lovelace', 'ada.lovelace@example.com');
+      expect(result).toEqual({ ok: true });
+
+      const judge = admin.judges().find((j) => j.email === 'ada.lovelace@example.com');
+      expect(judge).toBeTruthy();
+      expect(judge?.name).toBe('Dr. Ada Lovelace');
+      expect(judge?.assigned).toBe(0);
+    });
+
+    it('batch registers multiple judges', async () => {
+      const admin = serviceWith();
+      const result = await admin.batchRegisterJudges([
+        { fullName: 'Katherine Johnson', email: 'kjohnson@nasa.gov' },
+        { fullName: 'Dorothy Vaughan', email: 'dvaughan@nasa.gov' },
+      ]);
+      expect(result).toEqual({ ok: true, count: 2 });
+
+      expect(admin.judges().some((j) => j.email === 'kjohnson@nasa.gov')).toBe(true);
+      expect(admin.judges().some((j) => j.email === 'dvaughan@nasa.gov')).toBe(true);
+    });
+
     it('refuses to take a judge off the panel while they hold assignments', async () => {
       // A role change is not a delete, so their assignments would survive it
       // while judgeGuard shut them out of the portal.

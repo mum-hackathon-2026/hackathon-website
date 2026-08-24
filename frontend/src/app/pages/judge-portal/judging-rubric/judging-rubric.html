@@ -1,0 +1,197 @@
+<section class="rubric-section" aria-labelledby="rubric-heading">
+  <div class="rubric-header">
+    <div>
+      <p class="rubric-eyebrow">Averis Hackathon 2026</p>
+      <h2 class="rubric-title" id="rubric-heading">Preliminary Round Judging Criteria</h2>
+      <p class="rubric-subtitle">
+        Submissions are evaluated on a 100-point scale split into <strong>70% Technical</strong> and <strong>30% Product & Impact</strong>.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Visual Pie / Donut Chart & Category Cards ──────────────────────── -->
+  <div class="chart-container">
+    <div class="donut-chart-card">
+      <div class="donut-wrapper">
+        <svg viewBox="0 0 160 160" class="donut-svg" aria-label="70% Technical and 30% Product & Impact distribution chart">
+          <!-- 30% Product & Impact (Green): circle circumference 2 * PI * 60 = 376.99. 30% is 113.1, 70% is 263.9 -->
+          <circle
+            cx="80"
+            cy="80"
+            r="60"
+            fill="transparent"
+            stroke="#10b981"
+            stroke-width="24"
+            stroke-dasharray="376.99 376.99"
+          />
+          <!-- 70% Technical (Blue): stroke-dasharray="263.89 113.1", offset to start at top -->
+          <circle
+            cx="80"
+            cy="80"
+            r="60"
+            fill="transparent"
+            stroke="#2563eb"
+            stroke-width="24"
+            stroke-dasharray="263.89 376.99"
+            transform="rotate(-90 80 80)"
+          />
+          <text x="80" y="74" text-anchor="middle" class="donut-center-num">100</text>
+          <text x="80" y="92" text-anchor="middle" class="donut-center-label">POINTS</text>
+        </svg>
+      </div>
+
+      <div class="donut-legend">
+        <div class="legend-card legend-card--tech">
+          <div class="legend-indicator">
+            <span class="legend-dot legend-dot--tech"></span>
+            <div>
+              <h3 class="legend-title">Technical</h3>
+              <p class="legend-meta">4 criteria &bull; 70 points</p>
+            </div>
+          </div>
+          <span class="legend-badge legend-badge--tech">70%</span>
+        </div>
+
+        <div class="legend-card legend-card--product">
+          <div class="legend-indicator">
+            <span class="legend-dot legend-dot--product"></span>
+            <div>
+              <h3 class="legend-title">Product & Impact</h3>
+              <p class="legend-meta">3 criteria &bull; 30 points</p>
+            </div>
+          </div>
+          <span class="legend-badge legend-badge--product">30%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Category Scoring Band Matrix ──────────────────────────────────── -->
+    <div class="bands-card">
+      <h3 class="bands-card-title">Performance Scoring Bands</h3>
+      <p class="bands-card-subtitle">Score ranges by criterion maximum points:</p>
+
+      <div class="table-wrapper">
+        <table class="bands-table">
+          <thead>
+            <tr>
+              <th scope="col">Category</th>
+              <th scope="col" class="th--weak">Weak</th>
+              <th scope="col" class="th--dev">Developing</th>
+              <th scope="col" class="th--strong">Strong</th>
+              <th scope="col" class="th--exc">Excellent</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (band of scoreBands; track band.category) {
+              <tr>
+                <td class="td-category">{{ band.category }}</td>
+                <td class="td--weak"><span class="band-chip band-chip--weak">{{ band.weak }}</span></td>
+                <td class="td--dev"><span class="band-chip band-chip--dev">{{ band.developing }}</span></td>
+                <td class="td--strong"><span class="band-chip band-chip--strong">{{ band.strong }}</span></td>
+                <td class="td--exc"><span class="band-chip band-chip--exc">{{ band.excellent }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Technical Breakdown Table ────────────────────────────────────── -->
+  <div class="rubric-block">
+    <div class="block-header block-header--tech">
+      <div class="block-badge block-badge--tech">TECHNICAL</div>
+      <h3 class="block-title">Technical Assessment &bull; 70 Points</h3>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="rubric-table">
+        <thead>
+          <tr>
+            <th scope="col" class="col-num">#</th>
+            <th scope="col" class="col-crit">Criterion</th>
+            <th scope="col" class="col-max">Max</th>
+            <th scope="col" class="col-assess">What Judges Assess</th>
+            <th scope="col" class="col-band th--weak">Weak</th>
+            <th scope="col" class="col-band th--dev">Developing</th>
+            <th scope="col" class="col-band th--strong">Strong</th>
+            <th scope="col" class="col-band th--exc">Excellent</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of technicalCriteria; track row.no) {
+            <tr>
+              <td class="col-num font-num">{{ row.no }}</td>
+              <td class="col-crit">
+                <span class="crit-name">{{ row.criterion }}</span>
+              </td>
+              <td class="col-max">
+                <span class="max-badge font-num">{{ row.maxScore }} pts</span>
+              </td>
+              <td class="col-assess">{{ row.assess }}</td>
+              <td class="col-band td--weak"><span class="band-text">{{ row.weak }}</span></td>
+              <td class="col-band td--dev"><span class="band-text">{{ row.developing }}</span></td>
+              <td class="col-band td--strong"><span class="band-text">{{ row.strong }}</span></td>
+              <td class="col-band td--exc"><span class="band-text">{{ row.excellent }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Product & Impact Breakdown Table ──────────────────────────────── -->
+  <div class="rubric-block">
+    <div class="block-header block-header--product">
+      <div class="block-badge block-badge--product">PRODUCT & IMPACT</div>
+      <h3 class="block-title">Product & Impact Assessment &bull; 30 Points</h3>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="rubric-table">
+        <thead>
+          <tr>
+            <th scope="col" class="col-num">#</th>
+            <th scope="col" class="col-crit">Criterion</th>
+            <th scope="col" class="col-max">Max</th>
+            <th scope="col" class="col-assess">What Judges Assess</th>
+            <th scope="col" class="col-band th--weak">Weak</th>
+            <th scope="col" class="col-band th--dev">Developing</th>
+            <th scope="col" class="col-band th--strong">Strong</th>
+            <th scope="col" class="col-band th--exc">Excellent</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of productCriteria; track row.no) {
+            <tr>
+              <td class="col-num font-num">{{ row.no }}</td>
+              <td class="col-crit">
+                <span class="crit-name">{{ row.criterion }}</span>
+              </td>
+              <td class="col-max">
+                <span class="max-badge font-num">{{ row.maxScore }} pts</span>
+              </td>
+              <td class="col-assess">{{ row.assess }}</td>
+              <td class="col-band td--weak"><span class="band-text">{{ row.weak }}</span></td>
+              <td class="col-band td--dev"><span class="band-text">{{ row.developing }}</span></td>
+              <td class="col-band td--strong"><span class="band-text">{{ row.strong }}</span></td>
+              <td class="col-band td--exc"><span class="band-text">{{ row.excellent }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Judging Notes & Protocols ──────────────────────────────────────── -->
+  <div class="judging-notes-card">
+    <h3 class="notes-title">Judging Guidelines & Protocol Notes</h3>
+    <ul class="notes-list">
+      <li>Score each criterion independently and do not reward the same evidence twice.</li>
+      <li>Base scores on what is demonstrated, submitted, or clearly explained in the repo, slides, and demo video.</li>
+      <li>Use the problem statement consistently; there is one problem statement for the event.</li>
+      <li>The performance labels (Weak, Developing, Strong, Excellent) are guidance. Judges may award any whole or fractional number within the relevant range.</li>
+      <li><em>Technology Integration (TBC)</em> is provisional and will be finalised after sponsor alignment.</li>
+    </ul>
+  </div>
+</section>

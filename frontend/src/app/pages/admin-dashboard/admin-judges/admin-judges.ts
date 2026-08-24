@@ -6,29 +6,18 @@ import { ConfirmDialog } from '../../../layout/confirm-dialog/confirm-dialog';
 /** 'all' is the unfiltered default; the rest narrow to who needs chasing. */
 type LoadFilter = 'all' | 'idle' | 'outstanding' | 'done';
 
-/**
- * The judging panel: who holds the judge role, how much each is carrying, and
- * how far through it they are.
- *
- * This is the section the design draft and the schema disagree about most, and
- * both departures are the database's word rather than a preference:
- *
- *  - **There is no active or inactive judge.** The draft shows both. `users`
- *    has no status column — V1 had one, V2 dropped it for hard delete, and
- *    nothing replaced it — so being a judge is holding the role and nothing
- *    else.
- *  - **A judge cannot be invited by email.** There is no invitations table, and
- *    sign-in admits an address only if `users` already holds it. So an
- *    organiser promotes somebody who is registered rather than inviting a
- *    stranger, which is what this offers.
- *
- * The draft's third state, *pending*, is a different matter. V3 made
- * `users.google_sub` nullable so form registration could create a row before
- * that person has any Google identity, which makes 'registered but never signed
- * in' — NULL `google_sub` — a real state the panel could show. `AdminService`
- * does not carry the field yet, so this section does not distinguish it; that
- * is the obvious next addition here, not something the schema forbids.
- */
+export type EntryMode = 'single' | 'batch' | 'promote';
+
+export interface ParsedJudgeEntry {
+  readonly raw: string;
+  readonly fullName: string;
+  readonly email: string;
+  readonly valid: boolean;
+  readonly error?: string;
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 @Component({
   selector: 'app-admin-judges',
   imports: [ConfirmDialog, FormsModule],
@@ -44,7 +33,17 @@ export class AdminJudges {
   protected readonly search = signal('');
   protected readonly load = signal<LoadFilter>('all');
 
-  /** The add-to-panel dropdown. '' is the unchosen placeholder. */
+  /** Mode for adding judges */
+  protected readonly entryMode = signal<EntryMode>('single');
+
+  /** Single judge form signals */
+  protected readonly singleFullName = signal('');
+  protected readonly singleEmail = signal('');
+
+  /** Batch judges text area signal */
+  protected readonly batchInput = signal('');
+
+  /** The add-to-panel dropdown for promoting existing participants. */
   protected readonly draftPerson = signal('');
 
   protected readonly error = signal<string | null>(null);
@@ -60,15 +59,57 @@ export class AdminJudges {
     { id: 'done', label: 'All reviews in' },
   ];
 
+  /** Parsed batch list from batchInput textarea */
+  protected readonly parsedBatch = computed<readonly ParsedJudgeEntry[]>(() => {
+    const text = this.batchInput().trim();
+    if (!text) return [];
+
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    return lines.map((line) => {
+      let name = '';
+      let email = '';
+
+      // Pattern: "Name <email@domain.com>"
+      const angleMatch = line.match(/^([^<]+)<([^>]+)>$/);
+      if (angleMatch) {
+        name = angleMatch[1].trim();
+        email = angleMatch[2].trim().toLowerCase();
+      } else if (line.includes('\t')) {
+        // Tab-separated (copy-paste from Excel / Google Sheets)
+        const parts = line.split('\t').map((p) => p.trim());
+        name = parts[0] || '';
+        email = (parts[1] || '').toLowerCase();
+      } else if (line.includes(',')) {
+        // Comma-separated: "Name, email@domain.com"
+        const parts = line.split(',').map((p) => p.trim());
+        name = parts[0] || '';
+        email = (parts[1] || '').toLowerCase();
+      } else if (EMAIL_REGEX.test(line)) {
+        // Just email alone
+        email = line.toLowerCase();
+        name = email.split('@')[0];
+      } else {
+        name = line;
+      }
+
+      if (!name && !email) {
+        return { raw: line, fullName: '', email: '', valid: false, error: 'Empty entry' };
+      }
+      if (!name) {
+        return { raw: line, fullName: '', email, valid: false, error: 'Missing full name' };
+      }
+      if (!email || !EMAIL_REGEX.test(email)) {
+        return { raw: line, fullName: name, email, valid: false, error: 'Invalid email address' };
+      }
+
+      return { raw: line, fullName: name, email, valid: true };
+    });
+  });
+
+  protected readonly validBatch = computed(() => this.parsedBatch().filter((e) => e.valid));
+
   /**
    * Who could be added, in roster order.
-   *
-   * Everyone registered who is not already judging — including people on teams,
-   * because nothing in the schema forbids that and hiding them would imply it
-   * does. The conflict is called out at the point of adding instead.
-   *
-   * The panel is filtered out here rather than by the service: they are still
-   * registered, and `participants` is the registration roster.
    */
   protected readonly addable = computed<readonly AdminParticipantRow[]>(() => {
     const onPanel = new Set(this.admin.judges().map((judge) => judge.userId));
@@ -112,7 +153,54 @@ export class AdminJudges {
     this.load.set('all');
   }
 
-  /** Someone on a team would be judging their own event, so that asks first. */
+  /** Register single judge by Full Name and Email */
+  protected async registerSingle(): Promise<void> {
+    const name = this.singleFullName().trim();
+    const email = this.singleEmail().trim().toLowerCase();
+
+    if (!name) {
+      this.report({ ok: false, error: 'Enter the judge’s full name.' }, '');
+      return;
+    }
+    if (!email || !EMAIL_REGEX.test(email)) {
+      this.report({ ok: false, error: 'Enter a valid email address.' }, '');
+      return;
+    }
+
+    const result = await this.admin.registerJudge(name, email);
+    if (result.ok) {
+      this.singleFullName.set('');
+      this.singleEmail.set('');
+      this.report(result, `${name} (${email}) has been registered as a judge.`);
+    } else {
+      this.report(result, '');
+    }
+  }
+
+  /** Register multiple judges in batch */
+  protected async registerBatch(): Promise<void> {
+    const valid = this.validBatch();
+    if (valid.length === 0) {
+      this.report({ ok: false, error: 'No valid judge entries found in batch input.' }, '');
+      return;
+    }
+
+    const result = await this.admin.batchRegisterJudges(
+      valid.map((v) => ({ fullName: v.fullName, email: v.email })),
+    );
+
+    if (result.ok) {
+      this.batchInput.set('');
+      this.report(
+        result,
+        `Successfully registered ${result.count} judge${result.count === 1 ? '' : 's'}.`,
+      );
+    } else {
+      this.report(result, '');
+    }
+  }
+
+  /** Promote an existing participant */
   protected async add(): Promise<void> {
     const userId = Number(this.draftPerson());
     if (!userId) {
@@ -159,3 +247,4 @@ export class AdminJudges {
     }
   }
 }
+

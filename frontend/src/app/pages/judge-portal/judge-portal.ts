@@ -8,8 +8,10 @@ import { ConfirmDialog } from '../../layout/confirm-dialog/confirm-dialog';
 import { PageHeader } from '../../layout/page-header/page-header';
 import { StateLocked } from '../../layout/state-locked/state-locked';
 import { StatusPill } from '../../layout/status-pill/status-pill';
+import { RouterLink } from '@angular/router';
 import { AssignmentTable } from './assignment-table/assignment-table';
 import { JudgingProgress } from './judging-progress/judging-progress';
+import { JudgingRubric } from './judging-rubric/judging-rubric';
 
 type PortalTab = 'overview' | 'assignments' | 'completed';
 
@@ -25,9 +27,11 @@ type StatusFilter = AssignmentStatus | 'all';
   selector: 'app-judge-portal',
   imports: [
     FormsModule,
+    RouterLink,
     AssignmentTable,
     ConfirmDialog,
     JudgingProgress,
+    JudgingRubric,
     PageHeader,
     StateLocked,
     StatusPill,
@@ -132,6 +136,11 @@ export class JudgePortal {
 
   protected select(tab: PortalTab): void {
     this.activeTab.set(tab);
+  }
+
+  protected onTileFilter(status: AssignmentStatus | 'all'): void {
+    this.statusFilter.set(status);
+    this.select('assignments');
   }
 
   protected clearFilters(): void {

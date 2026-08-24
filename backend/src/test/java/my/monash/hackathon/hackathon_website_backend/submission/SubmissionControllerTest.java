@@ -31,6 +31,8 @@ class SubmissionControllerTest {
     private SubmissionRepository submissionRepository;
     private UserRepository userRepository;
     private TeamMemberRepository teamMemberRepository;
+    private my.monash.hackathon.hackathon_website_backend.judging.AssignmentRepository assignmentRepository;
+    private my.monash.hackathon.hackathon_website_backend.event.EventSettingsRepository eventSettingsRepository;
     private SubmissionImportService submissionImportService;
     private SubmissionController controller;
     private User currentUser;
@@ -40,11 +42,15 @@ class SubmissionControllerTest {
         submissionRepository = mock(SubmissionRepository.class);
         userRepository = mock(UserRepository.class);
         teamMemberRepository = mock(TeamMemberRepository.class);
+        assignmentRepository = mock(my.monash.hackathon.hackathon_website_backend.judging.AssignmentRepository.class);
+        eventSettingsRepository = mock(my.monash.hackathon.hackathon_website_backend.event.EventSettingsRepository.class);
         submissionImportService = mock(SubmissionImportService.class);
         controller = new SubmissionController(
                 submissionRepository,
                 userRepository,
                 teamMemberRepository,
+                assignmentRepository,
+                eventSettingsRepository,
                 submissionImportService
         );
         currentUser = null;

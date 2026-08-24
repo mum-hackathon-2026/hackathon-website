@@ -104,10 +104,13 @@ public class AuthController {
         user.setEmailVerified(true);
         user.setLastLoginAt(OffsetDateTime.now());
 
-        // Update full name from Google if the user's name was a placeholder
-        String googleName = (String) payload.get("name");
-        if (googleName != null && !googleName.isBlank()) {
-            user.setFullName(googleName);
+        // Only set full name from Google if the user does NOT already have a registered name.
+        // Judges and participants registered by admins/forms keep their official registered name.
+        if (user.getFullName() == null || user.getFullName().isBlank()) {
+            String googleName = (String) payload.get("name");
+            if (googleName != null && !googleName.isBlank()) {
+                user.setFullName(googleName);
+            }
         }
 
         userRepository.save(user);

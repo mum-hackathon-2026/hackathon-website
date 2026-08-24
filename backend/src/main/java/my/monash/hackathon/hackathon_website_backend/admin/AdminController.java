@@ -7,7 +7,9 @@ import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminOverviewDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminParticipantDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminTeamDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AuditLogDto;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.BatchRegisterJudgesRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.CreateAssignmentRequest;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterJudgeRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateTeamRequest;
 import my.monash.hackathon.hackathon_website_backend.user.User;
 import org.springframework.http.ResponseEntity;
@@ -67,6 +69,30 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getJudges());
     }
 
+    @PostMapping("/judges/register")
+    public ResponseEntity<?> registerJudge(
+            @Valid @RequestBody RegisterJudgeRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var judge = adminService.registerJudge(request, currentUser);
+            return ResponseEntity.ok(judge);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/judges/batch")
+    public ResponseEntity<?> batchRegisterJudges(
+            @Valid @RequestBody BatchRegisterJudgesRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var judges = adminService.batchRegisterJudges(request.judges(), currentUser);
+            return ResponseEntity.ok(judges);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/judges/{userId}")
     public ResponseEntity<?> promoteToJudge(
             @PathVariable Long userId,
@@ -123,5 +149,47 @@ public class AdminController {
     @GetMapping("/audit")
     public ResponseEntity<List<AuditLogDto>> getAudit() {
         return ResponseEntity.ok(adminService.getAuditLogs());
+    }
+
+    @GetMapping("/settings")
+    public ResponseEntity<my.monash.hackathon.hackathon_website_backend.admin.dto.EventSettingsDto> getSettings() {
+        return ResponseEntity.ok(adminService.getSettings());
+    }
+
+    @PatchMapping("/settings")
+    public ResponseEntity<?> updateSettings(
+            @RequestBody my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateEventSettingsRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var updated = adminService.updateSettings(request, currentUser);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/results")
+    public ResponseEntity<List<my.monash.hackathon.hackathon_website_backend.admin.dto.AdminResultDto>> getResults() {
+        return ResponseEntity.ok(adminService.getResults());
+    }
+
+    @PostMapping("/results/publish")
+    public ResponseEntity<?> publishResults(@AuthenticationPrincipal User currentUser) {
+        try {
+            var published = adminService.publishResults(currentUser);
+            return ResponseEntity.ok(published);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/results/unpublish")
+    public ResponseEntity<?> unpublishResults(@AuthenticationPrincipal User currentUser) {
+        try {
+            adminService.unpublishResults(currentUser);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

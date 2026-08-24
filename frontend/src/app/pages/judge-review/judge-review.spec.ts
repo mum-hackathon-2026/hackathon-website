@@ -8,6 +8,7 @@ import { JudgeReview } from './judge-review';
 
 /** Seeded assignment ids, by the state they start in. */
 const COMPLETED = 1;
+const IN_PROGRESS = 2;
 const PENDING = 3;
 const DECLINED = 5;
 
@@ -71,8 +72,9 @@ async function typeScore(index: number, value: string) {
 /** Fills every criterion at the same fraction of its maximum. */
 async function scoreAll(fraction: number) {
   const inputs = scoreInputs();
+  const criteria = TestBed.inject(JudgeService).criteria();
   for (let i = 0; i < inputs.length; i++) {
-    await typeScore(i, String(10 * fraction));
+    await typeScore(i, String(criteria[i].maxScore * fraction));
   }
 }
 
@@ -126,8 +128,8 @@ describe('JudgeReview', () => {
     it('offers one card per criterion, starting empty', async () => {
       const el = await render();
 
-      expect(scoreInputs().length).toBe(4);
-      expect(el.querySelector('.actions__scored')?.textContent).toContain('0/4');
+      expect(scoreInputs().length).toBe(7);
+      expect(el.querySelector('.actions__scored')?.textContent).toContain('0/7');
       expect(total()).toBe('0.0');
     });
 
@@ -136,22 +138,25 @@ describe('JudgeReview', () => {
       await scoreAll(1);
 
       expect(total()).toBe('100.0');
-      expect(host().querySelector('.actions__scored')?.textContent).toContain('4/4');
+      expect(host().querySelector('.actions__scored')?.textContent).toContain('7/7');
     });
 
     it('weights each criterion as it is typed', async () => {
       await render();
 
-      // Innovation alone at full marks is worth its own 30.
-      await typeScore(0, '10');
-      expect(total()).toBe('30.0');
+      // System Design & Architecture alone at full marks is worth its own 15.
+      await typeScore(0, '15');
+      expect(total()).toBe('15.0');
 
-      // 8/10·30 + 9/10·30 + 7.5/10·25 + 6/10·15 = 78.75
-      await typeScore(0, '8');
-      await typeScore(1, '9');
-      await typeScore(2, '7.5');
-      await typeScore(3, '6');
-      expect(total()).toBe('78.8');
+      // 12/15·15 + 20/25·25 + 12/15·15 + 12/15·15 + 8/10·10 + 8/10·10 + 8/10·10 = 12 + 20 + 12 + 12 + 8 + 8 + 8 = 80
+      await typeScore(0, '12');
+      await typeScore(1, '20');
+      await typeScore(2, '12');
+      await typeScore(3, '12');
+      await typeScore(4, '8');
+      await typeScore(5, '8');
+      await typeScore(6, '8');
+      expect(total()).toBe('80.0');
     });
 
     it('treats a cleared box as unscored rather than zero', async () => {
@@ -161,8 +166,8 @@ describe('JudgeReview', () => {
 
       await typeScore(0, '');
 
-      expect(total()).toBe('70.0');
-      expect(host().querySelector('.actions__scored')?.textContent).toContain('3/4');
+      expect(total()).toBe('85.0');
+      expect(host().querySelector('.actions__scored')?.textContent).toContain('6/7');
     });
   });
 
@@ -273,8 +278,10 @@ describe('JudgeReview', () => {
       expect(el.querySelector('app-review-actions')).toBeNull();
       expect(el.querySelector('.review__banner--locked')).toBeTruthy();
       expect(
-        Array.from(el.querySelectorAll('.criterion__mark-value')).map((m) => m.textContent?.trim()),
-      ).toEqual(['9.0', '9.0', '8.5', '9.0']);
+        Array.from(el.querySelectorAll('.criterion__mark-value')).map((node) =>
+          node.textContent?.trim(),
+        ),
+      ).toEqual(['13.5', '22.5', '12.8', '13.5', '9.0', '8.5', '9.0']);
     });
 
     it('shows the feedback the judge wrote', async () => {
@@ -316,17 +323,10 @@ describe('JudgeReview', () => {
 
   describe('an in-progress review', () => {
     it('loads the marks already saved', async () => {
-      // Score one criterion, then re-render as if returning to the page.
-      await render();
-      const draft: ReviewDraft = {
-        scores: [{ criteriaId: 1, score: 6, comment: 'Halfway there.' }],
-        overallFeedback: 'Partial.',
-      };
-      await TestBed.inject(JudgeService).saveDraft(PENDING, draft);
-      await fixture.whenStable();
+      await render({ assignmentId: IN_PROGRESS });
 
-      expect(scoreInputs()[0].value).toBe('6');
-      expect(total()).toBe('18.0');
+      expect(scoreInputs()[0].value).toBe('12');
+      expect(total()).toBe('12.0');
       expect(host().querySelector('.actions__dirty')).toBeNull();
     });
   });

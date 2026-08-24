@@ -1,5 +1,9 @@
 package my.monash.hackathon.hackathon_website_backend.submission;
 
+import my.monash.hackathon.hackathon_website_backend.event.EventSettings;
+import my.monash.hackathon.hackathon_website_backend.event.EventSettingsRepository;
+import my.monash.hackathon.hackathon_website_backend.judging.Assignment;
+import my.monash.hackathon.hackathon_website_backend.judging.AssignmentRepository;
 import my.monash.hackathon.hackathon_website_backend.user.User;
 import my.monash.hackathon.hackathon_website_backend.user.UserRepository;
 import my.monash.hackathon.hackathon_website_backend.team.TeamMember;
@@ -27,6 +31,8 @@ public class SubmissionController {
     private final SubmissionRepository submissionRepository;
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final EventSettingsRepository eventSettingsRepository;
     private final SubmissionImportService submissionImportService;
 
     @Value("${app.webhook.secret:}")
@@ -36,10 +42,14 @@ public class SubmissionController {
             SubmissionRepository submissionRepository,
             UserRepository userRepository,
             TeamMemberRepository teamMemberRepository,
+            AssignmentRepository assignmentRepository,
+            EventSettingsRepository eventSettingsRepository,
             SubmissionImportService submissionImportService) {
         this.submissionRepository = submissionRepository;
         this.userRepository = userRepository;
         this.teamMemberRepository = teamMemberRepository;
+        this.assignmentRepository = assignmentRepository;
+        this.eventSettingsRepository = eventSettingsRepository;
         this.submissionImportService = submissionImportService;
     }
 
@@ -57,7 +67,10 @@ public class SubmissionController {
             String trackLabel,
             String status,
             OffsetDateTime submittedAt,
-            int version
+            int version,
+            int reviewsCompleted,
+            int reviewsExpected,
+            boolean judgingComplete
     ) {}
 
     @GetMapping("/submissions/my")
@@ -79,6 +92,16 @@ public class SubmissionController {
         }
 
         Submission s = submissionOpt.get();
+        var assignments = assignmentRepository.findByTeamId(teamId);
+        int completed = (int) assignments.stream()
+                .filter(a -> "completed".equalsIgnoreCase(a.getStatus()))
+                .count();
+        int targetJudges = eventSettingsRepository.findSingleton()
+                .map(my.monash.hackathon.hackathon_website_backend.event.EventSettings::getJudgesPerTeam)
+                .orElse(3);
+        int expected = Math.max(assignments.size(), targetJudges);
+        boolean judgingComplete = completed >= expected && expected > 0;
+
         return ResponseEntity.ok(new SubmissionResponse(
                 s.getTeamId(),
                 s.getProjectTitle(),
@@ -93,7 +116,10 @@ public class SubmissionController {
                 s.getTrackLabel(),
                 s.getStatus(),
                 s.getSubmittedAt(),
-                s.getVersion()
+                s.getVersion(),
+                completed,
+                expected,
+                judgingComplete
         ));
     }
 

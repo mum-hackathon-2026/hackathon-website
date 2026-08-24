@@ -7,4 +7,7 @@ public interface ScoreRepository extends JpaRepository<Score, Long> {
 
     /** Every mark a judge recorded for one assignment, one per rubric line. */
     List<Score> findByAssignmentId(Long assignmentId);
+
+    /** Every mark for a set of assignments. */
+    List<Score> findByAssignmentIdIn(List<Long> assignmentIds);
 }

@@ -153,7 +153,7 @@ class GoogleSheetsReaderTest {
                 "https://drive.google.com/file/d/leader/view",
                 "https://www.linkedin.com/in/leader",
                 "https://github.com/leader",
-                "No",
+                "Yes",
                 "Monash University",
                 "Computer Science",
                 "Year 2",

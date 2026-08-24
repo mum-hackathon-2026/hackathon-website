@@ -73,19 +73,16 @@ export class Results {
     this.awards().filter((a) => a.category === 'overall'),
   );
 
-  protected readonly trackAwards = computed(() =>
-    this.awards().filter((a) => a.category === 'track'),
-  );
-
   /** The subtitle carries the headline so it is readable before any tab is opened. */
   protected readonly subtitle = computed(() => {
     if (!this.published()) return 'Results have not been published yet.';
 
     const mine = this.myResult();
-    if (!mine) return `Final standings for all ${this.totalTeams} teams.`;
+    const count = this.totalTeams();
+    if (!mine) return `Final standings for all ${count} teams.`;
 
     const rank = mine.tied ? `Joint #${mine.rank}` : `#${mine.rank}`;
-    return `${mine.teamName} · ${rank} of ${this.totalTeams} · ${mine.finalScore} pts`;
+    return `${mine.teamName} · ${rank} of ${count} · ${mine.finalScore} pts`;
   });
 
   protected select(tab: ResultsTab): void {

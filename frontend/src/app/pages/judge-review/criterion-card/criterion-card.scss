@@ -16,15 +16,166 @@
 
 .criterion__title {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-ink);
 }
 
+.criterion__desc {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
 .criterion__weight {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-blue);
+}
+
+.criterion__guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.guide-tag-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.guide-tag {
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--color-subtle);
+  padding: 3px 9px;
+  border-radius: 5px;
+  cursor: help;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    outline: none;
+  }
+}
+
+.guide-tag--weak {
+  background: var(--color-red-dim, #fee2e2);
+  color: var(--color-red-ink, #991b1b);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.guide-tag--dev {
+  background: var(--color-amber-dim, #fef3c7);
+  color: var(--color-amber-ink, #92400e);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.guide-tag--strong {
+  background: var(--color-blue-dim, #dbeafe);
+  color: var(--color-blue-ink, #1e40af);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.guide-tag--exc {
+  background: var(--color-green-dim, #dcfce7);
+  color: var(--color-green-ink, #166534);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* ── Floating Tooltip Bubble ────────────────────────────────────────── */
+.guide-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: 250px;
+  padding: 10px 12px;
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.35);
+  z-index: 60;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #0f172a transparent transparent transparent;
+  }
+}
+
+.guide-tag-container:hover .guide-tooltip,
+.guide-tag-container:focus-within .guide-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.guide-tooltip__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.guide-tooltip__badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.guide-tooltip__badge--weak {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.guide-tooltip__badge--dev {
+  background: rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+}
+
+.guide-tooltip__badge--strong {
+  background: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.guide-tooltip__badge--exc {
+  background: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+.guide-tooltip__range {
+  font-family: var(--font-numeric);
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.guide-tooltip__body {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #e2e8f0;
 }
 
 .criterion__field {

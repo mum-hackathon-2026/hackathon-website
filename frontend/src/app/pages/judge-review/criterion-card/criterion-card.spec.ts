@@ -262,4 +262,22 @@ describe('CriterionCard', () => {
       expect(host().querySelector(`#${target}`)).toBeTruthy();
     }
   });
+
+  describe('scoring guide tags and tooltips', () => {
+    it('renders all four performance bands with tooltips', async () => {
+      await render({ title: 'Innovation & Solution Approach', maxScore: 10 });
+
+      const tags = host().querySelectorAll('.guide-tag');
+      expect(tags.length).toBe(4);
+      expect(tags[0].textContent?.trim()).toBe('Weak (0–2)');
+      expect(tags[1].textContent?.trim()).toBe('Developing (3–5)');
+      expect(tags[2].textContent?.trim()).toBe('Strong (6–7)');
+      expect(tags[3].textContent?.trim()).toBe('Excellent (8–10)');
+
+      const tooltips = host().querySelectorAll('.guide-tooltip__body');
+      expect(tooltips.length).toBe(4);
+      expect(tooltips[0].textContent?.trim()).toContain('generic or poorly suited');
+      expect(tooltips[3].textContent?.trim()).toContain('original, well justified and offers a clear advantage');
+    });
+  });
 });

@@ -1,4 +1,7 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { API_BASE_URL } from '../auth/auth';
 import { EVENT_CONFIG, EventSettings } from './event-config';
 
 export type EventSettingsResult = { ok: true } | { ok: false; error: string };
@@ -34,7 +37,17 @@ const NAME_MAX = 200;
  */
 @Injectable({ providedIn: 'root' })
 export class EventSettingsService {
-  private readonly current = signal<EventSettings>(inject(EVENT_CONFIG).settings);
+  private readonly config = inject(EVENT_CONFIG);
+  private readonly http = inject(HttpClient, { optional: true });
+  private readonly apiBaseUrl = (
+    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080'
+  ).replace(/\/api$/, '');
+
+  private readonly current = signal<EventSettings>(this.config.settings);
+
+  constructor() {
+    void this.fetchLiveSettings();
+  }
 
   /** The whole row, for callers that read several fields at once. */
   readonly settings = this.current.asReadonly();
@@ -49,6 +62,38 @@ export class EventSettingsService {
   readonly minTeamSize = computed(() => this.current().minTeamSize);
   readonly maxTeamSize = computed(() => this.current().maxTeamSize);
   readonly screeningEnabled = computed(() => this.current().screeningEnabled);
+  readonly judgesPerTeam = computed(() => this.current().judgesPerTeam);
+
+  async fetchLiveSettings(): Promise<void> {
+    if (!this.http) return;
+    try {
+      const data = await firstValueFrom(
+        this.http.get<any>(`${this.apiBaseUrl}/api/event/settings`),
+      );
+      if (data) {
+        this.applyBackendSettings(data);
+      }
+    } catch {
+      // Keep seed config if backend unavailable or during offline tests
+    }
+  }
+
+  applyBackendSettings(data: any): void {
+    if (!data) return;
+    const current = this.current();
+    this.current.set({
+      eventName: data.eventName || current.eventName,
+      registrationOpensAt: data.registrationOpensAt ? new Date(data.registrationOpensAt) : null,
+      registrationClosesAt: data.registrationClosesAt ? new Date(data.registrationClosesAt) : null,
+      submissionDeadlineAt: data.submissionDeadlineAt ? new Date(data.submissionDeadlineAt) : null,
+      resultsPublishedAt: data.resultsPublishedAt ? new Date(data.resultsPublishedAt) : null,
+      judgingOpen: data.judgingOpen ?? current.judgingOpen,
+      minTeamSize: Number(data.minTeamSize) || current.minTeamSize,
+      maxTeamSize: Number(data.maxTeamSize) || current.maxTeamSize,
+      screeningEnabled: data.screeningEnabled ?? current.screeningEnabled,
+      judgesPerTeam: Number(data.judgesPerTeam) || current.judgesPerTeam,
+    });
+  }
 
   /**
    * Applies a partial change, rejecting anything `event_settings` would reject.
@@ -76,6 +121,9 @@ export class EventSettingsService {
     }
     if (!Number.isInteger(next.maxTeamSize) || next.maxTeamSize < next.minTeamSize) {
       return { ok: false, error: 'The maximum team size cannot be below the minimum.' };
+    }
+    if (!Number.isInteger(next.judgesPerTeam) || next.judgesPerTeam < 1 || next.judgesPerTeam > 10) {
+      return { ok: false, error: 'Judges per team must be between 1 and 10.' };
     }
 
     if (

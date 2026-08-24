@@ -301,6 +301,7 @@ const SETTING_LABELS = (key: keyof EventSettingsPatch): string =>
     minTeamSize: 'minimum team size',
     maxTeamSize: 'maximum team size',
     screeningEnabled: 'screening',
+    judgesPerTeam: 'judges per team',
   })[key] ?? key;
 
 /**
@@ -1016,8 +1017,9 @@ export class AdminService {
   /** Owns `event_settings`; this service writes through it so one copy stays authoritative. */
   private readonly eventSettings = inject(EventSettingsService);
   private readonly http = inject(HttpClient, { optional: true });
-  private readonly apiBaseUrl =
-    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080/api';
+  private readonly apiBaseUrl = (
+    inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080'
+  ).replace(/\/api$/, '');
 
   private readonly liveTeams = signal<readonly AdminTeamRow[] | null>(null);
   private readonly liveParticipants = signal<readonly AdminParticipantRow[] | null>(null);
@@ -1025,6 +1027,7 @@ export class AdminService {
   private readonly liveAssignments = signal<readonly AdminAssignmentRow[] | null>(null);
   private readonly liveAudit = signal<readonly AuditEntry[] | null>(null);
   private readonly liveStats = signal<AdminStats | null>(null);
+  private readonly liveResults = signal<readonly AdminResultRow[] | null>(null);
 
   /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
   private readonly rows = signal<readonly SeedTeam[]>(SEED);
@@ -1045,6 +1048,11 @@ export class AdminService {
    */
   private readonly roleOverrides = signal<ReadonlyMap<number, Role>>(new Map());
 
+  /** Newly registered judges in demo/offline mode */
+  private readonly mockCustomJudges = signal<
+    readonly { userId: number; name: string; email: string; competingTeam: string }[]
+  >([]);
+
   constructor() {
     effect(() => {
       const user = this.auth.user();
@@ -1057,6 +1065,7 @@ export class AdminService {
         this.liveAssignments.set(null);
         this.liveAudit.set(null);
         this.liveStats.set(null);
+        this.liveResults.set(null);
       }
     });
   }
@@ -1066,7 +1075,7 @@ export class AdminService {
     try {
       const token = this.auth.token();
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const [overview, teams, participants, judges, assignments, audit] = await Promise.all([
+      const [overview, teams, participants, judges, assignments, audit, results] = await Promise.all([
         firstValueFrom(
           this.http.get<{ stats: AdminStats; recentAudit: readonly WireAuditEntry[] }>(
             `${this.apiBaseUrl}/api/admin/overview`,
@@ -1097,6 +1106,9 @@ export class AdminService {
           this.http.get<readonly WireAuditEntry[]>(`${this.apiBaseUrl}/api/admin/audit`, {
             headers,
           }),
+        ),
+        firstValueFrom(
+          this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/results`, { headers }),
         ),
       ]);
 
@@ -1137,6 +1149,14 @@ export class AdminService {
           })),
         );
       }
+      if (results) {
+        this.liveResults.set(
+          results.map((r: any) => ({
+            ...r,
+            publishedAt: r.publishedAt ? new Date(r.publishedAt) : null,
+          })),
+        );
+      }
     } catch {
       // Fallback smoothly
     }
@@ -1157,6 +1177,9 @@ export class AdminService {
       [
         ...JUDGE_SEED.filter((judge) => overrides.get(judge.userId) !== 'participant').map(
           (judge) => ({ ...judge, competingTeam: '' }),
+        ),
+        ...this.mockCustomJudges().filter(
+          (judge) => overrides.get(judge.userId) !== 'participant',
         ),
         // Promoted from the floor, so they may well still be on a team.
         ...this.registered()
@@ -1197,7 +1220,7 @@ export class AdminService {
       return this.liveTeams()!;
     }
     const tracks = this.config.site.tracks;
-    const { minTeamSize } = this.config.settings;
+    const minTeamSize = this.eventSettings.minTeamSize();
     const judgingOpen = this.phaseService.judgingOpen();
 
     const reviews = this.reviewsByTeam();
@@ -1322,6 +1345,9 @@ export class AdminService {
   private readonly publishedAt = signal<ReadonlyMap<number, Date>>(new Map());
 
   readonly results = computed<readonly AdminResultRow[]>(() => {
+    if (this.liveResults() !== null) {
+      return this.liveResults()!;
+    }
     const byId = new Map(this.teams().map((team) => [team.teamId, team]));
     const published = this.publishedAt();
 
@@ -1567,6 +1593,120 @@ export class AdminService {
     });
   }
 
+  registerJudge(fullName: string, email: string): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const cleanName = fullName.trim();
+      const cleanEmail = email.trim().toLowerCase();
+
+      if (!cleanName) return { ok: false, error: 'Full name is required.' };
+      if (!cleanEmail || !cleanEmail.includes('@'))
+        return { ok: false, error: 'A valid email address is required.' };
+
+      if (this.judges().some((j) => j.email.toLowerCase() === cleanEmail)) {
+        return { ok: false, error: 'A judge with this email is already registered.' };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/judges/register`,
+              { fullName: cleanName, email: cleanEmail },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          this.log('judge', 'Judge registered', `${cleanName} (${cleanEmail})`);
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to register judge on server.';
+          return { ok: false, error: errorMsg };
+        }
+      }
+
+      // Mock fallback:
+      const existingPerson = this.participants().find(
+        (p) => p.email.toLowerCase() === cleanEmail,
+      );
+      if (existingPerson) {
+        this.setRole(existingPerson.userId, 'judge');
+      } else {
+        const nextId =
+          Math.max(
+            9000,
+            ...this.judges().map((j) => j.userId),
+            ...this.mockCustomJudges().map((j) => j.userId),
+            ...this.participants().map((p) => p.userId),
+          ) + 1;
+        this.mockCustomJudges.update((all) => [
+          ...all,
+          { userId: nextId, name: cleanName, email: cleanEmail, competingTeam: '' },
+        ]);
+      }
+
+      this.log('judge', 'Judge registered', `${cleanName} (${cleanEmail})`);
+      return { ok: true };
+    });
+  }
+
+  batchRegisterJudges(
+    judges: readonly { fullName: string; email: string }[],
+  ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+    return this.run(async () => {
+      const valid = judges
+        .map((j) => ({ fullName: j.fullName.trim(), email: j.email.trim().toLowerCase() }))
+        .filter((j) => j.fullName && j.email && j.email.includes('@'));
+
+      if (valid.length === 0) {
+        return { ok: false, error: 'No valid judge entries provided.' };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/judges/batch`,
+              { judges: valid },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          this.log('judge', 'Judges batch registered', `${valid.length} judges`);
+          return { ok: true, count: valid.length };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to batch register judges on server.';
+          return { ok: false, error: errorMsg };
+        }
+      }
+
+      // Mock fallback:
+      for (const j of valid) {
+        const existingPerson = this.participants().find(
+          (p) => p.email.toLowerCase() === j.email,
+        );
+        if (existingPerson) {
+          this.setRole(existingPerson.userId, 'judge');
+        } else {
+          const nextId =
+            Math.max(
+              9000,
+              ...this.judges().map((judge) => judge.userId),
+              ...this.mockCustomJudges().map((judge) => judge.userId),
+            ) + 1;
+          this.mockCustomJudges.update((all) => [
+            ...all,
+            { userId: nextId, name: j.fullName, email: j.email, competingTeam: '' },
+          ]);
+        }
+      }
+
+      this.log('judge', 'Judges batch registered', `${valid.length} judges`);
+      return { ok: true, count: valid.length };
+    });
+  }
+
   grantJudgeRole(userId: number): Promise<AdminActionResult> {
     return this.run(async () => {
       if (this.judges().some((row) => row.userId === userId)) {
@@ -1678,13 +1818,40 @@ export class AdminService {
    * results page, and `unpublishResults` closes it again.
    */
   publishResults(): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const publishable = this.results().filter((row) => row.finalScore !== null);
       if (publishable.length === 0) {
         return { ok: false, error: 'No team has a score yet, so there is nothing to publish.' };
       }
       if (publishable.every((row) => row.publishedAt !== null)) {
         return { ok: false, error: 'Every scored result is already published.' };
+      }
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          const res = await firstValueFrom(
+            this.http.post<any[]>(
+              `${this.apiBaseUrl}/api/admin/results/publish`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          if (res) {
+            this.liveResults.set(
+              res.map((r: any) => ({
+                ...r,
+                publishedAt: r.publishedAt ? new Date(r.publishedAt) : null,
+              })),
+            );
+          }
+          void this.refreshAll();
+          this.log('result', 'Results published', `${publishable.length} teams`);
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to publish results.';
+          return { ok: false, error: errorMsg };
+        }
       }
 
       const at = new Date();
@@ -1704,9 +1871,28 @@ export class AdminService {
 
   /** Clears every `published_at`, putting the results back out of sight. */
   unpublishResults(): Promise<AdminActionResult> {
-    return this.run(() => {
+    return this.run(async () => {
       const count = this.results().filter((row) => row.publishedAt !== null).length;
       if (count === 0) return { ok: false, error: 'Nothing is published.' };
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/results/unpublish`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+          this.log('result', 'Results unpublished', `${count} teams`);
+          return { ok: true };
+        } catch (err: any) {
+          const errorMsg = err?.error?.error || 'Failed to unpublish results.';
+          return { ok: false, error: errorMsg };
+        }
+      }
 
       this.publishedAt.set(new Map());
       // Closes the participant page again, for the same reason publishing opens it.
@@ -1731,6 +1917,37 @@ export class AdminService {
   async updateSettings(patch: EventSettingsPatch): Promise<AdminActionResult> {
     this.inFlight.update((n) => n + 1);
     try {
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        const headers = { Authorization: `Bearer ${token}` };
+        const body: Record<string, any> = {
+          eventName: patch.eventName,
+          registrationOpensAt: patch.registrationOpensAt ? patch.registrationOpensAt.toISOString() : null,
+          registrationClosesAt: patch.registrationClosesAt ? patch.registrationClosesAt.toISOString() : null,
+          submissionDeadlineAt: patch.submissionDeadlineAt ? patch.submissionDeadlineAt.toISOString() : null,
+          resultsPublishedAt: patch.resultsPublishedAt ? patch.resultsPublishedAt.toISOString() : null,
+          judgingOpen: patch.judgingOpen,
+          minTeamSize: patch.minTeamSize,
+          maxTeamSize: patch.maxTeamSize,
+          screeningEnabled: patch.screeningEnabled,
+          judgesPerTeam: patch.judgesPerTeam,
+        };
+
+        try {
+          const res = await firstValueFrom(
+            this.http.patch<any>(`${this.apiBaseUrl}/api/admin/settings`, body, { headers }),
+          );
+          if (res) {
+            this.eventSettings.applyBackendSettings(res);
+          }
+          await this.refreshAll();
+          return { ok: true };
+        } catch (e: any) {
+          const errorMsg = e.error?.error || e.message || 'Failed to save event settings.';
+          return { ok: false, error: errorMsg };
+        }
+      }
+
       const before = this.eventSettings.settings();
       const result = await this.eventSettings.update(patch);
       if (!result.ok) return result;
@@ -1787,9 +2004,7 @@ export class AdminService {
    * Async boundary with no I/O behind it yet — the part callers must cope with
    * when a real endpoint replaces this, so it exists from the start.
    */
-  private async run(
-    action: () => AdminActionResult | Promise<AdminActionResult>,
-  ): Promise<AdminActionResult> {
+  private async run<T = AdminActionResult>(action: () => T | Promise<T>): Promise<T> {
     this.inFlight.update((n) => n + 1);
     try {
       return await action();

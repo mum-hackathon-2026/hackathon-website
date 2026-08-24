@@ -69,9 +69,7 @@ export const FAQS: readonly Faq[] = [
   {
     question: 'Are there prizes?',
     answer:
-      'Three cash prizes — RM 5,000 for first place, RM 3,000 for second and RM 1,000 for ' +
-      'third — presented at the end of Final Pitch Day. Every finalist team also presents to ' +
-      'the Averis panel, which is worth having on your record whatever the result.',
+      'Three cash prizes — RM 5,000 for 1st place, RM 3,000 for 2nd place, and RM 1,000 for 3rd place, presented at the end of Final Pitch Day. Every finalist team also presents to the panel, which is a valuable credential on your record whatever the result.',
   },
 ];
 
@@ -248,6 +246,7 @@ export interface Partner {
   /** What they are to the event: organiser, club partner, sponsor. */
   readonly role: string;
   readonly responsibility: string;
+  readonly logo?: string;
 }
 
 /**
@@ -259,16 +258,19 @@ export const PARTNERS: readonly Partner[] = [
     name: 'GDGoC Monash University Malaysia',
     role: 'Organiser',
     responsibility: 'Plans and runs the event',
+    logo: 'logos/gdgoc.png',
   },
   {
     name: 'MUMTEC',
     role: 'Club partner',
     responsibility: 'Publicity, and oversees event execution',
+    logo: 'logos/mumtec.png',
   },
   {
     name: 'Averis',
     role: 'Sponsor',
     responsibility: 'Sets the problem statement and provides the judges',
+    logo: 'logos/averis.png',
   },
 ];
 
