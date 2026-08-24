@@ -1,7 +1,7 @@
 @if (visible()) {
   <!-- position: fixed, so this never enters page layout and cannot reflow copy. -->
-  <!-- #anchor and #core are written to directly by the animation loop; their
-       transforms are not bound, so the frame rate costs no change detection. -->
+  <!-- #anchor is written to directly by the animation loop; its transform is
+       not bound, so the frame rate costs no change detection. -->
   <div
     #anchor
     class="orb"
@@ -42,7 +42,7 @@
       "
       (click)="toggle()"
     >
-      <span #core class="orb__core" aria-hidden="true"></span>
+      <span class="orb__core" aria-hidden="true"></span>
       <span class="orb__sheen" aria-hidden="true"></span>
     </button>
   </div>

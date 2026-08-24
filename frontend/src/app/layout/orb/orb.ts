@@ -14,7 +14,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth';
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { PhaseService } from '../../core/event/phase';
-import { SpringState, idleOffset, stepSpring, stretchFor } from './orb-motion';
+import { SpringState, idleOffset, stepSpring } from './orb-motion';
 import { Point, Rect, chooseSpot, isComfortable } from './orb-placement';
 
 /**
@@ -88,7 +88,6 @@ export class Orb {
   readonly panelOnRight = signal(false);
 
   private readonly anchor = viewChild<ElementRef<HTMLElement>>('anchor');
-  private readonly core = viewChild<ElementRef<HTMLElement>>('core');
 
   readonly firstName = computed(() => this.auth.user()?.name.split(' ')[0] ?? '');
 
@@ -233,9 +232,9 @@ export class Orb {
   /**
    * The animation loop.
    *
-   * Writes transforms straight to the elements rather than through a signal:
+   * Writes the transform straight to the element rather than through a signal:
    * a bound style would run change detection sixty times a second for a value
-   * only these two nodes care about.
+   * only this one node cares about.
    */
   private startLoop(): void {
     if (this.frame !== null || typeof requestAnimationFrame !== 'function') return;
@@ -270,21 +269,13 @@ export class Orb {
     this.frame = null;
   }
 
-  /** Put the current motion state on screen. */
+  /** Put the current position on screen: the spring, plus the idle bob. */
   private paint(spring: SpringState, elapsedMs: number): void {
     const anchor = this.anchor()?.nativeElement;
     if (!anchor) return;
 
     const drift = idleOffset(elapsedMs);
     anchor.style.transform = `translate(${(spring.at.x + drift.x).toFixed(2)}px, ${(spring.at.y + drift.y).toFixed(2)}px)`;
-
-    const core = this.core()?.nativeElement;
-    if (!core) return;
-
-    // Stretch lives on the core so it composes with the button's hover scale
-    // instead of fighting it for the same transform property.
-    const stretch = stretchFor(spring.velocity);
-    core.style.transform = `rotate(${stretch.angle.toFixed(3)}rad) scale(${stretch.scaleX.toFixed(3)}, ${stretch.scaleY.toFixed(3)}) rotate(${(-stretch.angle).toFixed(3)}rad)`;
   }
 
   /** Run once the browser has laid the new DOM out. */

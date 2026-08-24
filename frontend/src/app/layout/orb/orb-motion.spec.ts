@@ -1,4 +1,4 @@
-import { SpringState, Vec, idleOffset, isAtRest, stepSpring, stretchFor } from './orb-motion';
+import { SpringState, Vec, idleOffset, isAtRest, stepSpring } from './orb-motion';
 
 const FRAME_S = 1 / 60;
 
@@ -116,8 +116,8 @@ describe('idleOffset', () => {
   it('stays within its amplitude', () => {
     for (let ms = 0; ms < 60_000; ms += 250) {
       const offset = idleOffset(ms);
-      expect(Math.abs(offset.x)).toBeLessThanOrEqual(15);
-      expect(Math.abs(offset.y)).toBeLessThanOrEqual(11);
+      expect(Math.abs(offset.x)).toBeLessThanOrEqual(5);
+      expect(Math.abs(offset.y)).toBeLessThanOrEqual(8);
     }
   });
 
@@ -128,32 +128,7 @@ describe('idleOffset', () => {
   // Unrelated periods, so the wander does not visibly loop.
   it('does not retrace itself on a short cycle', () => {
     const start = idleOffset(0);
-    const oneXPeriodLater = idleOffset(11_000);
+    const oneXPeriodLater = idleOffset(9_000);
     expect(Math.abs(oneXPeriodLater.y - start.y)).toBeGreaterThan(0.5);
-  });
-});
-
-describe('stretchFor', () => {
-  it('is round when still', () => {
-    const stretch = stretchFor({ x: 0, y: 0 });
-    expect(stretch.scaleX).toBe(1);
-    expect(stretch.scaleY).toBe(1);
-  });
-
-  it('lengthens along travel and narrows across it', () => {
-    const stretch = stretchFor({ x: 400, y: 0 });
-    expect(stretch.scaleX).toBeGreaterThan(1);
-    expect(stretch.scaleY).toBeLessThan(1);
-  });
-
-  it('points along the direction of travel', () => {
-    expect(stretchFor({ x: 100, y: 0 }).angle).toBeCloseTo(0, 5);
-    expect(stretchFor({ x: 0, y: 100 }).angle).toBeCloseTo(Math.PI / 2, 5);
-  });
-
-  it('caps, so a fast hop cannot smear the orb into a line', () => {
-    const fast = stretchFor({ x: 99_999, y: 0 });
-    expect(fast.scaleX).toBeLessThanOrEqual(1.26);
-    expect(fast.scaleY).toBeGreaterThan(0.7);
   });
 });
