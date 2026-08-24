@@ -1,4 +1,11 @@
-import { Rect, chooseSpot, clearanceAt, distanceToRect, isComfortable } from './orb-placement';
+import {
+  Rect,
+  chooseSpot,
+  clearanceAt,
+  contentBounds,
+  distanceToRect,
+  isComfortable,
+} from './orb-placement';
 
 function rect(left: number, top: number, right: number, bottom: number): Rect {
   return { left, top, right, bottom };
@@ -53,6 +60,21 @@ describe('isComfortable', () => {
 
   it('accepts a point well away from it', () => {
     expect(isComfortable({ x: 400, y: 400 }, RADIUS, [rect(0, 0, 100, 100)])).toBe(true);
+  });
+});
+
+describe('contentBounds', () => {
+  it('is null when there is no text', () => {
+    expect(contentBounds([])).toBeNull();
+  });
+
+  it('encloses every box', () => {
+    expect(contentBounds([rect(100, 50, 200, 150), rect(400, 20, 500, 300)])).toEqual({
+      left: 100,
+      top: 20,
+      right: 500,
+      bottom: 300,
+    });
   });
 });
 
@@ -139,6 +161,44 @@ describe('chooseSpot', () => {
 
     expect(Number.isFinite(spot.x)).toBe(true);
     expect(Number.isFinite(spot.y)).toBe(true);
+  });
+
+  // The page is a centred column, so a wide display has large empty gutters.
+  // Scoring alone would send the orb into one and strand it at the screen edge.
+  it('stays near the content instead of sailing into a wide gutter', () => {
+    const wide = { width: 1920, height: 900 };
+    // A 1120px column centred on 1920px leaves 400px of empty gutter each side.
+    const column = [rect(400, 80, 1520, 860)];
+
+    for (let i = 0; i < 20; i++) {
+      const spot = chooseSpot({
+        viewport: wide,
+        obstacles: column,
+        radius: RADIUS,
+        topInset: TOP_INSET,
+        current: null,
+        random: () => i / 20,
+      });
+
+      expect(spot.x).toBeGreaterThan(400 - 140 - 1);
+      expect(spot.x).toBeLessThan(1520 + 140 + 1);
+    }
+  });
+
+  // The target is not where the orb ends up: the spring oversteps and the bob
+  // wanders. A spot flush against the boundary would be reached by leaving it.
+  it('leaves room at the edges for overshoot and bob', () => {
+    const spot = chooseSpot({
+      viewport: VIEWPORT,
+      obstacles: [],
+      radius: RADIUS,
+      topInset: TOP_INSET,
+      current: null,
+      random: () => 0.999,
+    });
+
+    expect(spot.x).toBeLessThanOrEqual(VIEWPORT.width - RADIUS - 20);
+    expect(spot.y).toBeLessThanOrEqual(VIEWPORT.height - RADIUS - 20);
   });
 
   it('survives a viewport smaller than its own margins', () => {

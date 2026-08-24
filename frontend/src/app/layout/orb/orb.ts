@@ -326,7 +326,15 @@ export class Orb {
     if (!anchor) return;
 
     const drift = idleOffset(elapsedMs);
-    anchor.style.transform = `translate(${(spring.at.x + drift.x).toFixed(2)}px, ${(spring.at.y + drift.y).toFixed(2)}px)`;
+
+    // A backstop, not the mechanism: chooseSpot already holds its targets well
+    // inside the viewport. This only bites if a long hop's overshoot and the
+    // bob happen to stack up, and clamping is better than letting the orb
+    // hang off the edge of the screen.
+    const x = clamp(spring.at.x + drift.x, ORB_RADIUS + 4, window.innerWidth - ORB_RADIUS - 4);
+    const y = clamp(spring.at.y + drift.y, ORB_RADIUS + 4, window.innerHeight - ORB_RADIUS - 4);
+
+    anchor.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
   }
 
   /** Run once the browser has laid the new DOM out. */
@@ -340,6 +348,10 @@ export class Orb {
     if (this.settleTimer !== null) clearTimeout(this.settleTimer);
     this.settleTimer = setTimeout(run, SETTLE_MS);
   }
+}
+
+function clamp(value: number, low: number, high: number): number {
+  return Math.min(Math.max(value, low), Math.max(low, high));
 }
 
 /** Monotonic where available, so a clock change cannot jolt the spring. */

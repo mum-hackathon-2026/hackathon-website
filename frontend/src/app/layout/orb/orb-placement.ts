@@ -45,6 +45,40 @@ const COMFORT = 24;
  */
 const MIN_TRAVEL = 120;
 
+/**
+ * Held back from every edge on top of COMFORT, because the target is not where
+ * the orb actually gets to: the spring oversteps by a couple of percent and the
+ * idle bob wanders several pixels further. Without this a spot on the boundary
+ * is reached by going briefly past it, and the orb clips the viewport.
+ */
+const MOTION_SLACK = 22;
+
+/**
+ * How far outside the text it may stray.
+ *
+ * The page is a centred column, so on a wide screen the emptiest points by far
+ * are the middles of the two gutters. Scoring alone sends the orb out there and
+ * strands it against the edge of the display, away from anything being read.
+ * This keeps it in orbit around the content instead.
+ */
+const ROAM_MARGIN = 140;
+
+/**
+ * The box the text on screen occupies, or null when there is none.
+ *
+ * Used as the region the orb orbits, rather than the viewport, so that empty
+ * gutters on a wide display do not read as the best place to be.
+ */
+export function contentBounds(obstacles: readonly Rect[]): Rect | null {
+  if (obstacles.length === 0) return null;
+  return {
+    left: Math.min(...obstacles.map((rect) => rect.left)),
+    top: Math.min(...obstacles.map((rect) => rect.top)),
+    right: Math.max(...obstacles.map((rect) => rect.right)),
+    bottom: Math.max(...obstacles.map((rect) => rect.bottom)),
+  };
+}
+
 /** Distance from a point to the nearest edge of a rect; 0 when inside it. */
 export function distanceToRect(point: Point, rect: Rect): number {
   const dx = Math.max(rect.left - point.x, 0, point.x - rect.right);
@@ -87,10 +121,33 @@ export function chooseSpot(request: PlacementRequest): Point {
   const { viewport, obstacles, radius, topInset, current } = request;
   const random = request.random ?? Math.random;
 
-  const minX = radius + COMFORT;
-  const maxX = Math.max(minX, viewport.width - radius - COMFORT);
-  const minY = topInset + radius + COMFORT;
-  const maxY = Math.max(minY, viewport.height - radius - COMFORT);
+  // The hard limits: inside the viewport, below the nav, with room to spare for
+  // the overshoot and the bob.
+  const edge = radius + COMFORT + MOTION_SLACK;
+  let minX = edge;
+  let maxX = Math.max(minX, viewport.width - edge);
+  let minY = topInset + radius + COMFORT;
+  let maxY = Math.max(minY, viewport.height - edge);
+
+  // Then pulled in around the content, so the orb stays near what is being read
+  // rather than drifting into a gutter. Only ever narrows the area, and only
+  // while that leaves somewhere to stand.
+  const content = contentBounds(obstacles);
+  if (content) {
+    const nearLeft = Math.max(minX, Math.min(maxX, content.left - ROAM_MARGIN));
+    const nearRight = Math.max(minX, Math.min(maxX, content.right + ROAM_MARGIN));
+    if (nearRight > nearLeft) {
+      minX = nearLeft;
+      maxX = nearRight;
+    }
+
+    const nearTop = Math.max(minY, Math.min(maxY, content.top - ROAM_MARGIN));
+    const nearBottom = Math.max(minY, Math.min(maxY, content.bottom + ROAM_MARGIN));
+    if (nearBottom > nearTop) {
+      minY = nearTop;
+      maxY = nearBottom;
+    }
+  }
 
   const scored: { point: Point; clearance: number }[] = [];
   for (let ix = 0; ix < GRID; ix++) {
