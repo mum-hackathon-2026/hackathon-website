@@ -25,7 +25,7 @@
           to publish.
           @if (flaggedCount() > 0) {
             <strong>{{ flaggedCount() }}</strong> of them {{ flaggedCount() === 1 ? 'is' : 'are' }}
-            flagged below — worth reading first.
+            flagged below, and worth reading first.
           }
         }
       </p>
@@ -53,10 +53,9 @@
   </div>
 
   <p class="publish__caveat">
-    This stamps <code>team_results.published_at</code> on every scored row — where V1 records
-    publication, one time per row — and sets <code>event_settings.results_published_at</code>, which
-    is what opens the participant results page. Both move together, so a published result is one
-    participants can actually read. Unpublishing clears both.
+    This marks every scored result as published and opens the participant results page. The two
+    happen together, so a published result is always one participants can actually read.
+    Unpublishing reverses both.
   </p>
 </section>
 
@@ -164,8 +163,8 @@
   Ranks, scores and outcomes are read from the same source as the participant
   <a routerLink="/results">results page</a>, so this table cannot disagree with what gets published.
   Standard competition ranking applies: tied teams share a rank and the next rank skips. Flags are
-  advisory — a withdrawn or disqualified team may still carry a published result, since
-  <code>disqualified</code> is one of the outcomes the schema allows.
+  advisory: a withdrawn or disqualified team can still carry a published result, because
+  disqualified is itself one of the outcomes a result can have.
 </p>
 
 @if (confirming(); as action) {

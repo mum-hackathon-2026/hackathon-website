@@ -246,6 +246,6 @@ describe('AdminAssignments', () => {
     await setUp();
 
     // The cascade is the surprising part of this screen; it must stay stated.
-    expect(text()).toContain('ON DELETE CASCADE');
+    expect(text()).toContain('removes any scores they had already given it');
   });
 });

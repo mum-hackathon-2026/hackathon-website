@@ -64,7 +64,10 @@ export class AdminJudges {
     const text = this.batchInput().trim();
     if (!text) return [];
 
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
     return lines.map((line) => {
       let name = '';
       let email = '';
@@ -247,4 +250,3 @@ export class AdminJudges {
     }
   }
 }
-

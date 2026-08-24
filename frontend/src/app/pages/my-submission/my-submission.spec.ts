@@ -129,7 +129,7 @@ describe('MySubmission', () => {
 
     expect(host().querySelector('.submission__pill--submitted')).toBeTruthy();
     expect(formLink()).toBeNull();
-    expect(text()).toContain('Submission Finalized');
+    expect(text()).toContain('Your entry is locked');
   });
 });
 

@@ -60,7 +60,7 @@ export class MilestoneService {
         start: s.registrationOpensAt,
         end: null,
         accent: 'green',
-        description: `The participant portal opens and teams can register. Form a team of ${teamSize} and secure your place.`,
+        description: `The participant portal opens and teams can register. Get a team of ${teamSize} together and put your entry in.`,
       },
       s.registrationClosesAt && {
         id: 'registration-closes',
@@ -69,7 +69,7 @@ export class MilestoneService {
         end: null,
         accent: 'blue',
         description:
-          'No new team registrations are accepted after this point. Teams still forming must be finalised before the deadline.',
+          'No new team registrations are accepted after this point. If your team is still coming together, settle it before the deadline.',
         guidance: 'Confirm every member of your team before this date.',
       },
       s.submissionDeadlineAt && {
@@ -79,9 +79,8 @@ export class MilestoneService {
         end: null,
         accent: 'red',
         description:
-          'Your project files, repository link, demo URL and video walkthrough must all be submitted through the portal.',
-        guidance:
-          'The portal accepts updates right up to the deadline, so submit early and revise.',
+          'Send your repository link, project brief, video demo and demo URL through the submission form.',
+        guidance: 'The form accepts updates right up to the deadline, so submit early and revise.',
       },
       s.submissionDeadlineAt &&
         s.resultsPublishedAt && {
@@ -90,9 +89,9 @@ export class MilestoneService {
           start: s.submissionDeadlineAt,
           end: s.resultsPublishedAt,
           accent: 'amber',
-          description: `Judges review every submission against the published criteria — ${this.config.site.judgingCriteria
+          description: `Judges score every submission against the published criteria (${this.config.site.judgingCriteria
             .map((c) => c.name.toLowerCase())
-            .join(', ')} — and scores are weighted and averaged across judges.`,
+            .join(', ')}). Scores are weighted, then averaged across judges.`,
         },
       s.resultsPublishedAt && {
         id: 'results',
@@ -101,7 +100,7 @@ export class MilestoneService {
         end: null,
         accent: 'green',
         description:
-          'Final scores, rankings and prize-winner notifications are published to all registered participants at once.',
+          'Scores, rankings and prize winners go out to everyone who registered, all at the same time.',
       },
     ];
 

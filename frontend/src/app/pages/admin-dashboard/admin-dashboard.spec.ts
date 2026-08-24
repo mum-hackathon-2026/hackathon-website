@@ -298,13 +298,15 @@ describe('AdminDashboard', () => {
       await render({ section: 'participants' });
 
       expect(host().querySelectorAll('.grid__actions').length).toBe(0);
-      expect(host().querySelector('.note')?.textContent).toContain('email_verified');
+      expect(host().querySelector('.note')?.textContent).toContain('not recorded anywhere');
     });
 
     it('says screening is off rather than implying the checks gate anything', async () => {
       await render({ section: 'participants', settings: { screeningEnabled: false } });
 
-      expect(host().querySelector('.banner--muted')?.textContent).toContain('Screening is off');
+      expect(host().querySelector('.banner--muted')?.textContent).toContain(
+        'Screening is switched off',
+      );
     });
 
     it('drops the screening note once screening is on', async () => {
@@ -338,8 +340,8 @@ describe('AdminDashboard', () => {
     }
 
     function click(selector: string, label: string) {
-      const button = Array.from(host().querySelectorAll<HTMLButtonElement>(selector)).find(
-        (b) => b.textContent?.includes(label),
+      const button = Array.from(host().querySelectorAll<HTMLButtonElement>(selector)).find((b) =>
+        b.textContent?.includes(label),
       );
       expect(button, `a ${label} button should be rendered`).toBeTruthy();
       button!.click();
@@ -373,9 +375,11 @@ describe('AdminDashboard', () => {
       await render({ section: 'judges' });
       await setInput('#judge-name-input', 'Dr. Barbara Liskov');
       await setInput('#judge-email-input', 'barbara.liskov@mit.edu');
-      await click('.assign--grid button', 'Register Judge');
+      await click('.assign--grid button', 'Register judge');
 
-      expect(host().querySelector('.banner--notice')?.textContent).toContain('has been registered as a judge');
+      expect(host().querySelector('.banner--notice')?.textContent).toContain(
+        'has been registered as a judge',
+      );
       expect(teamNames()).toContain('Dr. Barbara Liskov');
     });
 

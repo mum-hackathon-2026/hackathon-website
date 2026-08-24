@@ -45,10 +45,10 @@ describe('AdminJudging', () => {
   });
 
   it('renders overall judging progress and KPI cards', () => {
-    expect(text()).toContain('Overall Progress');
-    expect(text()).toContain('Total Submissions');
-    expect(text()).toContain('Fully Reviewed');
-    expect(text()).toContain('Judge Panel Workload');
+    expect(text()).toContain('Overall progress');
+    expect(text()).toContain('Total submissions');
+    expect(text()).toContain('Fully reviewed');
+    expect(text()).toContain('Judge workload');
   });
 
   it('renders a row for each submitted team', () => {
@@ -65,8 +65,12 @@ describe('AdminJudging', () => {
 
     const completeCount = admin
       .teams()
-      .filter((t) => t.submissionStatus === 'submitted' && t.reviewsCompleted >= t.reviewsExpected && t.reviewsExpected > 0)
-      .length;
+      .filter(
+        (t) =>
+          t.submissionStatus === 'submitted' &&
+          t.reviewsCompleted >= t.reviewsExpected &&
+          t.reviewsExpected > 0,
+      ).length;
 
     expect(rows().length).toBe(completeCount);
   });

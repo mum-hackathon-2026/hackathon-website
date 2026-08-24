@@ -58,7 +58,7 @@ describe('Organizers', () => {
       const host = await render();
 
       const judging = texts(host, '.key-dates__value')[3];
-      expect(judging).toContain('—');
+      expect(judging).toContain('–');
     });
 
     /**

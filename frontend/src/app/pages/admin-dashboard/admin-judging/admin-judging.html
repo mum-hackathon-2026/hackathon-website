@@ -5,10 +5,8 @@
     <div class="overview-banner__main">
       <div class="overview-banner__head">
         <div class="overview-banner__title-group">
-          <span class="overview-banner__eyebrow">Overall Progress</span>
-          <h2 class="overview-banner__title">
-            {{ s.percentJudged }}% of all reviews completed
-          </h2>
+          <span class="overview-banner__eyebrow">Overall progress</span>
+          <h2 class="overview-banner__title">{{ s.percentJudged }}% of all reviews completed</h2>
         </div>
         <div class="overview-banner__counts">
           <span class="overview-banner__ratio">
@@ -30,7 +28,9 @@
       </div>
 
       <div class="overview-banner__foot">
-        <span>Target: <strong>{{ judgesPerTeam() }} judges</strong> per team</span>
+        <span
+          >Target: <strong>{{ judgesPerTeam() }} judges</strong> per team</span
+        >
         @if (judgingOpen()) {
           <span class="pulse-indicator pulse-indicator--live">
             <span class="pulse-dot"></span> Judging is actively open
@@ -48,22 +48,22 @@
 
   <div class="kpi-grid">
     <div class="kpi-card">
-      <span class="kpi-card__label">Total Submissions</span>
+      <span class="kpi-card__label">Total submissions</span>
       <span class="kpi-card__val">{{ metrics().total }}</span>
       <span class="kpi-card__hint">Submitted projects</span>
     </div>
     <div class="kpi-card kpi-card--green">
-      <span class="kpi-card__label">Fully Reviewed</span>
+      <span class="kpi-card__label">Fully reviewed</span>
       <span class="kpi-card__val">{{ metrics().fullyReviewed }}</span>
       <span class="kpi-card__hint">{{ judgesPerTeam() }}+ reviews in</span>
     </div>
     <div class="kpi-card kpi-card--blue">
-      <span class="kpi-card__label">In Progress</span>
+      <span class="kpi-card__label">In progress</span>
       <span class="kpi-card__val">{{ metrics().inProgress }}</span>
       <span class="kpi-card__hint">Partially scored</span>
     </div>
     <div class="kpi-card kpi-card--amber">
-      <span class="kpi-card__label">Awaiting Reviews</span>
+      <span class="kpi-card__label">Awaiting reviews</span>
       <span class="kpi-card__val">{{ metrics().unreviewed }}</span>
       <span class="kpi-card__hint">0 reviews recorded</span>
     </div>
@@ -128,7 +128,7 @@
     [ngModel]="trackFilter()"
     (ngModelChange)="trackFilter.set($event)"
   >
-    <option value="all">All Tracks</option>
+    <option value="all">All tracks</option>
     @for (t of tracks(); track t) {
       @if (t !== 'all') {
         <option [value]="t">{{ t }}</option>
@@ -146,7 +146,7 @@
 <div class="section-block">
   <div class="section-block__head">
     <div>
-      <h2 class="section-block__title">Submission Reviews</h2>
+      <h2 class="section-block__title">Submission reviews</h2>
       <p class="section-block__sub">
         Live breakdown of scoring progress across submitted projects.
       </p>
@@ -165,9 +165,9 @@
           <tr>
             <th scope="col">Team & Project</th>
             <th scope="col">Track</th>
-            <th scope="col">Reviews Progress</th>
-            <th scope="col">Assigned Judges</th>
-            <th scope="col">Average Score</th>
+            <th scope="col">Review progress</th>
+            <th scope="col">Assigned judges</th>
+            <th scope="col">Average score</th>
             <th scope="col">Status</th>
           </tr>
         </thead>
@@ -242,14 +242,10 @@
 <div class="section-block">
   <div class="section-block__head">
     <div>
-      <h2 class="section-block__title">Judge Panel Workload</h2>
-      <p class="section-block__sub">
-        Tracking individual judge progress and review completion.
-      </p>
+      <h2 class="section-block__title">Judge workload</h2>
+      <p class="section-block__sub">Tracking individual judge progress and review completion.</p>
     </div>
-    <a class="action-btn" [routerLink]="['/admin/dashboard/judges']">
-      Manage Judges &rarr;
-    </a>
+    <a class="action-btn" [routerLink]="['/admin/dashboard/judges']"> Manage Judges &rarr; </a>
   </div>
 
   @if (workloads().length === 0) {

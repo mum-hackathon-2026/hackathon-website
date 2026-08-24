@@ -67,15 +67,17 @@ describe('ThemeSection', () => {
     });
   });
 
-  describe('the blurb and classified status', () => {
-    it('states that the problem statement is classified', async () => {
+  describe('the blurb and sealed status', () => {
+    it('states that the problem statement is not out yet', async () => {
       const fixture = await render();
 
-      expect(host(fixture).querySelector('.theme__title')?.textContent).toContain('Classified');
-      expect(blurb(fixture)).toContain('Averis sets a single industry problem statement');
+      expect(host(fixture).querySelector('.theme__title')?.textContent).toContain(
+        'Revealed at the opening ceremony',
+      );
+      expect(blurb(fixture)).toContain('Averis sets one industry problem statement');
       expect(blurb(fixture)).toContain('sealed until the opening ceremony');
       // The section used to promise tracks; one brief now, for everyone.
-      expect(blurb(fixture)).toContain('no separate tracks');
+      expect(blurb(fixture)).toContain('no tracks to choose between');
     });
 
     it('says solo entries are allowed when the minimum is one', async () => {

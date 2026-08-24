@@ -4,7 +4,8 @@
       <p class="rubric-eyebrow">Averis Hackathon 2026</p>
       <h2 class="rubric-title" id="rubric-heading">Preliminary Round Judging Criteria</h2>
       <p class="rubric-subtitle">
-        Submissions are evaluated on a 100-point scale split into <strong>70% Technical</strong> and <strong>30% Product & Impact</strong>.
+        Submissions are evaluated on a 100-point scale split into <strong>70% Technical</strong> and
+        <strong>30% Product & Impact</strong>.
       </p>
     </div>
   </div>
@@ -13,7 +14,11 @@
   <div class="chart-container">
     <div class="donut-chart-card">
       <div class="donut-wrapper">
-        <svg viewBox="0 0 160 160" class="donut-svg" aria-label="70% Technical and 30% Product & Impact distribution chart">
+        <svg
+          viewBox="0 0 160 160"
+          class="donut-svg"
+          aria-label="70% Technical and 30% Product & Impact distribution chart"
+        >
           <!-- 30% Product & Impact (Green): circle circumference 2 * PI * 60 = 376.99. 30% is 113.1, 70% is 263.9 -->
           <circle
             cx="80"
@@ -85,10 +90,18 @@
             @for (band of scoreBands; track band.category) {
               <tr>
                 <td class="td-category">{{ band.category }}</td>
-                <td class="td--weak"><span class="band-chip band-chip--weak">{{ band.weak }}</span></td>
-                <td class="td--dev"><span class="band-chip band-chip--dev">{{ band.developing }}</span></td>
-                <td class="td--strong"><span class="band-chip band-chip--strong">{{ band.strong }}</span></td>
-                <td class="td--exc"><span class="band-chip band-chip--exc">{{ band.excellent }}</span></td>
+                <td class="td--weak">
+                  <span class="band-chip band-chip--weak">{{ band.weak }}</span>
+                </td>
+                <td class="td--dev">
+                  <span class="band-chip band-chip--dev">{{ band.developing }}</span>
+                </td>
+                <td class="td--strong">
+                  <span class="band-chip band-chip--strong">{{ band.strong }}</span>
+                </td>
+                <td class="td--exc">
+                  <span class="band-chip band-chip--exc">{{ band.excellent }}</span>
+                </td>
               </tr>
             }
           </tbody>
@@ -129,10 +142,18 @@
                 <span class="max-badge font-num">{{ row.maxScore }} pts</span>
               </td>
               <td class="col-assess">{{ row.assess }}</td>
-              <td class="col-band td--weak"><span class="band-text">{{ row.weak }}</span></td>
-              <td class="col-band td--dev"><span class="band-text">{{ row.developing }}</span></td>
-              <td class="col-band td--strong"><span class="band-text">{{ row.strong }}</span></td>
-              <td class="col-band td--exc"><span class="band-text">{{ row.excellent }}</span></td>
+              <td class="col-band td--weak">
+                <span class="band-text">{{ row.weak }}</span>
+              </td>
+              <td class="col-band td--dev">
+                <span class="band-text">{{ row.developing }}</span>
+              </td>
+              <td class="col-band td--strong">
+                <span class="band-text">{{ row.strong }}</span>
+              </td>
+              <td class="col-band td--exc">
+                <span class="band-text">{{ row.excellent }}</span>
+              </td>
             </tr>
           }
         </tbody>
@@ -172,10 +193,18 @@
                 <span class="max-badge font-num">{{ row.maxScore }} pts</span>
               </td>
               <td class="col-assess">{{ row.assess }}</td>
-              <td class="col-band td--weak"><span class="band-text">{{ row.weak }}</span></td>
-              <td class="col-band td--dev"><span class="band-text">{{ row.developing }}</span></td>
-              <td class="col-band td--strong"><span class="band-text">{{ row.strong }}</span></td>
-              <td class="col-band td--exc"><span class="band-text">{{ row.excellent }}</span></td>
+              <td class="col-band td--weak">
+                <span class="band-text">{{ row.weak }}</span>
+              </td>
+              <td class="col-band td--dev">
+                <span class="band-text">{{ row.developing }}</span>
+              </td>
+              <td class="col-band td--strong">
+                <span class="band-text">{{ row.strong }}</span>
+              </td>
+              <td class="col-band td--exc">
+                <span class="band-text">{{ row.excellent }}</span>
+              </td>
             </tr>
           }
         </tbody>
@@ -188,10 +217,16 @@
     <h3 class="notes-title">Judging Guidelines & Protocol Notes</h3>
     <ul class="notes-list">
       <li>Score each criterion independently and do not reward the same evidence twice.</li>
-      <li>Base scores on what is demonstrated, submitted, or clearly explained in the repo, slides, and demo video.</li>
+      <li>
+        Base scores on what is demonstrated, submitted, or clearly explained in the repo, slides,
+        and demo video.
+      </li>
       <li>Use the problem statement consistently; there is one problem statement for the event.</li>
-      <li>The performance labels (Weak, Developing, Strong, Excellent) are guidance. Judges may award any whole or fractional number within the relevant range.</li>
-      <li><em>Technology Integration (TBC)</em> is provisional and will be finalised after sponsor alignment.</li>
+      <li>
+        The performance labels (Weak, Developing, Strong, Excellent) are guidance. Judges may award
+        any whole or fractional number within the relevant range.
+      </li>
+      <li><em>Technology Integration (TBC)</em> is provisional until the sponsor confirms it.</li>
     </ul>
   </div>
 </section>

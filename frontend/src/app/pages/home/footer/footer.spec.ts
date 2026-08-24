@@ -56,7 +56,7 @@ describe('HomeFooter', () => {
 
   it('carries the tagline', () => {
     expect(host().querySelector('.footer__tagline')!.textContent?.trim()).toBe(
-      'Built by students, for students.',
+      'A student-run event.',
     );
   });
 });

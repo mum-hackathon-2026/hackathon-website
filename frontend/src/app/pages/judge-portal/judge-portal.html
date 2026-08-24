@@ -46,126 +46,128 @@
       @switch (tab()) {
         <!-- ── Overview ───────────────────────────────────────────────────── -->
 
-      @case ('overview') {
-        <app-judging-progress [stats]="stats()" (filterSelected)="onTileFilter($event)" />
+        @case ('overview') {
+          <app-judging-progress [stats]="stats()" (filterSelected)="onTileFilter($event)" />
 
-        @if (inProgress().length > 0) {
-          <h2 class="section-title">Continue where you left off</h2>
-          <ul class="resume">
-            @for (row of inProgress(); track row.id) {
-              <li class="resume__card">
-                <a [routerLink]="['/judge/review', row.id]" class="resume__link">
-                  <div class="resume__text">
-                    <span class="resume__team">{{ row.teamName }}</span>
-                    <span class="resume__meta">
-                      {{ row.scoredCount }} of {{ row.criteriaCount }} criteria scored
-                    </span>
-                  </div>
-                  <div class="resume__actions">
-                    <app-status-pill [status]="row.status" />
-                    <span class="resume__cta">Continue review &rarr;</span>
-                  </div>
-                </a>
-              </li>
-            }
-          </ul>
-        }
-
-        <p class="note">
-          Open a team from the Assignments tab to score it against the rubric. Save progress as you
-          go and come back to finish later.
-        </p>
-
-        <app-judging-rubric />
-      }
-
-      <!-- ── Assignments ────────────────────────────────────────────────── -->
-
-      @case ('assignments') {
-        <div class="filters">
-          <label class="visually-hidden" for="assignment-search">Search teams</label>
-          <input
-            id="assignment-search"
-            class="input filters__search"
-            type="search"
-            name="assignmentSearch"
-            placeholder="Search team or project"
-            [ngModel]="search()"
-            (ngModelChange)="search.set($event)"
-          />
-
-          <label class="visually-hidden" for="assignment-status">Filter by status</label>
-          <select
-            id="assignment-status"
-            class="input"
-            name="assignmentStatus"
-            [ngModel]="statusFilter()"
-            (ngModelChange)="statusFilter.set($event)"
-          >
-            @for (option of statusFilters; track option.id) {
-              <option [value]="option.id">{{ option.label }}</option>
-            }
-          </select>
-
-          @if (filtersActive()) {
-            <button type="button" class="link-button" (click)="clearFilters()">
-              Clear filters
-            </button>
+          @if (inProgress().length > 0) {
+            <h2 class="section-title">Continue where you left off</h2>
+            <ul class="resume">
+              @for (row of inProgress(); track row.id) {
+                <li class="resume__card">
+                  <a [routerLink]="['/judge/review', row.id]" class="resume__link">
+                    <div class="resume__text">
+                      <span class="resume__team">{{ row.teamName }}</span>
+                      <span class="resume__meta">
+                        {{ row.scoredCount }} of {{ row.criteriaCount }} criteria scored
+                      </span>
+                    </div>
+                    <div class="resume__actions">
+                      <app-status-pill [status]="row.status" />
+                      <span class="resume__cta">Continue review &rarr;</span>
+                    </div>
+                  </a>
+                </li>
+              }
+            </ul>
           }
-        </div>
 
-        @if (filtered().length === 0) {
-          <p class="note note--standalone">No assignments match that search.</p>
-        } @else {
-          <app-assignment-table [rows]="filtered()" [busy]="pending()" (declined)="ask($event)" />
-        }
-      }
-
-      <!-- ── Completed ──────────────────────────────────────────────────── -->
-
-      @case ('completed') {
-        @if (completed().length === 0) {
-          <p class="note note--standalone">
-            Nothing submitted yet. Reviews appear here once you complete them.
+          <p class="note">
+            Open a team from the Assignments tab to score it against the rubric. Save progress as
+            you go and come back to finish later.
           </p>
-        } @else {
-          <ul class="done">
-            @for (row of completed(); track row.id) {
-              <li class="done__card">
-                <div class="done__head">
-                  <div>
-                    <span class="done__team">{{ row.teamName }}</span>
-                    <span class="done__project">{{ row.projectTitle }}</span>
-                  </div>
-                  <span class="done__score"
-                    >{{ row.weightedTotal.toFixed(1)
-                    }}<span class="done__score-max">/100</span></span
-                  >
-                </div>
-                <ul class="done__scores">
-                  @for (score of row.scores; track score.criteriaId) {
-                    <li class="done__chip">
-                      <span class="done__chip-name">{{ score.title }}</span>
-                      <span class="done__chip-value">{{ score.score }}/{{ score.maxScore }}</span>
-                    </li>
-                  }
-                </ul>
-              </li>
-            }
-          </ul>
 
-          <p class="note">Submitted reviews are locked. Ask an organiser if one needs reopening.</p>
+          <app-judging-rubric />
+        }
+
+        <!-- ── Assignments ────────────────────────────────────────────────── -->
+
+        @case ('assignments') {
+          <div class="filters">
+            <label class="visually-hidden" for="assignment-search">Search teams</label>
+            <input
+              id="assignment-search"
+              class="input filters__search"
+              type="search"
+              name="assignmentSearch"
+              placeholder="Search team or project"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+            />
+
+            <label class="visually-hidden" for="assignment-status">Filter by status</label>
+            <select
+              id="assignment-status"
+              class="input"
+              name="assignmentStatus"
+              [ngModel]="statusFilter()"
+              (ngModelChange)="statusFilter.set($event)"
+            >
+              @for (option of statusFilters; track option.id) {
+                <option [value]="option.id">{{ option.label }}</option>
+              }
+            </select>
+
+            @if (filtersActive()) {
+              <button type="button" class="link-button" (click)="clearFilters()">
+                Clear filters
+              </button>
+            }
+          </div>
+
+          @if (filtered().length === 0) {
+            <p class="note note--standalone">No assignments match that search.</p>
+          } @else {
+            <app-assignment-table [rows]="filtered()" [busy]="pending()" (declined)="ask($event)" />
+          }
+        }
+
+        <!-- ── Completed ──────────────────────────────────────────────────── -->
+
+        @case ('completed') {
+          @if (completed().length === 0) {
+            <p class="note note--standalone">
+              Nothing submitted yet. Reviews appear here once you complete them.
+            </p>
+          } @else {
+            <ul class="done">
+              @for (row of completed(); track row.id) {
+                <li class="done__card">
+                  <div class="done__head">
+                    <div>
+                      <span class="done__team">{{ row.teamName }}</span>
+                      <span class="done__project">{{ row.projectTitle }}</span>
+                    </div>
+                    <span class="done__score"
+                      >{{ row.weightedTotal.toFixed(1)
+                      }}<span class="done__score-max">/100</span></span
+                    >
+                  </div>
+                  <ul class="done__scores">
+                    @for (score of row.scores; track score.criteriaId) {
+                      <li class="done__chip">
+                        <span class="done__chip-name">{{ score.title }}</span>
+                        <span class="done__chip-value">{{ score.score }}/{{ score.maxScore }}</span>
+                      </li>
+                    }
+                  </ul>
+                </li>
+              }
+            </ul>
+
+            <p class="note">
+              Submitted reviews are locked. Ask an organiser if one needs reopening.
+            </p>
+          }
         }
       }
     }
-  }
   }
 
   @if (declining(); as assignment) {
     <app-confirm-dialog
       [open]="true"
       [heading]="'Decline ' + assignment.teamName + '?'"
-      body="Use this when you cannot score a team fairly — if you know them, or worked with them. An organiser has to reassign it, so you cannot undo this yourself."
+      body="Use this when you cannot score a team fairly, because you know them or have worked with them. An organiser has to reassign it, so you cannot undo this yourself."
       confirmLabel="Decline assignment"
       [danger]="true"
       (confirmed)="confirmDecline()"

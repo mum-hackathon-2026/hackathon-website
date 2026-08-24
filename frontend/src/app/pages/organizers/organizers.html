@@ -23,7 +23,7 @@
           <dd class="key-dates__value">
             {{ entry.start | date: 'd MMM y' : myt }}
             @if (entry.end) {
-              — {{ entry.end | date: 'd MMM y' : myt }}
+              – {{ entry.end | date: 'd MMM y' : myt }}
             }
           </dd>
         </div>
@@ -87,6 +87,6 @@
   <p class="organisers__contact">
     Still stuck? Email
     <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a>
-    and we will come back to you within one working day.
+    and one of the organisers will get back to you.
   </p>
 </div>

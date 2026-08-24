@@ -277,7 +277,9 @@ describe('CriterionCard', () => {
       const tooltips = host().querySelectorAll('.guide-tooltip__body');
       expect(tooltips.length).toBe(4);
       expect(tooltips[0].textContent?.trim()).toContain('generic or poorly suited');
-      expect(tooltips[3].textContent?.trim()).toContain('original, well justified and offers a clear advantage');
+      expect(tooltips[3].textContent?.trim()).toContain(
+        'original, well justified and offers a clear advantage',
+      );
     });
   });
 });

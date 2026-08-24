@@ -14,7 +14,8 @@ import { EVENT_CONFIG } from '../../../core/event/event-config';
 import { EventSettingsService } from '../../../core/event/event-settings';
 import { PhaseService } from '../../../core/event/phase';
 
-export type JudgingStatusFilter = 'all' | 'complete' | 'in_progress' | 'unreviewed' | 'under_assigned';
+export type JudgingStatusFilter =
+  'all' | 'complete' | 'in_progress' | 'unreviewed' | 'under_assigned';
 
 export interface TeamJudgingProgressRow {
   readonly teamId: number;
@@ -74,13 +75,15 @@ export class AdminJudging {
   });
 
   /** Map of teamId -> assigned judges list */
-  private readonly assignmentsByTeam = computed<ReadonlyMap<number, readonly AdminAssignment[]>>(() => {
-    const map = new Map<number, AdminAssignment[]>();
-    for (const row of this.admin.assignments()) {
-      map.set(row.teamId, [...row.judges]);
-    }
-    return map;
-  });
+  private readonly assignmentsByTeam = computed<ReadonlyMap<number, readonly AdminAssignment[]>>(
+    () => {
+      const map = new Map<number, AdminAssignment[]>();
+      for (const row of this.admin.assignments()) {
+        map.set(row.teamId, [...row.judges]);
+      }
+      return map;
+    },
+  );
 
   /** Submitted teams with computed judging progress */
   protected readonly allRows = computed<readonly TeamJudgingProgressRow[]>(() => {
@@ -169,7 +172,8 @@ export class AdminJudging {
   });
 
   protected readonly filtersActive = computed(
-    () => this.search().trim() !== '' || this.statusFilter() !== 'all' || this.trackFilter() !== 'all',
+    () =>
+      this.search().trim() !== '' || this.statusFilter() !== 'all' || this.trackFilter() !== 'all',
   );
 
   protected clearFilters(): void {

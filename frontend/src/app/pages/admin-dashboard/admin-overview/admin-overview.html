@@ -82,7 +82,7 @@
     <li class="feed__row">
       <span class="feed__dot" [class]="'feed__dot--' + entry.kind"></span>
       <span class="feed__text">
-        <span class="feed__action">{{ entry.action }}</span> — {{ entry.target }}
+        <span class="feed__action">{{ entry.action }}</span> · {{ entry.target }}
       </span>
       <span class="feed__meta">
         {{ entry.actor }} · {{ entry.at | date: 'd MMM, HH:mm' : myt }}
@@ -92,6 +92,6 @@
 </ul>
 
 <p class="note">
-  Activity is read from the audit log, which keeps its entries even after the person who caused them
-  deletes their account — those read as "Deleted user".
+  Activity comes from the audit log, which keeps its entries even after the person who caused them
+  deletes their account. Those read as "Deleted user".
 </p>
