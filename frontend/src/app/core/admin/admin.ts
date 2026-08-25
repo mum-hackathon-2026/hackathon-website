@@ -1216,6 +1216,9 @@ export class AdminService {
    * Every team in the event, newest concerns first.
    */
   readonly teams = computed<readonly AdminTeamRow[]>(() => {
+    if (this.auth.user()?.token) {
+      return this.liveTeams() ?? [];
+    }
     if (this.liveTeams() !== null) {
       return this.liveTeams()!;
     }
@@ -1281,6 +1284,9 @@ export class AdminService {
   });
 
   readonly participants = computed<readonly AdminParticipantRow[]>(() => {
+    if (this.auth.user()?.token) {
+      return this.liveParticipants() ?? [];
+    }
     if (this.liveParticipants() !== null) {
       return this.liveParticipants()!;
     }
@@ -1304,6 +1310,9 @@ export class AdminService {
   });
 
   readonly assignments = computed<readonly AdminAssignmentRow[]>(() => {
+    if (this.auth.user()?.token) {
+      return this.liveAssignments() ?? [];
+    }
     if (this.liveAssignments() !== null) {
       return this.liveAssignments()!;
     }
@@ -1345,6 +1354,9 @@ export class AdminService {
   private readonly publishedAt = signal<ReadonlyMap<number, Date>>(new Map());
 
   readonly results = computed<readonly AdminResultRow[]>(() => {
+    if (this.auth.user()?.token) {
+      return this.liveResults() ?? [];
+    }
     if (this.liveResults() !== null) {
       return this.liveResults()!;
     }
@@ -1397,6 +1409,24 @@ export class AdminService {
   );
 
   readonly stats = computed<AdminStats>(() => {
+    if (this.auth.user()?.token) {
+      return (
+        this.liveStats() ?? {
+          teams: 0,
+          participants: 0,
+          submitted: 0,
+          drafts: 0,
+          noSubmission: 0,
+          reviewsCompleted: 0,
+          reviewsExpected: 0,
+          percentJudged: 0,
+          needingAttention: 0,
+          activeTeams: 0,
+          judges: 0,
+          unassignedTeams: 0,
+        }
+      );
+    }
     if (this.liveStats() !== null) {
       return this.liveStats()!;
     }

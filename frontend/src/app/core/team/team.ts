@@ -156,15 +156,23 @@ export class TeamService {
   readonly myMembership = computed<TeamMember | null>(() => {
     const apiT = this.apiTeam();
     const me = this.auth.user();
-    if (apiT && me) {
+    if (!me) return null;
+    if (me.token) {
+      return apiT ? { userId: me.id, teamId: apiT.id, joinedAt: apiT.createdAt } : null;
+    }
+    if (apiT) {
       return { userId: me.id, teamId: apiT.id, joinedAt: apiT.createdAt };
     }
-    if (!me) return null;
     return this.members().find((m) => m.userId === me.id) ?? null;
   });
 
   readonly myTeam = computed<Team | null>(() => {
     const apiT = this.apiTeam();
+    const me = this.auth.user();
+    if (!me) return null;
+    if (me.token) {
+      return apiT;
+    }
     if (apiT) return apiT;
     const membership = this.myMembership();
     if (!membership) return null;
@@ -178,13 +186,16 @@ export class TeamService {
   });
 
   readonly myTeamMembers = computed<readonly TeamMemberView[]>(() => {
+    const me = this.auth.user();
+    if (me?.token) {
+      return this.apiMembers();
+    }
     const apiList = this.apiMembers();
     if (apiList.length > 0) {
       return apiList;
     }
 
     const team = this.myTeam();
-    const me = this.auth.user();
     if (!team) return [];
 
     return this.members()
