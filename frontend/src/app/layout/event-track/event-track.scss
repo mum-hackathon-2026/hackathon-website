@@ -1,0 +1,275 @@
+/* Vertical is the base state, and everything below the media query is the
+   enhancement. A narrow screen, a reader who has asked for less motion, and a
+   page whose script never ran all land here — same stops, same order. */
+
+/* The track sits outside the page column so the horizontal run has the whole
+   window to travel across. In vertical mode it has to put that column back,
+   or the spine ends up against the edge of the screen instead of lining up
+   with the heading above it. Matches `.page--narrow`. */
+.track__stage {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px) 80px;
+}
+
+.track__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each accent resolves once here, so every rule below reads --stop-* and no
+   rule repeats the four-way branch. */
+.track__stop {
+  position: relative;
+  padding-left: 34px;
+}
+
+.track__stop--blue {
+  --stop-ink: var(--color-blue-ink);
+  --stop-tint: var(--color-blue-tint);
+  --stop-solid: var(--color-blue);
+}
+.track__stop--red {
+  --stop-ink: var(--color-red-ink);
+  --stop-tint: var(--color-red-tint);
+  --stop-solid: var(--color-red);
+}
+.track__stop--green {
+  --stop-ink: var(--color-green-ink);
+  --stop-tint: var(--color-green-tint);
+  --stop-solid: var(--color-green);
+}
+.track__stop--amber {
+  --stop-ink: var(--color-amber-ink);
+  --stop-tint: var(--color-amber-tint);
+  --stop-solid: var(--color-yellow);
+}
+
+.track__line {
+  display: none;
+}
+
+/* In vertical mode the dot and its stem become the spine down the left. */
+.track__dot {
+  position: absolute;
+  left: 0;
+  top: 22px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--stop-solid);
+  background: var(--color-surface);
+}
+
+.track__stem {
+  position: absolute;
+  left: 6px;
+  top: 40px;
+  bottom: -28px;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.track__stop:last-child .track__stem {
+  display: none;
+}
+
+.track__card {
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.track__badge {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  background: var(--stop-tint);
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stop-ink);
+}
+
+.track__title {
+  margin: 0 0 6px;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-ink);
+}
+
+.track__summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-body);
+}
+
+.track__guidance {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--stop-solid);
+  border-radius: 0 6px 6px 0;
+  background: var(--stop-tint);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--stop-ink);
+}
+
+.track__when {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 12px 0 0;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.track__venue {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--color-hairline);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-body);
+}
+
+/* What has already happened stays legible but stops competing with what has
+   not. Applied in both modes, so the reader can see where they are at a
+   glance rather than by reading dates. */
+.track__stop[data-status='past'] .track__card {
+  opacity: 0.62;
+}
+
+.track__stop[data-status='past'] .track__dot {
+  border-color: var(--color-faint);
+  background: var(--color-faint);
+}
+
+.track__stop[data-status='current'] .track__card,
+.track__stop[data-status='next'] .track__card {
+  border-color: color-mix(in srgb, var(--stop-solid) 45%, transparent);
+  box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--stop-solid) 28%, transparent);
+}
+
+.track__stop[data-status='current'] .track__dot {
+  background: var(--stop-solid);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--stop-solid) 22%, transparent);
+}
+
+/* ── The horizontal run ──────────────────────────────────────────────────── */
+
+/* Wide enough to be worth the scroll, and only for readers who have not asked
+   for less motion. Everything above stays as written; this rewrites the
+   layout around it. */
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  /* Taller than the viewport by exactly the distance the rail must travel, so
+     the section releases the moment the last stop lands. The component sets
+     --track-travel from the measured rail. */
+  .track {
+    position: relative;
+    height: calc(100vh + var(--track-travel, 0px));
+  }
+
+  /* Pinned while the section passes, which is what turns downward scroll into
+     sideways travel. The reading column is dropped: this is the mode that
+     wants the whole window. */
+  .track__stage {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .track__line {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-border) 12%,
+      var(--color-border) 88%,
+      transparent
+    );
+  }
+
+  .track__rail {
+    flex-direction: row;
+    align-items: center;
+    gap: 76px;
+    /* Starts a screen-width in, so the first stop arrives rather than being
+       already there when the section pins. */
+    padding: 0 max(12vw, 120px);
+    width: max-content;
+    will-change: transform;
+  }
+
+  /* The stop becomes a column: card, then stem, then the dot sitting on the
+     line. Half the card's height above the centre puts the dot exactly on it. */
+  .track__stop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 272px;
+    padding-left: 0;
+    /* Lifts the column so its bottom edge, the dot, meets the centre line. */
+    transform: translateY(-50%);
+  }
+
+  .track__card {
+    width: 100%;
+    min-height: 168px;
+  }
+
+  .track__stem {
+    position: static;
+    width: 2px;
+    height: 34px;
+    background: linear-gradient(to bottom, var(--stop-solid), transparent);
+  }
+
+  .track__stop:last-child .track__stem {
+    display: block;
+  }
+
+  .track__dot {
+    position: static;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border-width: 3px;
+    /* The light-theme reading of KitaHack's neon: a coloured halo rather than
+       a glow, which is what carries on white. */
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--stop-solid) 14%, transparent);
+  }
+
+  .track__stop[data-status='past'] .track__dot {
+    box-shadow: none;
+  }
+
+  .track__stop[data-status='current'] .track__dot {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--stop-solid) 20%, transparent);
+  }
+}
