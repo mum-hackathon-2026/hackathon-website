@@ -4,11 +4,15 @@
    keeps this readable under body text. Both are tokens so the density can be
    tuned in one place rather than in three rules. */
 :host {
-  --dot-gap: 24px;
+  --dot-gap: 28px;
   --dot-size: 1.5px;
-  /* How much colour reaches the dots. The wells are strong and the mask is
-     sparse, so this is the dial that matters. */
-  --field-strength: 0.55;
+  /* The grid's own weight, before any colour. This is what makes it read as a
+     drawn grid rather than as speckle: without it a dot only exists where a
+     well happens to sit, and the eye sees dust in the corners instead of
+     structure across the page. */
+  --dot-ink: rgba(100, 116, 139, 0.17);
+  /* How much colour the wells add on top. */
+  --field-strength: 0.85;
 }
 
 /* Sits behind everything: fixed to the viewport, out of the layout, and
@@ -21,10 +25,13 @@
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  opacity: var(--field-strength);
+
+  /* Fills every dot on the page. The wells then tint the ones they reach, so
+     the grid is continuous and the colour is the thing that varies. */
+  background-color: var(--dot-ink);
 
   /* The grid itself. It masks the wells rather than being painted, so a dot is
-     bright where a well sits under it and invisible where none does. The mask
+     bright where a well sits under it and neutral where none does. The mask
      lives on this container, which never moves — that is the whole effect. */
   --dot-mask: radial-gradient(
     circle at center,
@@ -32,50 +39,77 @@
     #000 var(--dot-size),
     transparent calc(var(--dot-size) + 0.5px)
   );
-  -webkit-mask-image: var(--dot-mask);
-  mask-image: var(--dot-mask);
-  -webkit-mask-size: var(--dot-gap) var(--dot-gap);
-  mask-size: var(--dot-gap) var(--dot-gap);
-  -webkit-mask-repeat: repeat;
-  mask-repeat: repeat;
+
+  /* Second mask, intersected with the first: the page is a centred column, so
+     this thins the grid to a trace behind the reading width and leaves it at
+     full strength in the margins. Without it the dots sit in the gaps between
+     words and lines, which costs legibility and looks like dirt on the screen.
+     The column keeps a trace rather than going blank so the grid still reads
+     as continuous across the page. */
+  --column-mask: linear-gradient(
+    90deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.14) 27%,
+    rgba(0, 0, 0, 0.14) 73%,
+    #000 100%
+  );
+
+  -webkit-mask-image: var(--dot-mask), var(--column-mask);
+  mask-image: var(--dot-mask), var(--column-mask);
+  -webkit-mask-size:
+    var(--dot-gap) var(--dot-gap),
+    100% 100%;
+  mask-size:
+    var(--dot-gap) var(--dot-gap),
+    100% 100%;
+  -webkit-mask-repeat: repeat, no-repeat;
+  mask-repeat: repeat, no-repeat;
+  /* Safari spells `intersect` as `source-in`. */
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 
 /* Each well is one soft field of colour. Separate elements rather than four
    background layers on one, so each can drift on its own timing: moving them
    together would read as one sheet sliding, which is the thing this is not. */
+/* Sized in vmax so the field scales with the window rather than the page, and
+   kept to 58 rather than something grander: each of these becomes a composited
+   layer for as long as it animates, and four layers the size of the screen is
+   real GPU memory on a cheap laptop. No `will-change` for the same reason — a
+   running transform animation is promoted anyway, so declaring it would only
+   pin that memory for the whole session. */
 .backdrop__well {
   position: absolute;
-  width: 78vmax;
-  height: 78vmax;
+  opacity: var(--field-strength);
+  width: 58vmax;
+  height: 58vmax;
   border-radius: 50%;
-  /* Transform only, so the drift is composited and costs no layout or paint. */
-  will-change: transform;
 }
 
 .backdrop__well--blue {
-  top: -22vmax;
-  left: -18vmax;
+  top: -16vmax;
+  left: -14vmax;
   background: radial-gradient(circle closest-side, var(--color-blue), transparent);
   animation: backdrop-drift-a 71s ease-in-out infinite;
 }
 
 .backdrop__well--red {
-  top: -14vmax;
-  right: -24vmax;
+  top: -10vmax;
+  right: -16vmax;
   background: radial-gradient(circle closest-side, var(--color-red), transparent);
   animation: backdrop-drift-b 89s ease-in-out infinite;
 }
 
 .backdrop__well--green {
-  bottom: -26vmax;
-  left: -10vmax;
+  bottom: -18vmax;
+  left: -8vmax;
   background: radial-gradient(circle closest-side, var(--color-green), transparent);
   animation: backdrop-drift-c 103s ease-in-out infinite;
 }
 
 .backdrop__well--yellow {
-  bottom: -20vmax;
-  right: -16vmax;
+  bottom: -14vmax;
+  right: -12vmax;
   background: radial-gradient(circle closest-side, var(--color-yellow), transparent);
   animation: backdrop-drift-d 79s ease-in-out infinite;
 }
@@ -130,6 +164,5 @@
 @media (prefers-reduced-motion: reduce) {
   .backdrop__well {
     animation: none;
-    will-change: auto;
   }
 }

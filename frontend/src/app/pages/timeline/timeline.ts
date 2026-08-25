@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { EventSettingsService } from '../../core/event/event-settings';
-import { EventTimeline } from '../../layout/event-timeline/event-timeline';
+import { EventTrack } from '../../layout/event-track/event-track';
 import { PageHeader } from '../../layout/page-header/page-header';
-import { ScheduleAgenda } from '../../layout/schedule-agenda/schedule-agenda';
 
 @Component({
   selector: 'app-timeline',
-  imports: [EventTimeline, PageHeader, ScheduleAgenda],
+  imports: [EventTrack, PageHeader],
   templateUrl: './timeline.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

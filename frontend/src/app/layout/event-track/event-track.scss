@@ -1,0 +1,260 @@
+/* The track sits outside the page column so the spine can run down the middle
+   of a wider band than the reading width. */
+.track__stage {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px) 96px;
+}
+
+.track__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Narrow layout: the spine runs down the left and every card sits beside it.
+   The wide layout below turns this into a zig-zag; everything the two share is
+   written here once. */
+.track__stop {
+  position: relative;
+  padding-left: 36px;
+}
+
+/* Each accent resolves once here, so every rule below reads --stop-* and no
+   rule repeats the four-way branch. */
+.track__stop--blue {
+  --stop-ink: var(--color-blue-ink);
+  --stop-tint: var(--color-blue-tint);
+  --stop-solid: var(--color-blue);
+}
+.track__stop--red {
+  --stop-ink: var(--color-red-ink);
+  --stop-tint: var(--color-red-tint);
+  --stop-solid: var(--color-red);
+}
+.track__stop--green {
+  --stop-ink: var(--color-green-ink);
+  --stop-tint: var(--color-green-tint);
+  --stop-solid: var(--color-green);
+}
+.track__stop--amber {
+  --stop-ink: var(--color-amber-ink);
+  --stop-tint: var(--color-amber-tint);
+  --stop-solid: var(--color-yellow);
+}
+
+/* How far the dot has to shift to sit on its own line. Zero beside a left
+   spine, half its width once the spine is centred. Held in a variable because
+   the arrival states also transform the dot, and every one of them has to keep
+   this or the dot jumps off the line. */
+.track__dot {
+  --dot-shift: 0%;
+  position: absolute;
+  left: 0;
+  top: 24px;
+  transform: translateX(var(--dot-shift));
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--stop-solid);
+  background: var(--color-surface);
+}
+
+/* The spine between one dot and the next. Grey the whole way down so the line
+   is never broken, with the accent laid over it by `::after`. */
+.track__stem {
+  position: absolute;
+  left: 6px;
+  top: 42px;
+  bottom: -30px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+/* The fill. Grows from the top as the stop arrives, so colour follows the
+   reader down the page and the spine reads as progress rather than as a rule.
+   Static until the component says otherwise, hence the default of full. */
+.track__stem::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--stop-solid);
+  transform-origin: top;
+}
+
+.track__stop:last-child .track__stem {
+  display: none;
+}
+
+.track__card {
+  padding: 18px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.track__badge {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  background: var(--stop-tint);
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stop-ink);
+}
+
+.track__title {
+  margin: 0 0 6px;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-ink);
+}
+
+.track__summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-body);
+}
+
+.track__guidance {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--stop-solid);
+  border-radius: 0 6px 6px 0;
+  background: var(--stop-tint);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--stop-ink);
+}
+
+.track__when {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 12px 0 0;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.track__venue {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--color-hairline);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-body);
+}
+
+/* What has already happened stays legible but stops competing with what has
+   not, so the reader can see where they are without reading dates. */
+.track__stop[data-status='past'] .track__card {
+  opacity: 0.62;
+}
+
+.track__stop[data-status='past'] .track__dot {
+  border-color: var(--color-faint);
+  background: var(--color-faint);
+}
+
+.track__stop[data-status='current'] .track__card,
+.track__stop[data-status='next'] .track__card {
+  border-color: color-mix(in srgb, var(--stop-solid) 45%, transparent);
+  box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--stop-solid) 26%, transparent);
+}
+
+.track__stop[data-status='current'] .track__dot {
+  background: var(--stop-solid);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--stop-solid) 20%, transparent);
+}
+
+/* ── Zig-zag, once there is room for two columns ─────────────────────────── */
+
+@media (min-width: 900px) {
+  /* Three tracks: card, spine, card. The spine column is fixed so the line
+     stays dead centre whatever the cards do. */
+  .track__stop {
+    display: grid;
+    grid-template-columns: 1fr 64px 1fr;
+    padding-left: 0;
+  }
+
+  .track__card {
+    grid-column: 1;
+  }
+
+  .track__stop:nth-child(even) .track__card {
+    grid-column: 3;
+  }
+
+  .track__stem {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .track__dot {
+    --dot-shift: -50%;
+    left: 50%;
+    margin-left: -1px;
+  }
+}
+
+/* ── Arrival ─────────────────────────────────────────────────────────────── */
+
+/* Everything here is behind `--animated`, which the component only adds once
+   it knows it can undo it. Without that class the page is simply finished. */
+.track--animated .track__card {
+  opacity: 0;
+  transform: translateX(-30px) rotate(-1.2deg);
+  transition:
+    opacity 0.65s ease,
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Alternating sides, so the page has a rhythm going down rather than every
+   card entering from the same place. In the zig-zag layout this also means
+   each card converges on the spine from its own side. */
+.track--animated .track__stop:nth-child(even) .track__card {
+  transform: translateX(30px) rotate(1.2deg);
+}
+
+.track--animated .track__dot {
+  transform: translateX(var(--dot-shift)) scale(0.4);
+  opacity: 0;
+  transition:
+    transform 0.5s cubic-bezier(0.34, 1.5, 0.5, 1),
+    opacity 0.4s ease;
+}
+
+.track--animated .track__stem::after {
+  transform: scaleY(0);
+  /* Slower than the card, and behind it, so the line is still drawing as the
+     card settles rather than racing it. */
+  transition: transform 0.9s ease 0.15s;
+}
+
+.track--animated .track__stop.is-revealed .track__card {
+  opacity: 1;
+  transform: none;
+}
+
+.track--animated .track__stop.is-revealed .track__dot {
+  opacity: 1;
+  transform: translateX(var(--dot-shift)) scale(1);
+}
+
+.track--animated .track__stop.is-revealed .track__stem::after {
+  transform: scaleY(1);
+}

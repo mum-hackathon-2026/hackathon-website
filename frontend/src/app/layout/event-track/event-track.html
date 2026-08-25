@@ -1,0 +1,43 @@
+<section class="track" [class.track--animated]="animated()">
+  <div class="track__stage">
+    <ol class="track__rail">
+      @for (stop of stops(); track stop.id) {
+        <li
+          #stop
+          class="track__stop track__stop--{{ stop.accent }}"
+          [attr.data-status]="stop.status"
+          [attr.aria-current]="stop.status === 'current' ? 'step' : null"
+        >
+          <span class="track__stem" aria-hidden="true"></span>
+          <span class="track__dot" aria-hidden="true"></span>
+
+          <article class="track__card">
+            <p class="track__badge">{{ stop.kind }}</p>
+
+            <h3 class="track__title">{{ stop.label }}</h3>
+            <p class="track__summary">{{ stop.description }}</p>
+
+            @if (stop.guidance) {
+              <p class="track__guidance">{{ stop.guidance }}</p>
+            }
+
+            <p class="track__when">
+              <time [attr.datetime]="stop.start.toISOString()">
+                {{ stop.start | date: 'd MMM' : myt }}
+              </time>
+              @if (stop.end) {
+                <span aria-hidden="true">–</span>
+                <time [attr.datetime]="stop.end.toISOString()">
+                  {{ stop.end | date: 'd MMM' : myt }}
+                </time>
+              }
+              @if (stop.venue) {
+                <span class="track__venue">{{ stop.venue }}</span>
+              }
+            </p>
+          </article>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
