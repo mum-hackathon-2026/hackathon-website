@@ -148,6 +148,11 @@
   transform: translateZ(0);
 }
 
+#copy-spark {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .sw-copy-index {
   font-family: ui-monospace, Menlo, monospace;
   font-size: var(--text-xs, 0.75rem);
@@ -280,6 +285,16 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   contain: layout paint;
+}
+
+#scene-spark {
+  opacity: 1;
+  visibility: visible;
+}
+
+#scene-build {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .sw-vector-scene {
