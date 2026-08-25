@@ -4,11 +4,12 @@
    keeps this readable under body text. Both are tokens so the density can be
    tuned in one place rather than in three rules. */
 :host {
-  --dot-gap: 24px;
-  --dot-size: 1.5px;
-  /* How much colour reaches the dots. The wells are strong and the mask is
-     sparse, so this is the dial that matters. */
-  --field-strength: 0.55;
+  --dot-gap: 26px;
+  --dot-size: 1.4px;
+  /* How much colour reaches the dots. The wells are saturated and the mask is
+     sparse, so this is the dial that matters — turn it up for more presence,
+     down if the grid ever competes with the text sitting on it. */
+  --field-strength: 0.5;
 }
 
 /* Sits behind everything: fixed to the viewport, out of the layout, and
@@ -43,39 +44,43 @@
 /* Each well is one soft field of colour. Separate elements rather than four
    background layers on one, so each can drift on its own timing: moving them
    together would read as one sheet sliding, which is the thing this is not. */
+/* Sized in vmax so the field scales with the window rather than the page, and
+   kept to 58 rather than something grander: each of these becomes a composited
+   layer for as long as it animates, and four layers the size of the screen is
+   real GPU memory on a cheap laptop. No `will-change` for the same reason — a
+   running transform animation is promoted anyway, so declaring it would only
+   pin that memory for the whole session. */
 .backdrop__well {
   position: absolute;
-  width: 78vmax;
-  height: 78vmax;
+  width: 58vmax;
+  height: 58vmax;
   border-radius: 50%;
-  /* Transform only, so the drift is composited and costs no layout or paint. */
-  will-change: transform;
 }
 
 .backdrop__well--blue {
-  top: -22vmax;
-  left: -18vmax;
+  top: -16vmax;
+  left: -14vmax;
   background: radial-gradient(circle closest-side, var(--color-blue), transparent);
   animation: backdrop-drift-a 71s ease-in-out infinite;
 }
 
 .backdrop__well--red {
-  top: -14vmax;
-  right: -24vmax;
+  top: -10vmax;
+  right: -16vmax;
   background: radial-gradient(circle closest-side, var(--color-red), transparent);
   animation: backdrop-drift-b 89s ease-in-out infinite;
 }
 
 .backdrop__well--green {
-  bottom: -26vmax;
-  left: -10vmax;
+  bottom: -18vmax;
+  left: -8vmax;
   background: radial-gradient(circle closest-side, var(--color-green), transparent);
   animation: backdrop-drift-c 103s ease-in-out infinite;
 }
 
 .backdrop__well--yellow {
-  bottom: -20vmax;
-  right: -16vmax;
+  bottom: -14vmax;
+  right: -12vmax;
   background: radial-gradient(circle closest-side, var(--color-yellow), transparent);
   animation: backdrop-drift-d 79s ease-in-out infinite;
 }
@@ -130,6 +135,5 @@
 @media (prefers-reduced-motion: reduce) {
   .backdrop__well {
     animation: none;
-    will-change: auto;
   }
 }
