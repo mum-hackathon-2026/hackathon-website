@@ -1,16 +1,16 @@
-<!-- The extra height is what the sideways travel is spent from: a pixel down
-     buys a pixel across. In vertical mode `travel` is 0 and this is inert. -->
-<section class="track" #root [style.--track-travel.px]="travel()">
+<section class="track" [class.track--animated]="animated()">
   <div class="track__stage">
-    <div class="track__line" aria-hidden="true"></div>
-
-    <ol class="track__rail" #rail>
+    <ol class="track__rail">
       @for (stop of stops(); track stop.id) {
         <li
+          #stop
           class="track__stop track__stop--{{ stop.accent }}"
           [attr.data-status]="stop.status"
           [attr.aria-current]="stop.status === 'current' ? 'step' : null"
         >
+          <span class="track__stem" aria-hidden="true"></span>
+          <span class="track__dot" aria-hidden="true"></span>
+
           <article class="track__card">
             <p class="track__badge">{{ stop.kind }}</p>
 
@@ -36,9 +36,6 @@
               }
             </p>
           </article>
-
-          <span class="track__stem" aria-hidden="true"></span>
-          <span class="track__dot" aria-hidden="true"></span>
         </li>
       }
     </ol>

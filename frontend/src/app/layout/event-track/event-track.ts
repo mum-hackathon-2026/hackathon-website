@@ -4,11 +4,11 @@ import {
   Component,
   DestroyRef,
   ElementRef,
-  HostListener,
   computed,
+  effect,
   inject,
   signal,
-  viewChild,
+  viewChildren,
 } from '@angular/core';
 import { EVENT_SCHEDULE } from '../../core/event/event-content';
 import { MYT_OFFSET } from '../../core/event/event-config';
@@ -17,22 +17,43 @@ import { PhaseService } from '../../core/event/phase';
 import { buildStops } from './track-stops';
 
 /**
- * Below this the track is a vertical list. A horizontal run needs room to be
- * worth the scroll, and pinning the viewport on a phone takes away the one
- * gesture a reader has.
+ * How much of a stop has to be on screen before it arrives. Low, because the
+ * card should be moving while the reader is still scrolling toward it rather
+ * than starting once it is already in the middle of the page.
  */
-const WIDE_ENOUGH = '(min-width: 900px)';
+const REVEAL_THRESHOLD = 0.12;
 
 /**
- * The event as one horizontal run: the reader scrolls down, and the track
- * travels sideways beneath a pinned viewport.
+ * Pulls the trigger line up from the bottom of the window, so a stop starts
+ * arriving a little before it would otherwise cross into view.
+ */
+const REVEAL_MARGIN = '0px 0px -12% 0px';
+
+/**
+ * How long to wait for the observer to say anything before giving up on it.
  *
- * The sideways motion is an enhancement and nothing depends on it. The markup
- * is an ordered list in date order, so a narrow screen, a reader who has asked
- * for less motion, and anything without JavaScript all get the same stops as a
- * plain vertical list — same DOM, same order, different stylesheet branch.
- * That is also what makes it keyboard-reachable: paging down drives the track,
- * so there is nothing to tab through and nothing that can be scrolled past.
+ * `IntersectionObserver` existing is not the same as it working: it can be
+ * present and never deliver a callback, and the cost of that is the whole
+ * schedule staying invisible. If nothing has arrived by now, everything is
+ * shown at once and the observer is abandoned. Long enough that a working
+ * observer will always have spoken first, so this never fires in practice.
+ */
+const OBSERVER_GRACE_MS = 1600;
+
+/**
+ * The event as one run of dated stops, arriving as the reader scrolls to them.
+ *
+ * Cards slide in from alternating sides and the spine fills with colour behind
+ * them, so the page reads as progress down a line rather than as a list that
+ * happens to be in order.
+ *
+ * The motion is an enhancement and the content never depends on it. Nothing is
+ * hidden until the component has confirmed it can put it back: the hidden
+ * starting state lives behind a class this component adds, so a page whose
+ * script never ran, a browser without `IntersectionObserver`, and a reader who
+ * has asked for less motion all get every stop visible from the start. Getting
+ * that the wrong way round would hide the whole schedule on exactly the setups
+ * least able to recover.
  *
  * The stops themselves come from `track-stops.ts`, which merges the two lists
  * the site keeps about its own schedule.
@@ -48,8 +69,7 @@ export class EventTrack {
   private readonly milestones = inject(MilestoneService);
   private readonly phase = inject(PhaseService);
 
-  private readonly root = viewChild<ElementRef<HTMLElement>>('root');
-  private readonly rail = viewChild<ElementRef<HTMLElement>>('rail');
+  private readonly stopEls = viewChildren<ElementRef<HTMLElement>>('stop');
 
   protected readonly myt = MYT_OFFSET;
 
@@ -58,79 +78,63 @@ export class EventTrack {
   );
 
   /**
-   * How far the rail has to travel, in pixels. Doubles as the extra height the
-   * section needs: a pixel of vertical scroll buys a pixel of sideways travel,
-   * so the two are the same number and the pace needs no tuning.
+   * Whether stops start hidden and arrive on scroll. False until proven
+   * otherwise, which is what makes the fallback the safe direction.
    */
-  protected readonly travel = signal(0);
+  protected readonly animated = signal(false);
 
-  private frame: number | null = null;
+  private observer: IntersectionObserver | null = null;
+  private graceTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Whether the observer has ever said anything. See OBSERVER_GRACE_MS. */
+  private observerSpoke = false;
 
   constructor() {
+    this.animated.set(canAnimate());
+
+    effect(() => {
+      const elements = this.stopEls().map((ref) => ref.nativeElement);
+      if (elements.length === 0 || !this.animated()) return;
+
+      // Rebuilt rather than added to: the stop list is keyed by id, so a
+      // schedule change swaps elements out and the old ones are gone.
+      this.observer?.disconnect();
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          this.observerSpoke = true;
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.classList.add('is-revealed');
+            // A stop arrives once. Without this it would replay every time the
+            // reader scrolled back up, which is distracting rather than nice.
+            this.observer?.unobserve(entry.target);
+          }
+        },
+        { threshold: REVEAL_THRESHOLD, rootMargin: REVEAL_MARGIN },
+      );
+
+      for (const element of elements) this.observer.observe(element);
+
+      if (this.graceTimer !== null) clearTimeout(this.graceTimer);
+      this.graceTimer = setTimeout(() => {
+        if (this.observerSpoke) return;
+        for (const element of elements) element.classList.add('is-revealed');
+        this.observer?.disconnect();
+        this.observer = null;
+      }, OBSERVER_GRACE_MS);
+    });
+
     inject(DestroyRef).onDestroy(() => {
-      if (this.frame !== null) cancelAnimationFrame(this.frame);
+      this.observer?.disconnect();
+      if (this.graceTimer !== null) clearTimeout(this.graceTimer);
     });
-  }
-
-  @HostListener('window:scroll')
-  onScroll(): void {
-    this.schedule();
-  }
-
-  @HostListener('window:resize')
-  onResize(): void {
-    this.schedule();
-  }
-
-  /**
-   * Measure and paint on the next frame.
-   *
-   * Both the measurement and the transform are done here rather than through
-   * bindings: this runs on every scroll event, and a bound transform would put
-   * change detection on the same schedule.
-   */
-  private schedule(): void {
-    if (this.frame !== null) return;
-    this.frame = requestAnimationFrame(() => {
-      this.frame = null;
-      this.paint();
-    });
-  }
-
-  private paint(): void {
-    const root = this.root()?.nativeElement;
-    const rail = this.rail()?.nativeElement;
-    if (!root || !rail || typeof window === 'undefined') return;
-
-    if (!this.horizontal()) {
-      // Vertical mode owns the layout; leave no stale transform behind, which
-      // would otherwise survive a resize across the breakpoint.
-      rail.style.transform = '';
-      this.travel.set(0);
-      return;
-    }
-
-    const distance = Math.max(0, rail.scrollWidth - window.innerWidth);
-    this.travel.set(distance);
-
-    // How far the section has been scrolled through, 0 to 1. The section is
-    // taller than the viewport by exactly `distance`, so that is the range.
-    const box = root.getBoundingClientRect();
-    const progress = distance === 0 ? 0 : clamp(-box.top / distance, 0, 1);
-
-    rail.style.transform = `translate3d(${(-progress * distance).toFixed(2)}px, 0, 0)`;
-  }
-
-  private horizontal(): boolean {
-    return (
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia(WIDE_ENOUGH).matches &&
-      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    );
   }
 }
 
-function clamp(value: number, low: number, high: number): number {
-  return Math.min(Math.max(value, low), high);
+function canAnimate(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof IntersectionObserver === 'function' &&
+    typeof window.matchMedia === 'function' &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
 }

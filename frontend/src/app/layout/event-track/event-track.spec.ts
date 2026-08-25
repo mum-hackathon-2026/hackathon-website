@@ -3,31 +3,49 @@ import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG } from '../../core/event/event-confi
 import { BEFORE_REGISTRATION } from '../../core/event/event-config.testing';
 import { EventTrack } from './event-track';
 
-const VIEWPORT = 1200;
-const RAIL_WIDTH = 4000;
-const TRAVEL = RAIL_WIDTH - VIEWPORT;
+type ObserverCallback = (entries: Partial<IntersectionObserverEntry>[]) => void;
 
-/**
- * jsdom lays nothing out, so the geometry the component measures is supplied
- * here. That is the point of the exercise: the arithmetic between a scroll
- * position and a transform is the part worth pinning down, and it is the part
- * a screenshot cannot check.
- */
-function stubLayout(fixture: ComponentFixture<EventTrack>, topOfSection: number): void {
-  const host = fixture.nativeElement as HTMLElement;
-  const root = host.querySelector<HTMLElement>('.track')!;
-  const rail = host.querySelector<HTMLElement>('.track__rail')!;
+/** The observers the component built, so a spec can fire them by hand. */
+let observers: { callback: ObserverCallback; observed: Element[]; unobserved: Element[] }[] = [];
 
-  Object.defineProperty(rail, 'scrollWidth', { value: RAIL_WIDTH, configurable: true });
-  root.getBoundingClientRect = () =>
-    ({ top: topOfSection, bottom: topOfSection + 900, height: 900 }) as DOMRect;
+function installObserver(available: boolean): void {
+  observers = [];
+  if (!available) {
+    Object.defineProperty(window, 'IntersectionObserver', {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+    return;
+  }
+
+  class FakeObserver {
+    readonly observed: Element[] = [];
+    readonly unobserved: Element[] = [];
+    constructor(private readonly callback: ObserverCallback) {
+      observers.push({ callback, observed: this.observed, unobserved: this.unobserved });
+    }
+    observe(element: Element) {
+      this.observed.push(element);
+    }
+    unobserve(element: Element) {
+      this.unobserved.push(element);
+    }
+    disconnect() {}
+  }
+
+  Object.defineProperty(window, 'IntersectionObserver', {
+    value: FakeObserver,
+    configurable: true,
+    writable: true,
+  });
 }
 
-function setMedia(wide: boolean, reducedMotion = false): void {
+function setReducedMotion(reduced: boolean): void {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
     value: (query: string) => ({
-      matches: query.includes('prefers-reduced-motion') ? reducedMotion : wide,
+      matches: query.includes('prefers-reduced-motion') ? reduced : false,
       media: query,
       addEventListener: () => {},
       removeEventListener: () => {},
@@ -35,18 +53,16 @@ function setMedia(wide: boolean, reducedMotion = false): void {
   });
 }
 
-/** The x in `translate3d(Xpx, 0, 0)`, or 0 when nothing has been written. */
-function railShift(fixture: ComponentFixture<EventTrack>): number {
-  const rail = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.track__rail')!;
-  const match = /translate3d\((-?[\d.]+)px/.exec(rail.style.transform);
-  return match ? Number(match[1]) : 0;
-}
+async function render(): Promise<ComponentFixture<EventTrack>> {
+  TestBed.resetTestingModule();
+  await TestBed.configureTestingModule({
+    imports: [EventTrack],
+    providers: [{ provide: EVENT_CONFIG, useValue: DEFAULT_EVENT_CONFIG }],
+  }).compileComponents();
 
-async function scrollTo(fixture: ComponentFixture<EventTrack>, topOfSection: number) {
-  stubLayout(fixture, topOfSection);
-  window.dispatchEvent(new Event('scroll'));
-  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+  const fixture = TestBed.createComponent(EventTrack);
   await fixture.whenStable();
+  return fixture;
 }
 
 describe('EventTrack', () => {
@@ -56,20 +72,16 @@ describe('EventTrack', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
+  function stops(): HTMLElement[] {
+    return Array.from(host().querySelectorAll<HTMLElement>('.track__stop'));
+  }
+
   beforeEach(async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date(BEFORE_REGISTRATION));
-    Object.defineProperty(window, 'innerWidth', { value: VIEWPORT, configurable: true });
-    setMedia(true);
-
-    TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({
-      imports: [EventTrack],
-      providers: [{ provide: EVENT_CONFIG, useValue: DEFAULT_EVENT_CONFIG }],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(EventTrack);
-    await fixture.whenStable();
+    installObserver(true);
+    setReducedMotion(false);
+    fixture = await render();
   });
 
   afterEach(() => {
@@ -78,93 +90,113 @@ describe('EventTrack', () => {
 
   it('renders the merged run as an ordered list', () => {
     expect(host().querySelector('ol.track__rail')).toBeTruthy();
-    expect(host().querySelectorAll('.track__stop').length).toBeGreaterThan(5);
+    expect(stops().length).toBeGreaterThan(5);
   });
 
   it('gives each stop a dot, a stem and a card', () => {
-    const first = host().querySelector('.track__stop')!;
+    const first = stops()[0];
 
     expect(first.querySelector('.track__dot')).toBeTruthy();
     expect(first.querySelector('.track__stem')).toBeTruthy();
     expect(first.querySelector('.track__card')).toBeTruthy();
   });
 
-  // The decoration must not be read out as content.
-  it('hides the line, dots and stems from assistive tech', () => {
-    for (const selector of ['.track__line', '.track__dot', '.track__stem']) {
+  // The spine is decoration; only the card carries anything to read.
+  it('hides the dots and stems from assistive tech', () => {
+    for (const selector of ['.track__dot', '.track__stem']) {
       expect(host().querySelector(selector)!.getAttribute('aria-hidden')).toBe('true');
     }
   });
 
-  it('marks the live stop for assistive tech, not just visually', async () => {
-    const current = host().querySelectorAll('[aria-current="step"]');
-    // Before the event, the first stop is `next` rather than `current`, so
-    // nothing claims to be the step in progress.
-    expect(current.length).toBe(0);
-    expect(host().querySelector('.track__stop')!.getAttribute('data-status')).toBe('next');
+  it('does not claim a step is in progress before the event starts', () => {
+    expect(host().querySelectorAll('[aria-current="step"]').length).toBe(0);
+    expect(stops()[0].getAttribute('data-status')).toBe('next');
   });
 
-  describe('the sideways travel', () => {
-    it('sits at the start before the section is reached', async () => {
-      await scrollTo(fixture, 400);
-
-      expect(railShift(fixture)).toBe(0);
+  describe('arriving on scroll', () => {
+    it('watches every stop', () => {
+      expect(observers.length).toBe(1);
+      expect(observers[0].observed.length).toBe(stops().length);
     });
 
-    it('is halfway across at the middle of the section', async () => {
-      await scrollTo(fixture, -TRAVEL / 2);
-
-      expect(railShift(fixture)).toBeCloseTo(-TRAVEL / 2, 0);
+    it('starts with nothing arrived', () => {
+      expect(stops().some((stop) => stop.classList.contains('is-revealed'))).toBe(false);
     });
 
-    it('lands on the last stop exactly as the section ends', async () => {
-      await scrollTo(fixture, -TRAVEL);
+    it('reveals a stop as it comes into view', () => {
+      const [first, second] = stops();
+      observers[0].callback([{ target: first, isIntersecting: true }]);
 
-      expect(railShift(fixture)).toBeCloseTo(-TRAVEL, 0);
+      expect(first.classList.contains('is-revealed')).toBe(true);
+      expect(second.classList.contains('is-revealed')).toBe(false);
     });
 
-    // Past the end the section releases; the rail must not keep going.
-    it('does not overshoot once the section is behind us', async () => {
-      await scrollTo(fixture, -TRAVEL * 3);
+    it('ignores a stop that is only leaving view', () => {
+      const [first] = stops();
+      observers[0].callback([{ target: first, isIntersecting: false }]);
 
-      expect(railShift(fixture)).toBeCloseTo(-TRAVEL, 0);
+      expect(first.classList.contains('is-revealed')).toBe(false);
     });
 
-    it('reserves exactly the height it needs to spend', async () => {
-      await scrollTo(fixture, 0);
+    // A stop arrives once. Left observed it would replay every time the reader
+    // scrolled back up, which is distracting rather than nice.
+    it('stops watching a stop once it has arrived', () => {
+      const [first] = stops();
+      observers[0].callback([{ target: first, isIntersecting: true }]);
 
-      const root = host().querySelector<HTMLElement>('.track')!;
-      expect(root.style.getPropertyValue('--track-travel')).toBe(`${TRAVEL}px`);
+      expect(observers[0].unobserved).toContain(first);
     });
   });
 
-  describe('when the horizontal run does not apply', () => {
-    it('leaves the rail alone on a narrow screen', async () => {
-      setMedia(false);
-      await scrollTo(fixture, -TRAVEL / 2);
+  // An observer that exists but never delivers a callback would otherwise
+  // leave the whole schedule invisible. This is the net under that.
+  describe('when the observer never speaks', () => {
+    it('shows everything rather than leaving the page blank', async () => {
+      expect(stops().some((stop) => stop.classList.contains('is-revealed'))).toBe(false);
 
-      expect(railShift(fixture)).toBe(0);
+      await vi.advanceTimersByTimeAsync(2000);
+      await fixture.whenStable();
+
+      expect(stops().every((stop) => stop.classList.contains('is-revealed'))).toBe(true);
     });
 
-    it('leaves the rail alone when less motion is asked for', async () => {
-      setMedia(true, true);
-      await scrollTo(fixture, -TRAVEL / 2);
+    it('leaves a working observer alone', async () => {
+      const [first] = stops();
+      observers[0].callback([{ target: first, isIntersecting: true }]);
 
-      expect(railShift(fixture)).toBe(0);
+      await vi.advanceTimersByTimeAsync(2000);
+      await fixture.whenStable();
+
+      // The observer spoke, so the net stands down and the stops it has not
+      // reached yet are still waiting for it.
+      expect(stops()[1].classList.contains('is-revealed')).toBe(false);
+    });
+  });
+
+  /**
+   * The hidden starting state lives behind a class the component adds, so the
+   * failure direction is "no animation" rather than "no content". These are
+   * the setups where getting it backwards would hide the whole schedule.
+   */
+  describe('when it cannot animate', () => {
+    it('leaves every stop visible without IntersectionObserver', async () => {
+      installObserver(false);
+      fixture = await render();
+
+      expect(host().querySelector('.track--animated')).toBeNull();
+      expect(stops().length).toBeGreaterThan(5);
     });
 
-    // Otherwise a transform from the wide layout survives into the narrow one,
-    // pushing the list sideways off the screen.
-    it('clears a transform left over from the wide layout', async () => {
-      await scrollTo(fixture, -TRAVEL / 2);
-      expect(railShift(fixture)).toBeLessThan(0);
+    it('leaves every stop visible when less motion is asked for', async () => {
+      setReducedMotion(true);
+      fixture = await render();
 
-      setMedia(false);
-      await scrollTo(fixture, -TRAVEL / 2);
+      expect(host().querySelector('.track--animated')).toBeNull();
+      expect(stops().length).toBeGreaterThan(5);
+    });
 
-      expect(railShift(fixture)).toBe(0);
-      const root = host().querySelector<HTMLElement>('.track')!;
-      expect(root.style.getPropertyValue('--track-travel')).toBe('0px');
+    it('marks the track as animated only when it can undo it', () => {
+      expect(host().querySelector('.track--animated')).toBeTruthy();
     });
   });
 });
