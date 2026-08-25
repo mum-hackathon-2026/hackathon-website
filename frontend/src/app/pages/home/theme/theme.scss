@@ -173,47 +173,56 @@
 }
 
 /* Visualized Criteria List */
+/* Two rows per criterion: the name and its figure across the top, the bar
+   underneath.
+
+   One row would be simpler, and was what this had — but the name then shares
+   its line with a bar and a sentence, so it has to live in a fixed column and
+   the longest criteria were being cut off with an ellipsis. Given the whole
+   width, every name fits, and the bars still line up because they all start at
+   the same column on their own row.
+
+   The list holds the grid and the rows opt into it with `display: contents`,
+   so all seven share one set of columns. Left to themselves each row sized its
+   own, and the bars began at a different x on every line. */
 .theme__pillars {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* A grid, not a flex row with a gap.
-   Every row shares one column track, so the names end where the bars start and
-   the figures sit in a single right-hand column. Left to itself, flex sized
-   each row by its own content and the bars began at a different x on every
-   line, which is most of why seven rows of the same thing were hard to read.
-   `minmax(0, 1fr)` on the bar column lets it shrink instead of overflowing on
-   a long criterion name. */
 .theme__pillar {
-  display: grid;
-  grid-template-columns: auto minmax(8ch, 22ch) minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 18px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid transparent;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-
-  &:hover {
-    background: #ffffff;
-    border-color: var(--color-border);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-  }
+  display: contents;
 }
 
-/* Truncates rather than wraps, so every row is one line high and the bars
-   stay on a common baseline down the list. The column is wide enough for the
-   longest criterion at the default config; a longer one loses its tail rather
-   than shunting the chart out of alignment. */
+.theme__pillar-indicator {
+  grid-column: 1;
+  margin: 14px 0 0;
+  align-self: start;
+}
+
+.theme__pillar-name {
+  grid-column: 2;
+  margin-top: 10px;
+}
+
+.theme__pillar-desc {
+  grid-column: 3;
+  margin-top: 10px;
+}
+
+/* Spans the name and figure columns, so it is the full width of the row and
+   every bar starts and ends in the same place. */
+.theme__pillar-bar-wrap {
+  grid-column: 2 / -1;
+  margin-bottom: 14px;
+}
+
 .theme__pillar-name {
   font-family: var(--font-serif, serif);
   margin: 0;
@@ -221,9 +230,6 @@
   font-weight: 700;
   line-height: 1.3;
   color: var(--color-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* The colour chip, tying a row to its segment in the track above. */
@@ -240,9 +246,12 @@
    a segment and on the row it belongs to — which is the whole reason the track
    is readable rather than seven anonymous blocks.
 
-   The four brand colours take the four heaviest criteria; the three lightest
-   take tints of the first three. Lighter genuinely means a smaller share here,
-   so the fade is carrying information rather than decorating.
+   The four brand colours take the four heaviest criteria, then teal, violet
+   and magenta from Google's wider palette. These were 300-level tints of the
+   first three, which was too pale to read: a 10px dot and an 8px bar have very
+   little area to carry a colour, and a wash of it disappears against white.
+   Full-strength hues that are simply different solve it, and the violet is the
+   one the audit log already uses.
 
    The fallback matters: a config with more than seven criteria would otherwise
    leave the extras with no colour at all. */
@@ -251,7 +260,7 @@
   --accent: var(--color-subtle);
 }
 
-$rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #8ab4f8, #81c995, #f28b82;
+$rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #00897b, #7c3aed, #d01884;
 
 @for $i from 1 through list.length($rank-accents) {
   .theme__pillar:nth-child(#{$i}),
