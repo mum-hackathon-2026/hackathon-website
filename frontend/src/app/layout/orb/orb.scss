@@ -76,14 +76,21 @@
   filter: drop-shadow(0 3px 7px rgba(245, 158, 11, 0.5));
   animation:
     orb-breathe 4.5s ease-in-out infinite,
-    orb-turn 30s linear infinite;
+    orb-rock 7s ease-in-out infinite;
 }
 
-/* Slow enough to be a drift rather than a spin. Four-fold symmetry means a
-   quarter turn is a whole cycle, so the loop never jumps. */
-@keyframes orb-turn {
-  to {
-    transform: rotate(90deg);
+/* A rock, not a rotation. Turning all the way round drew the eye every time it
+   came past; tipping a few degrees each way reads as something floating rather
+   than something driven. Eased at both ends so it slows into each turn, and
+   the period is deliberately unrelated to the breath so the two never fall
+   into step and start looking mechanical. */
+@keyframes orb-rock {
+  0%,
+  100% {
+    transform: rotate(-9deg);
+  }
+  50% {
+    transform: rotate(9deg);
   }
 }
 
