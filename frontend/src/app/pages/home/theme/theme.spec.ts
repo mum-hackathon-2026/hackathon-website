@@ -3,7 +3,10 @@ import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG, EventConfig } from '../../../core/e
 import { EventSettingsService } from '../../../core/event/event-settings';
 import { ThemeSection } from './theme';
 
-async function render(overrides: Partial<EventConfig['settings']> = {}) {
+async function render(
+  overrides: Partial<EventConfig['settings']> = {},
+  siteOverrides: Partial<EventConfig['site']> = {},
+) {
   TestBed.resetTestingModule();
   await TestBed.configureTestingModule({
     imports: [ThemeSection],
@@ -13,6 +16,7 @@ async function render(overrides: Partial<EventConfig['settings']> = {}) {
         useValue: {
           ...DEFAULT_EVENT_CONFIG,
           settings: { ...DEFAULT_EVENT_CONFIG.settings, ...overrides },
+          site: { ...DEFAULT_EVENT_CONFIG.site, ...siteOverrides },
         },
       },
     ],
@@ -37,12 +41,17 @@ describe('ThemeSection', () => {
   }
 
   describe('the judging pillars', () => {
-    it('shows one pillar per configured criterion', async () => {
+    /** Config order is not display order: the chart ranks by weight. */
+    const ranked = [...DEFAULT_EVENT_CONFIG.site.judgingCriteria].sort(
+      (a, b) => b.weight - a.weight,
+    );
+
+    it('shows one pillar per configured criterion, heaviest first', async () => {
       const fixture = await render();
 
       expect(
         pillars(fixture).map((p) => p.querySelector('.theme__pillar-name')!.textContent!.trim()),
-      ).toEqual(DEFAULT_EVENT_CONFIG.site.judgingCriteria.map((c) => c.name));
+      ).toEqual(ranked.map((c) => c.name));
     });
 
     it('states each criterion’s share of the final score', async () => {
@@ -50,9 +59,44 @@ describe('ThemeSection', () => {
 
       expect(
         pillars(fixture).map((p) => p.querySelector('.theme__pillar-desc')!.textContent!.trim()),
-      ).toEqual(
-        DEFAULT_EVENT_CONFIG.site.judgingCriteria.map((c) => `${c.weight}% of the final score`),
+      ).toEqual(ranked.map((c) => `${c.weight}% of the final score`));
+    });
+
+    // The reader's question is "what counts most", and config order does not
+    // answer it. Descending weight does.
+    it('never puts a lighter criterion above a heavier one', async () => {
+      const fixture = await render();
+
+      const shown = pillars(fixture).map((p) =>
+        Number(/(\d+)%/.exec(p.querySelector('.theme__pillar-desc')!.textContent!)![1]),
       );
+
+      expect(shown).toEqual([...shown].sort((a, b) => b - a));
+    });
+
+    /**
+     * The bar is measured against the heaviest criterion, so the top one fills
+     * its track and the rest read against it. The old code multiplied the
+     * weight by a constant 4, which is the same thing only while nothing is
+     * weighted above 25 — past that it overflowed the track silently.
+     */
+    it('scales the bars against the heaviest criterion, whatever it weighs', async () => {
+      const fixture = await render(
+        {},
+        {
+          judgingCriteria: [
+            { name: 'Dominant', weight: 60 },
+            { name: 'Middle', weight: 30 },
+            { name: 'Small', weight: 10 },
+          ],
+        },
+      );
+
+      const shares = pillars(fixture).map((p) =>
+        (p.querySelector('.theme__pillar-bar') as HTMLElement).style.getPropertyValue('--share'),
+      );
+
+      expect(shares).toEqual(['100%', '50%', '16.666666666666664%']);
     });
 
     it('cycles the palette so any number of criteria stays styled', async () => {

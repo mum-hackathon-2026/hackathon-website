@@ -45,7 +45,10 @@
     0 1px 3px rgba(0, 0, 0, 0.02);
   text-align: left;
   backdrop-filter: blur(12px);
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 
   &:hover {
     transform: translateY(-2px);
@@ -167,43 +170,6 @@
   border: 1px solid rgba(245, 158, 11, 0.28);
 }
 
-/* Multi-Segment Proportion Bar */
-.theme__score-track {
-  display: flex;
-  height: 14px;
-  border-radius: 999px;
-  overflow: hidden;
-  gap: 3px;
-  padding: 2px;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  margin-bottom: 24px;
-}
-
-.theme__score-seg {
-  height: 100%;
-  border-radius: 999px;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-
-  &:hover {
-    transform: scaleY(1.3);
-    z-index: 2;
-  }
-}
-
-.theme__score-seg--blue {
-  background: linear-gradient(90deg, #4285f4, #1a56c4);
-}
-.theme__score-seg--green {
-  background: linear-gradient(90deg, #34a853, #1e7e34);
-}
-.theme__score-seg--red {
-  background: linear-gradient(90deg, #ea4335, #c5221f);
-}
-.theme__score-seg--yellow {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
-}
-
 /* Visualized Criteria List */
 .theme__pillars {
   display: flex;
@@ -214,47 +180,57 @@
   list-style: none;
 }
 
+/* A grid, not a flex row with a gap.
+   Every row shares one column track, so the names end where the bars start and
+   the figures sit in a single right-hand column. Left to itself, flex sized
+   each row by its own content and the bars began at a different x on every
+   line, which is most of why seven rows of the same thing were hard to read.
+   `minmax(0, 1fr)` on the bar column lets it shrink instead of overflowing on
+   a long criterion name. */
 .theme__pillar {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(8ch, 22ch) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   padding: 12px 18px;
   border-radius: 14px;
   background: rgba(0, 0, 0, 0.02);
   border: 1px solid transparent;
   transition:
-    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
     background 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
     background: #ffffff;
-    border-color: rgba(245, 158, 11, 0.35);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
-    transform: translateX(4px);
-
-    .theme__pillar-indicator {
-      transform: scale(1.3);
-    }
+    border-color: var(--color-border);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
   }
 }
 
-.theme__pillar-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1;
-  min-width: 0;
+/* Truncates rather than wraps, so every row is one line high and the bars
+   stay on a common baseline down the list. The column is wide enough for the
+   longest criterion at the default config; a longer one loses its tail rather
+   than shunting the chart out of alignment. */
+.theme__pillar-name {
+  font-family: var(--font-serif, serif);
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* The colour chip. Carries no information on its own — a palette of four
+   cannot label seven criteria — but it ties each row to its bar. */
 .theme__pillar-indicator {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-  transition: transform 0.2s ease;
 }
 
 .theme__pillar--blue .theme__pillar-indicator,
@@ -274,39 +250,34 @@
   background: #f59e0b;
 }
 
-.theme__pillar-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-  min-width: 0;
-}
-
-.theme__pillar-name {
-  font-family: var(--font-serif, serif);
-  margin: 0;
-  font-size: 0.96rem;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--color-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .theme__pillar-bar-wrap {
-  height: 6px;
-  flex: 1;
-  max-width: 160px;
-  background: rgba(0, 0, 0, 0.06);
+  height: 8px;
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 999px;
   overflow: hidden;
 }
 
+/* Width is the honest figure; the animation scales it in from nothing.
+   Growing `transform` rather than `width` because only the former is
+   composited, and seven of them run at once. */
 .theme__pillar-bar {
+  width: var(--share, 0%);
   height: 100%;
   border-radius: 999px;
-  transition: width 0.3s ease;
+  transform-origin: left center;
+  animation: pillar-grow 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  /* Each bar starts a beat after the one above, so the chart draws itself down
+     the list rather than snapping in as a block. */
+  animation-delay: calc(var(--row-index, 0) * 90ms);
+}
+
+@keyframes pillar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .theme__pillar-desc {
@@ -351,6 +322,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .theme__mystery-icon {
+    animation: none;
+  }
+
+  /* `backwards` holds the bar at zero width through its delay, so shortening
+     the duration is not enough: the chart would sit empty until each bar's
+     turn. Dropped outright. */
+  .theme__pillar-bar {
     animation: none;
   }
 }
