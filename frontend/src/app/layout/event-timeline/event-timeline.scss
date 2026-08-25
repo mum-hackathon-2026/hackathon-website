@@ -69,11 +69,21 @@
 /* ── Card ──────────────────────────────────────────────────────────────── */
 
 .timeline__card {
-  margin-bottom: 12px;
-  padding: 16px 18px;
+  margin-bottom: 16px;
+  padding: 20px 24px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
 }
 
 .timeline__heading {
@@ -82,19 +92,20 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .timeline__label {
   margin: 0;
+  font-family: var(--font-serif, serif);
   font-size: var(--text-md);
   font-weight: 700;
   color: var(--color-ink);
 }
 
 .timeline__pill {
-  padding: 2px 10px;
-  border-radius: 12px;
+  padding: 3px 12px;
+  border-radius: 999px;
   font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -114,7 +125,7 @@
 }
 
 .timeline__date {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
   color: var(--color-muted);
@@ -136,10 +147,10 @@
 }
 
 .timeline__guidance {
-  margin: 10px 0 0;
-  padding: 8px 12px;
+  margin: 12px 0 0;
+  padding: 10px 14px;
   border-left: 3px solid var(--step-accent);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 8px 8px 0;
   background: var(--step-tint);
   font-size: var(--text-xs);
   line-height: 1.55;
@@ -156,7 +167,7 @@
   }
 
   .timeline__card {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.6);
   }
 
   .timeline__label,
@@ -171,12 +182,12 @@
   .timeline__dot {
     border-color: var(--step-accent);
     background: var(--step-tint);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--step-accent) 15%, transparent);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--step-accent) 20%, transparent);
   }
 
   .timeline__card {
-    border-color: color-mix(in srgb, var(--step-accent) 45%, transparent);
-    box-shadow: 0 2px 12px color-mix(in srgb, var(--step-accent) 12%, transparent);
+    border-color: color-mix(in srgb, var(--step-accent) 55%, transparent);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--step-accent) 18%, transparent);
   }
 }
 

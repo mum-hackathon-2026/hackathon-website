@@ -10,6 +10,13 @@ import { SPONSORS, Sponsor } from '../../../core/event/event-content';
 })
 export class SponsorsSection {
   protected readonly sponsors = SPONSORS;
+  /** Replicated items for the infinite scrolling marquee track */
+  protected readonly marqueeItems: readonly Sponsor[] = [
+    ...SPONSORS,
+    ...SPONSORS,
+    ...SPONSORS,
+    ...SPONSORS,
+  ];
 
   /** The signal itself, not a snapshot — an admin rename has to reach the thank-you line. */
   protected readonly eventName = inject(EventSettingsService).eventName;

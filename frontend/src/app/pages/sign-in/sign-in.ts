@@ -8,16 +8,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   AuthService,
-  DEMO_USERS,
   GOOGLE_CLIENT_ID,
-  ROLES,
   ROLE_HOME,
-  ROLE_LABELS,
-  Role,
 } from '../../core/auth/auth';
 
 declare global {
@@ -43,7 +38,7 @@ declare global {
 
 @Component({
   selector: 'app-sign-in',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink],
   templateUrl: './sign-in.html',
   styleUrl: './sign-in.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,14 +51,8 @@ export class SignIn implements AfterViewInit, OnDestroy {
 
   @ViewChild('googleBtnContainer') private googleBtnContainer?: ElementRef<HTMLDivElement>;
 
-  protected readonly roles = ROLES;
-  protected readonly roleLabels = ROLE_LABELS;
-  protected readonly accounts = DEMO_USERS;
-
   protected readonly isLoading = signal<boolean>(false);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly manualToken = signal<string>('');
-  protected readonly showManualInput = signal<boolean>(false);
 
   ngAfterViewInit(): void {
     this.loadGoogleGisScript();
@@ -143,23 +132,5 @@ export class SignIn implements AfterViewInit, OnDestroy {
     } else {
       this.errorMessage.set(result.error);
     }
-  }
-
-  protected async submitManualToken(): Promise<void> {
-    const token = this.manualToken().trim();
-    if (token) {
-      await this.handleGoogleCredential(token);
-    }
-  }
-
-  protected signIn(account: Role): void {
-    this.errorMessage.set(null);
-    this.auth.signIn(account);
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? ROLE_HOME[account];
-    void this.router.navigateByUrl(returnUrl);
-  }
-
-  protected toggleManualInput(): void {
-    this.showManualInput.update((v) => !v);
   }
 }

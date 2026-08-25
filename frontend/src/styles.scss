@@ -163,14 +163,16 @@ html {
 }
 
 .button--primary {
-  border-color: var(--color-blue);
-  background: var(--color-blue);
+  border-color: #f59e0b;
+  background: #f59e0b;
   color: #fff;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
 }
 
 .button--primary:not(:disabled):hover {
-  background: var(--color-blue-dark);
-  border-color: var(--color-blue-dark);
+  background: #d97706;
+  border-color: #d97706;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
 }
 
 .button--danger {
@@ -201,7 +203,7 @@ html {
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--color-blue);
+  color: #d97706;
   cursor: pointer;
 }
 

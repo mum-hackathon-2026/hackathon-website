@@ -11,46 +11,82 @@
   --role-tint: var(--color-amber-tint);
 }
 
+.role--participant {
+  --role-ink: var(--color-blue-ink);
+  --role-tint: var(--color-blue-tint);
+}
+.role--judge {
+  --role-ink: var(--color-green-ink);
+  --role-tint: var(--color-green-tint);
+}
+.role--admin {
+  --role-ink: var(--color-amber-ink);
+  --role-tint: var(--color-amber-tint);
+}
+
+/* Floating Glassmorphism Island Navbar */
 .nav {
   position: sticky;
-  top: 0;
+  top: 14px;
   z-index: 200;
-  border-bottom: 1px solid var(--color-border);
-  background: rgb(255 255 255 / 97%);
-  backdrop-filter: blur(8px);
+  width: 100%;
+  padding: 0 clamp(12px, 3vw, 24px);
+  box-sizing: border-box;
+  pointer-events: none;
 }
 
 .nav__inner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: 1120px;
-  height: 52px;
+  gap: 12px;
+  max-width: 1080px;
+  height: 56px;
   margin: 0 auto;
-  padding: 0 clamp(16px, 4vw, 40px);
+  padding: 0 12px 0 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 12px 36px -4px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  pointer-events: auto;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .nav__brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
-  margin-right: 8px;
-  padding: 4px 6px 4px 0;
-  border-radius: 6px;
+  margin-right: 12px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
   text-decoration: none;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.02);
+  }
 }
 
 .nav__logo {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nav__brand:hover .nav__logo {
+  transform: rotate(12deg) scale(1.1);
 }
 
 .nav__brand-name {
-  font-family: var(--font-serif);
-  font-size: var(--text-md);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-family: var(--font-serif, serif);
+  font-size: 0.96rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
   white-space: nowrap;
   color: var(--color-ink);
 }
@@ -60,37 +96,39 @@
   align-items: center;
   gap: 2px;
   flex: 1;
+  justify-content: flex-start;
 }
 
 .nav__link {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: var(--text-sm);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.86rem;
   font-weight: 500;
   color: var(--color-muted);
   text-decoration: none;
   white-space: nowrap;
   transition:
-    color 0.15s,
-    background 0.15s;
+    color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
 
   &:hover {
-    background: var(--color-hairline);
+    background: rgba(0, 0, 0, 0.04);
     color: var(--color-ink);
   }
 }
 
 .nav__link--active {
-  font-weight: 600;
-  color: var(--color-blue);
-  background: var(--color-blue-tint);
-  box-shadow: inset 0 -2px 0 var(--color-blue);
+  font-weight: 700;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  box-shadow: none;
 
   &:hover {
-    background: var(--color-blue-tint);
-    color: var(--color-blue);
+    background: rgba(245, 158, 11, 0.18);
+    color: #b45309;
   }
 }
 
@@ -98,7 +136,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
   margin-left: auto;
 }
@@ -106,43 +144,52 @@
 .nav__sign-in {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 6px;
-  background: var(--color-blue);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  font-size: 0.88rem;
+  font-weight: 700;
   color: #fff;
   text-decoration: none;
-  transition: background 0.15s;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.32);
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
-    background: var(--color-blue-dark);
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45);
   }
 }
 
 .nav__sign-in-icon {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
 }
 
 .nav__avatar-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 10px 3px 4px;
+  padding: 4px 12px 4px 4px;
   border: 1px solid var(--color-border);
-  border-radius: 20px;
-  background: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
   font-family: var(--font-sans);
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 
   &:hover {
-    border-color: var(--color-faint);
-    background: var(--color-hairline);
+    border-color: rgba(66, 133, 244, 0.4);
+    box-shadow: 0 4px 14px rgba(66, 133, 244, 0.15);
+    transform: translateY(-1px);
   }
 }
 
@@ -150,8 +197,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--role-tint);
   color: var(--role-ink);
@@ -170,7 +217,7 @@
   width: 10px;
   height: 10px;
   color: var(--color-subtle);
-  transition: transform 0.18s;
+  transition: transform 0.2s ease;
 }
 
 .nav__chevron--open {
@@ -179,60 +226,79 @@
 
 .nav__popover {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
   z-index: 300;
-  width: 264px;
+  width: 270px;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 12%);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(16px);
 }
 
 .nav__hamburger {
   display: none;
-  padding: 6px;
+  padding: 8px;
   border: none;
-  border-radius: 6px;
-  background: none;
-  color: var(--color-muted);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-ink);
   cursor: pointer;
+  transition: background 0.18s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.08);
+  }
 
   svg {
     display: block;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
 }
 
 .nav__drawer {
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
+  pointer-events: auto;
+  max-width: 1080px;
+  margin: 8px auto 0;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
 }
 
 .nav__drawer-links {
   display: flex;
   flex-direction: column;
-  padding: 8px clamp(16px, 4vw, 40px);
+  padding: 12px 16px;
+  gap: 4px;
 }
 
 .nav__drawer-link {
-  padding: 10px 8px;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border-radius: 12px;
   font-size: var(--text-md);
   font-weight: 500;
-  color: var(--color-body);
+  color: var(--color-ink);
   text-decoration: none;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
 }
 
 .nav__drawer-link--active {
-  background: var(--color-blue-tint);
-  color: var(--color-blue);
-  font-weight: 600;
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  font-weight: 700;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .nav__hamburger {
     display: flex;
   }
@@ -248,8 +314,7 @@
   }
 }
 
-/* Resizing past the breakpoint hides the hamburger; don't strand an open drawer. */
-@media (min-width: 721px) {
+@media (min-width: 761px) {
   .nav__drawer {
     display: none;
   }

@@ -3,30 +3,58 @@
     <p class="section-eyebrow section-eyebrow--center">Our sponsor</p>
     <h2 class="section-heading section-heading--center">Sponsored by Averis.</h2>
 
-    @for (sponsor of sponsors; track sponsor.name) {
-      <div class="sponsors__mark">
-        @if (hasLogo(sponsor)) {
-          <!--
-            Deliberately not loading="lazy". The logo is sized entirely in CSS,
-            so before it loads its box is 0x0 — and a zero-area image never
-            registers as intersecting, so lazy loading would wait forever for a
-            visibility that only loading could produce. Eager is also the right
-            call on the merits: one 25 kB same-origin asset, and .sponsors__mark
-            already reserves its space.
-          -->
-          <img
-            class="sponsors__logo"
-            [src]="sponsor.logo"
-            [alt]="sponsor.name"
-            (error)="onLogoError(sponsor)"
-          />
-        } @else {
-          <!-- The name is repeated below so the accessible label survives the swap. -->
-          <span class="sponsors__wordmark" aria-hidden="true">{{ sponsor.name }}</span>
-          <span class="visually-hidden">{{ sponsor.name }}</span>
-        }
+    <!-- Infinite Auto-Scrolling Marquee Track -->
+    <div class="sponsors__marquee" aria-label="Sponsors Showcase">
+      <div class="sponsors__marquee-track">
+        <!-- Main Marquee Group -->
+        <div class="sponsors__marquee-group">
+          @for (sponsor of marqueeItems; track $index) {
+            <a
+              class="sponsors__card"
+              [href]="sponsor.website || 'https://www.averis.com/'"
+              target="_blank"
+              rel="noopener noreferrer"
+              [attr.aria-label]="sponsor.name + ' website (opens in new tab)'"
+            >
+              @if (hasLogo(sponsor)) {
+                <img
+                  class="sponsors__logo"
+                  [src]="sponsor.logo"
+                  [alt]="sponsor.name"
+                  (error)="onLogoError(sponsor)"
+                />
+              } @else {
+                <span class="sponsors__wordmark">{{ sponsor.name }}</span>
+              }
+            </a>
+          }
+        </div>
+
+        <!-- Duplicated Group for Seamless -50% Loop (aria-hidden for screen readers) -->
+        <div class="sponsors__marquee-group" aria-hidden="true">
+          @for (sponsor of marqueeItems; track $index) {
+            <a
+              class="sponsors__card"
+              [href]="sponsor.website || 'https://www.averis.com/'"
+              target="_blank"
+              rel="noopener noreferrer"
+              tabindex="-1"
+            >
+              @if (hasLogo(sponsor)) {
+                <img
+                  class="sponsors__logo"
+                  [src]="sponsor.logo"
+                  [alt]="sponsor.name"
+                  (error)="onLogoError(sponsor)"
+                />
+              } @else {
+                <span class="sponsors__wordmark">{{ sponsor.name }}</span>
+              }
+            </a>
+          }
+        </div>
       </div>
-    }
+    </div>
 
     <p class="sponsors__note">
       Thank you to Averis for backing {{ eventName() }} and the students competing in it.

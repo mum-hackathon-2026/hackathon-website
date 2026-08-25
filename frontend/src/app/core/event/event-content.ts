@@ -257,7 +257,7 @@ export interface Partner {
  */
 export const PARTNERS: readonly Partner[] = [
   {
-    name: 'GDGoC Monash University Malaysia',
+    name: 'GDG MUM',
     role: 'Organiser',
     responsibility: 'Plans and runs the event',
     logo: 'logos/gdgoc.png',
@@ -267,12 +267,6 @@ export const PARTNERS: readonly Partner[] = [
     role: 'Club partner',
     responsibility: 'Publicity, and oversees event execution',
     logo: 'logos/mumtec.png',
-  },
-  {
-    name: 'Averis',
-    role: 'Sponsor',
-    responsibility: 'Sets the problem statement and provides the judges',
-    logo: 'logos/averis.png',
   },
 ];
 
@@ -287,9 +281,16 @@ export interface Sponsor {
    * asset (an SVG, say) be dropped in later as a pure data change.
    */
   readonly logo: string;
+  readonly website?: string;
 }
 
-export const SPONSORS: readonly Sponsor[] = [{ name: 'Averis', logo: 'sponsors/averis.png' }];
+export const SPONSORS: readonly Sponsor[] = [
+  {
+    name: 'Averis',
+    logo: 'sponsors/averis.png',
+    website: 'https://www.averis.com/',
+  },
+];
 
 export interface Organizer {
   readonly name: string;

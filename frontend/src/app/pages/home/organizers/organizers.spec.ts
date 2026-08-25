@@ -82,13 +82,16 @@ describe('OrganizersSection', () => {
   // collaboration table changing shows up here rather than going unnoticed.
   describe('partners', () => {
     function partnerCards(): HTMLElement[] {
-      return Array.from(host().querySelectorAll<HTMLElement>('.organizers__partner'));
+      return Array.from(
+        host().querySelectorAll<HTMLElement>('.organizers__marquee-group:not([aria-hidden]) .organizers__partner'),
+      );
     }
 
     it('names every partner with its role, and nothing more', () => {
-      expect(partnerCards().length).toBe(PARTNERS.length);
+      const primaryCards = partnerCards().slice(0, PARTNERS.length);
+      expect(primaryCards.length).toBe(PARTNERS.length);
 
-      partnerCards().forEach((card, i) => {
+      primaryCards.forEach((card, i) => {
         expect(textOf(card, '.organizers__partner-role')).toBe(PARTNERS[i].role);
         expect(textOf(card, '.organizers__partner-name')).toBe(PARTNERS[i].name);
         // The card is a logo and a name. `responsibility` is deliberately not
@@ -98,7 +101,8 @@ describe('OrganizersSection', () => {
     });
 
     it('renders a logo for each partner', () => {
-      partnerCards().forEach((card, i) => {
+      const primaryCards = partnerCards().slice(0, PARTNERS.length);
+      primaryCards.forEach((card, i) => {
         const img = card.querySelector<HTMLImageElement>('.organizers__partner-logo');
         expect(img).toBeTruthy();
         expect(img?.getAttribute('src')).toBe(PARTNERS[i].logo);
@@ -106,7 +110,7 @@ describe('OrganizersSection', () => {
     });
 
     it('puts the organising bodies above the individual people', () => {
-      const partners = host().querySelector('.organizers__partners')!;
+      const partners = host().querySelector('.organizers__marquee')!;
       const grid = host().querySelector('.organizers__grid')!;
 
       expect(

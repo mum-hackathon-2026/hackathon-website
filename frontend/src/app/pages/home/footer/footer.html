@@ -1,12 +1,105 @@
 <footer class="footer">
-  <p class="footer__credit">
-    <svg class="footer__mark" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <rect x="2" y="2" width="7" height="7" rx="1" fill="#4285F4" />
-      <rect x="11" y="2" width="7" height="7" rx="1" fill="#EA4335" />
-      <rect x="2" y="11" width="7" height="7" rx="1" fill="#34A853" />
-      <rect x="11" y="11" width="7" height="7" rx="1" fill="#FBBC04" />
-    </svg>
-    © {{ eventName() }}. {{ config.site.organisedBy }}.
-  </p>
-  <p class="footer__tagline">A student-run event.</p>
+  <div class="footer__inner">
+    <!-- Top Content Grid -->
+    <div class="footer__top">
+      <!-- Brand & Description Column -->
+      <div class="footer__brand-col">
+        <div class="footer__brand-header">
+          <svg class="footer__brand-logo" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <rect x="2" y="2" width="7" height="7" rx="1" fill="#4285F4" />
+            <rect x="11" y="2" width="7" height="7" rx="1" fill="#EA4335" />
+            <rect x="2" y="11" width="7" height="7" rx="1" fill="#34A853" />
+            <rect x="11" y="11" width="7" height="7" rx="1" fill="#FBBC04" />
+          </svg>
+          <span class="footer__brand-title">{{ eventName() }}</span>
+        </div>
+        <p class="footer__brand-desc">
+          The premier university hackathon bringing builders together to solve real-world industry
+          challenges. Eight days of building, collaborating, and competing.
+        </p>
+        <div class="footer__badges">
+          <span class="footer__badge footer__badge--blue">GDG MUM</span>
+          <span class="footer__badge footer__badge--green">MUMTEC</span>
+          <span class="footer__badge footer__badge--amber">Sponsored by Averis</span>
+        </div>
+      </div>
+
+      <!-- Navigation Columns -->
+      <div class="footer__nav-grid">
+        <div class="footer__col">
+          <h4 class="footer__heading">Event</h4>
+          <ul class="footer__links">
+            <li><a class="footer__link" routerLink="/timeline">Schedule & Milestones</a></li>
+            <li><a class="footer__link" routerLink="/organizers">Organizers & Team</a></li>
+            <li><a class="footer__link" routerLink="/results">Results & Rankings</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__col">
+          <h4 class="footer__heading">Participate</h4>
+          <ul class="footer__links">
+            <li><a class="footer__link" routerLink="/sign-in">Sign In / Register</a></li>
+            <li><a class="footer__link" routerLink="/my-team">My Team</a></li>
+            <li><a class="footer__link" routerLink="/my-submission">Project Submission</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__col">
+          <h4 class="footer__heading">Connect</h4>
+          <ul class="footer__links">
+            <li>
+              <a
+                class="footer__link"
+                href="https://www.averis.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Averis Website ↗
+              </a>
+            </li>
+            <li>
+              <a class="footer__link" href="mailto:ang.ling@monash.edu">Contact Directors</a>
+            </li>
+            <li><span class="footer__link-static">Monash University Malaysia</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <hr class="footer__divider" />
+
+    <!-- Bottom Bar -->
+    <div class="footer__bottom">
+      <p class="footer__credit">
+        <svg class="footer__mark" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="7" height="7" rx="1" fill="#4285F4" />
+          <rect x="11" y="2" width="7" height="7" rx="1" fill="#EA4335" />
+          <rect x="2" y="11" width="7" height="7" rx="1" fill="#34A853" />
+          <rect x="11" y="11" width="7" height="7" rx="1" fill="#FBBC04" />
+        </svg>
+        © {{ eventName() }}. {{ config.site.organisedBy }}.
+      </p>
+
+      <div class="footer__bottom-right">
+        <p class="footer__tagline">A student-run event.</p>
+        <button
+          type="button"
+          class="footer__back-to-top"
+          aria-label="Back to top"
+          (click)="scrollToTop()"
+        >
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path
+              d="M10 15V5M10 5L5 10M10 5L15 10"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Top
+        </button>
+      </div>
+    </div>
+  </div>
 </footer>

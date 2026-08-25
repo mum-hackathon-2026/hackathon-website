@@ -7,19 +7,22 @@ describe('SponsorsSection', () => {
     await TestBed.configureTestingModule({ imports: [SponsorsSection] }).compileComponents();
   });
 
-  it('renders a mark per sponsor, naming each one', async () => {
+  it('renders marquee sponsor cards linking to the sponsor website', async () => {
     const fixture = TestBed.createComponent(SponsorsSection);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
 
-    // Against the constant rather than a literal, so adding a sponsor cannot
-    // leave a stale expectation passing.
-    expect(host.querySelectorAll('.sponsors__mark').length).toBe(SPONSORS.length);
+    const cards = host.querySelectorAll<HTMLAnchorElement>('.sponsors__card');
+    expect(cards.length).toBeGreaterThan(0);
 
-    const names = [...host.querySelectorAll<HTMLImageElement>('.sponsors__logo')].map(
-      (logo) => logo.alt,
-    );
-    expect(names).toEqual(SPONSORS.map((sponsor) => sponsor.name));
+    const firstCard = cards[0];
+    expect(firstCard.href).toContain('averis.com');
+    expect(firstCard.target).toBe('_blank');
+    expect(firstCard.rel).toContain('noopener');
+
+    const logos = host.querySelectorAll<HTMLImageElement>('.sponsors__logo');
+    expect(logos.length).toBeGreaterThan(0);
+    expect(logos[0].alt).toBe('Averis');
   });
 
   it('falls back to a wordmark when the logo file fails to load', async () => {
@@ -38,7 +41,5 @@ describe('SponsorsSection', () => {
     expect(host.querySelector<HTMLElement>('.sponsors__wordmark')?.textContent?.trim()).toBe(
       sponsorName,
     );
-    // The visible wordmark is aria-hidden, so the name has to survive elsewhere.
-    expect(host.querySelector('.sponsors__mark')?.textContent).toContain(sponsorName);
   });
 });

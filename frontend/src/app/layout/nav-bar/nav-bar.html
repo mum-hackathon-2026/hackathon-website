@@ -11,12 +11,14 @@
     </a>
 
     <nav class="nav__links" aria-label="Main">
-      @for (link of links(); track link.path) {
+      @for (link of links(); track link.label) {
         <a
           class="nav__link"
           [routerLink]="link.path"
-          routerLinkActive="nav__link--active"
+          [fragment]="link.fragment"
+          [routerLinkActive]="link.fragment ? '' : 'nav__link--active'"
           [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
+          (click)="handleLinkClick(link)"
           >{{ link.label }}</a
         >
       }
@@ -114,13 +116,14 @@
   @if (drawerOpen()) {
     <div class="nav__drawer">
       <nav class="nav__drawer-links" aria-label="Main, mobile">
-        @for (link of links(); track link.path) {
+        @for (link of links(); track link.label) {
           <a
             class="nav__drawer-link"
             [routerLink]="link.path"
-            routerLinkActive="nav__drawer-link--active"
+            [fragment]="link.fragment"
+            [routerLinkActive]="link.fragment ? '' : 'nav__drawer-link--active'"
             [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
-            (click)="closeAll()"
+            (click)="handleLinkClick(link)"
             >{{ link.label }}</a
           >
         }
