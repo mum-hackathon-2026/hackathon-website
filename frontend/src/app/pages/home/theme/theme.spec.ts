@@ -99,15 +99,46 @@ describe('ThemeSection', () => {
       expect(shares).toEqual(['100%', '50%', '16.666666666666664%']);
     });
 
-    it('cycles the palette so any number of criteria stays styled', async () => {
+    /**
+     * The track and the list render from the same sorted array, and the
+     * stylesheet colours both by `nth-child`. That correspondence is what makes
+     * a segment traceable to a row, so the two must stay the same length and
+     * the same order — nothing else enforces it.
+     */
+    it('draws one track segment per row, in the same order', async () => {
       const fixture = await render();
-      const accents = ['blue', 'green', 'red', 'yellow'];
 
-      pillars(fixture).forEach((pillar, i) => {
-        expect(pillar.classList.contains(`theme__pillar--${accents[i % accents.length]}`)).toBe(
-          true,
-        );
-      });
+      const segments = Array.from(host(fixture).querySelectorAll<HTMLElement>('.theme__score-seg'));
+      expect(segments.length).toBe(pillars(fixture).length);
+
+      const grows = segments.map((s) => Number(s.style.flexGrow));
+      const weights = pillars(fixture).map((p) =>
+        Number(/(\d+)%/.exec(p.querySelector('.theme__pillar-desc')!.textContent!)![1]),
+      );
+      expect(grows).toEqual(weights);
+    });
+
+    // Sized by flex-grow rather than percentages, so the gaps between segments
+    // come out of the track instead of pushing the total past full width.
+    it('sizes the track by weight rather than by percentage width', async () => {
+      const fixture = await render();
+
+      for (const seg of Array.from(
+        host(fixture).querySelectorAll<HTMLElement>('.theme__score-seg'),
+      )) {
+        expect(seg.style.width).toBe('');
+        expect(Number(seg.style.flexGrow)).toBeGreaterThan(0);
+      }
+    });
+
+    // The rows carry every name and figure, so a screen reader that also read
+    // the track would hear the whole rubric twice.
+    it('keeps the track out of the accessibility tree', async () => {
+      const fixture = await render();
+
+      expect(host(fixture).querySelector('.theme__score-track')!.getAttribute('aria-hidden')).toBe(
+        'true',
+      );
     });
   });
 

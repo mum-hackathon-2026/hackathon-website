@@ -1,3 +1,5 @@
+@use 'sass:list';
+
 .theme {
   padding: clamp(64px, 10vw, 96px) 24px;
   text-align: center;
@@ -224,8 +226,7 @@
   text-overflow: ellipsis;
 }
 
-/* The colour chip. Carries no information on its own — a palette of four
-   cannot label seven criteria — but it ties each row to its bar. */
+/* The colour chip, tying a row to its segment in the track above. */
 .theme__pillar-indicator {
   width: 10px;
   height: 10px;
@@ -233,21 +234,57 @@
   flex-shrink: 0;
 }
 
-.theme__pillar--blue .theme__pillar-indicator,
-.theme__pillar--blue .theme__pillar-bar {
-  background: #4285f4;
+/* One colour per rank, and rank is position, so the stylesheet can assign it
+   without the component knowing any of these values. The track and the list are
+   rendered from the same sorted array, so `nth-child` lands the same colour on
+   a segment and on the row it belongs to — which is the whole reason the track
+   is readable rather than seven anonymous blocks.
+
+   The four brand colours take the four heaviest criteria; the three lightest
+   take tints of the first three. Lighter genuinely means a smaller share here,
+   so the fade is carrying information rather than decorating.
+
+   The fallback matters: a config with more than seven criteria would otherwise
+   leave the extras with no colour at all. */
+.theme__pillar,
+.theme__score-seg {
+  --accent: var(--color-subtle);
 }
-.theme__pillar--green .theme__pillar-indicator,
-.theme__pillar--green .theme__pillar-bar {
-  background: #34a853;
+
+$rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #8ab4f8, #81c995, #f28b82;
+
+@for $i from 1 through list.length($rank-accents) {
+  .theme__pillar:nth-child(#{$i}),
+  .theme__score-seg:nth-child(#{$i}) {
+    --accent: #{list.nth($rank-accents, $i)};
+  }
 }
-.theme__pillar--red .theme__pillar-indicator,
-.theme__pillar--red .theme__pillar-bar {
-  background: #ea4335;
+
+.theme__pillar-indicator,
+.theme__pillar-bar,
+.theme__score-seg {
+  background: var(--accent);
 }
-.theme__pillar--yellow .theme__pillar-indicator,
-.theme__pillar--yellow .theme__pillar-bar {
-  background: #f59e0b;
+
+/* The whole, above the parts. Segments are sized by flex-grow, so the gaps
+   between them come out of the track rather than pushing it over 100%. */
+.theme__score-track {
+  display: flex;
+  gap: 4px;
+  height: 14px;
+  margin-bottom: 22px;
+}
+
+.theme__score-seg {
+  flex-basis: 0;
+  border-radius: 999px;
+  transform-origin: left center;
+  animation: pillar-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  /* Each segment starts a beat after the one to its left, and the whole track
+     finishes before the first row bar begins, so the eye reads the total and
+     then the breakdown rather than both at once. Indexed from the template,
+     the same way the rows are, rather than seven near-identical rules. */
+  animation-delay: calc(var(--seg-index, 0) * 60ms);
 }
 
 .theme__pillar-bar-wrap {
@@ -267,8 +304,9 @@
   transform-origin: left center;
   animation: pillar-grow 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   /* Each bar starts a beat after the one above, so the chart draws itself down
-     the list rather than snapping in as a block. */
-  animation-delay: calc(var(--row-index, 0) * 90ms);
+     the list rather than snapping in as a block. The offset holds them until
+     the track overhead has finished drawing. */
+  animation-delay: calc(460ms + var(--row-index, 0) * 90ms);
 }
 
 @keyframes pillar-grow {
@@ -328,7 +366,8 @@
   /* `backwards` holds the bar at zero width through its delay, so shortening
      the duration is not enough: the chart would sit empty until each bar's
      turn. Dropped outright. */
-  .theme__pillar-bar {
+  .theme__pillar-bar,
+  .theme__score-seg {
     animation: none;
   }
 }

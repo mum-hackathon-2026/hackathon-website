@@ -2,16 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { EVENT_CONFIG } from '../../../core/event/event-config';
 import { EventSettingsService } from '../../../core/event/event-settings';
 
-/**
- * Accent per rank, in palette order.
- *
- * Assigned after sorting, so the colours run in weight order and the heaviest
- * criterion is always the same colour. There are more criteria than accents, so
- * a colour repeats further down the list — which is why nothing is identified
- * by colour alone here; every row carries its own name and figure.
- */
-const ACCENTS = ['blue', 'green', 'red', 'yellow'] as const;
-
 @Component({
   selector: 'app-home-theme',
   templateUrl: './theme.html',
@@ -35,14 +25,17 @@ export class ThemeSection {
    * old `weight * 4` was doing, but as a constant that happened to equal
    * 100/25: it silently overflowed the track the moment any criterion was
    * weighted above 25. Derived from the data, it cannot.
+   *
+   * No colour here. Rank decides it and rank is position, so the stylesheet
+   * assigns it by `nth-child` — which is also what guarantees a segment in the
+   * track and its row below always agree, without the two being wired together.
    */
   protected readonly pillars = computed(() => {
     const ranked = [...this.config.site.judgingCriteria].sort((a, b) => b.weight - a.weight);
     const heaviest = Math.max(...ranked.map((criterion) => criterion.weight), 1);
 
-    return ranked.map((criterion, i) => ({
+    return ranked.map((criterion) => ({
       ...criterion,
-      accent: ACCENTS[i % ACCENTS.length],
       share: (criterion.weight / heaviest) * 100,
     }));
   });

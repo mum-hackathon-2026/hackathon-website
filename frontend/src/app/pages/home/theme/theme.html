@@ -28,19 +28,31 @@
       <span class="theme__viz-total-badge">100% Total Score</span>
     </div>
 
-    <!-- One chart, not two. The segmented track that used to sit here showed
-         the same seven weights again at a different scale, with no labels on
-         the segments, so it read as decoration and made the figures below it
-         harder rather than easier to trust. The rows are the chart now. -->
+    <!-- The whole, so the parts below have something to be parts of.
+         Decorative: every segment's name and figure are in the list under it,
+         so there is nothing here for a screen reader to read twice. The
+         segments used to carry aria-labels, which did nothing at all while
+         their container was hidden. -->
+    <div class="theme__score-track" aria-hidden="true">
+      @for (pillar of pillars(); track pillar.name; let i = $index) {
+        <!-- flex-grow rather than a width percentage: the track has gaps
+             between segments, and percentages would add up to more than the
+             space left once the gaps are taken out. -->
+        <span
+          class="theme__score-seg"
+          [style.flex-grow]="pillar.weight"
+          [style.--seg-index]="i"
+        ></span>
+      }
+    </div>
+
     <ul class="theme__pillars">
       @for (pillar of pillars(); track pillar.name; let i = $index) {
-        <li class="theme__pillar theme__pillar--{{ pillar.accent }}" [style.--row-index]="i">
+        <li class="theme__pillar" [style.--row-index]="i">
           <span class="theme__pillar-indicator" aria-hidden="true"></span>
 
           <p class="theme__pillar-name">{{ pillar.name }}</p>
 
-          <!-- Decorative: the figure beside it is the accessible version, so
-               there is nothing here for a screen reader to read twice. -->
           <div class="theme__pillar-bar-wrap" aria-hidden="true">
             <div class="theme__pillar-bar" [style.--share.%]="pillar.share"></div>
           </div>
