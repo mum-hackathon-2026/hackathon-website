@@ -42,8 +42,23 @@
       "
       (click)="toggle()"
     >
-      <span class="orb__core" aria-hidden="true"></span>
-      <span class="orb__sheen" aria-hidden="true"></span>
+      <!-- A four-pointed sparkle: four cubic curves that bow inward toward the
+           centre, which is what makes the points read as points rather than as
+           a diamond. Symmetric, so it survives the slow rotation without ever
+           looking like it is at a wrong angle. -->
+      <svg class="orb__spark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="orb-spark-fill" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--orb-lift)" />
+            <stop offset="55%" stop-color="var(--orb-core)" />
+            <stop offset="100%" stop-color="var(--orb-deep)" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M12 0C12 6.63 6.63 12 0 12C6.63 12 12 17.37 12 24C12 17.37 17.37 12 24 12C17.37 12 12 6.63 12 0Z"
+          fill="url(#orb-spark-fill)"
+        />
+      </svg>
     </button>
   </div>
 }
