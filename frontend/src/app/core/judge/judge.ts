@@ -465,6 +465,10 @@ export class JudgeService {
     const me = this.auth.user();
     if (!me || me.role !== 'judge') return [];
 
+    if (me.token) {
+      return this.liveAssignments() ?? [];
+    }
+
     if (this.liveAssignments() !== null) {
       return this.liveAssignments()!;
     }

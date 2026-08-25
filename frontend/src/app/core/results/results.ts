@@ -187,16 +187,14 @@ export class ResultsService {
    * skips accordingly, matching backend records.
    */
   readonly rankings = computed<readonly TeamResult[]>(() => {
-    const live = this.liveRankings();
-    const myTeamId = this.teams.myTeam()?.id ?? null;
-
-    if (live !== null) {
-      return live.map((row) => ({
-        ...row,
-        isMine: row.teamId === myTeamId,
-      }));
+    if (this.auth.user()?.token) {
+      return this.liveRankings() ?? [];
+    }
+    if (this.liveRankings() !== null) {
+      return this.liveRankings()!;
     }
 
+    const myTeamId = this.teams.myTeam()?.id ?? null;
     const tracks = this.config.site.tracks;
     const sorted = [...SEED].sort((a, b) => b.finalScore - a.finalScore);
 
@@ -221,6 +219,9 @@ export class ResultsService {
 
   /** This participant's team result, or null when their team has none. */
   readonly myResult = computed<TeamResult | null>(() => {
+    if (this.auth.user()?.token) {
+      return this.liveMyResult();
+    }
     const liveMine = this.liveMyResult();
     if (liveMine) return liveMine;
     return this.rankings().find((row) => row.isMine) ?? null;
@@ -228,6 +229,9 @@ export class ResultsService {
 
   /** Per-criterion scores for this team, averaged across its judges. */
   readonly myCriteria = computed<readonly CriterionResult[]>(() => {
+    if (this.auth.user()?.token) {
+      return this.liveMyCriteria() ?? [];
+    }
     const live = this.liveMyCriteria();
     if (live !== null) return live;
     if (!this.myResult()) return [];
@@ -244,6 +248,9 @@ export class ResultsService {
   });
 
   readonly myReviews = computed<readonly JudgeReview[]>(() => {
+    if (this.auth.user()?.token) {
+      return this.liveMyReviews() ?? [];
+    }
     const live = this.liveMyReviews();
     if (live !== null) return live;
     if (!this.myResult()) return [];

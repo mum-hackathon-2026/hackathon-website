@@ -1,0 +1,19 @@
+# Monash Hackathon 2026 - Production robots.txt
+# https://monash-hackathon-2026.web.app/
+
+User-agent: *
+# Allow crawling public exploration pages
+Allow: /
+Allow: /timeline
+Allow: /results
+Allow: /organizers
+Allow: /sign-in
+
+# Disallow crawling private authenticated portals and backend APIs
+Disallow: /participant/
+Disallow: /judge/
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://monash-hackathon-2026.web.app/sitemap.xml
