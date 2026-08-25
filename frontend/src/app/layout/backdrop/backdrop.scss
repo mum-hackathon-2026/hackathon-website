@@ -4,12 +4,15 @@
    keeps this readable under body text. Both are tokens so the density can be
    tuned in one place rather than in three rules. */
 :host {
-  --dot-gap: 26px;
-  --dot-size: 1.4px;
-  /* How much colour reaches the dots. The wells are saturated and the mask is
-     sparse, so this is the dial that matters — turn it up for more presence,
-     down if the grid ever competes with the text sitting on it. */
-  --field-strength: 0.5;
+  --dot-gap: 28px;
+  --dot-size: 1.5px;
+  /* The grid's own weight, before any colour. This is what makes it read as a
+     drawn grid rather than as speckle: without it a dot only exists where a
+     well happens to sit, and the eye sees dust in the corners instead of
+     structure across the page. */
+  --dot-ink: rgba(100, 116, 139, 0.17);
+  /* How much colour the wells add on top. */
+  --field-strength: 0.85;
 }
 
 /* Sits behind everything: fixed to the viewport, out of the layout, and
@@ -22,10 +25,13 @@
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  opacity: var(--field-strength);
+
+  /* Fills every dot on the page. The wells then tint the ones they reach, so
+     the grid is continuous and the colour is the thing that varies. */
+  background-color: var(--dot-ink);
 
   /* The grid itself. It masks the wells rather than being painted, so a dot is
-     bright where a well sits under it and invisible where none does. The mask
+     bright where a well sits under it and neutral where none does. The mask
      lives on this container, which never moves — that is the whole effect. */
   --dot-mask: radial-gradient(
     circle at center,
@@ -33,12 +39,34 @@
     #000 var(--dot-size),
     transparent calc(var(--dot-size) + 0.5px)
   );
-  -webkit-mask-image: var(--dot-mask);
-  mask-image: var(--dot-mask);
-  -webkit-mask-size: var(--dot-gap) var(--dot-gap);
-  mask-size: var(--dot-gap) var(--dot-gap);
-  -webkit-mask-repeat: repeat;
-  mask-repeat: repeat;
+
+  /* Second mask, intersected with the first: the page is a centred column, so
+     this thins the grid to a trace behind the reading width and leaves it at
+     full strength in the margins. Without it the dots sit in the gaps between
+     words and lines, which costs legibility and looks like dirt on the screen.
+     The column keeps a trace rather than going blank so the grid still reads
+     as continuous across the page. */
+  --column-mask: linear-gradient(
+    90deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.14) 27%,
+    rgba(0, 0, 0, 0.14) 73%,
+    #000 100%
+  );
+
+  -webkit-mask-image: var(--dot-mask), var(--column-mask);
+  mask-image: var(--dot-mask), var(--column-mask);
+  -webkit-mask-size:
+    var(--dot-gap) var(--dot-gap),
+    100% 100%;
+  mask-size:
+    var(--dot-gap) var(--dot-gap),
+    100% 100%;
+  -webkit-mask-repeat: repeat, no-repeat;
+  mask-repeat: repeat, no-repeat;
+  /* Safari spells `intersect` as `source-in`. */
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 
 /* Each well is one soft field of colour. Separate elements rather than four
@@ -52,6 +80,7 @@
    pin that memory for the whole session. */
 .backdrop__well {
   position: absolute;
+  opacity: var(--field-strength);
   width: 58vmax;
   height: 58vmax;
   border-radius: 50%;
