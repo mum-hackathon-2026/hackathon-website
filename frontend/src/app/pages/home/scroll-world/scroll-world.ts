@@ -17,6 +17,15 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ScrollWorldComponent implements OnDestroy {
+  /**
+   * The section the "Explore judging criteria" button jumps to.
+   *
+   * Named here rather than written into the template twice, because the id and
+   * the link have to agree and nothing else checks that they do — the button
+   * pointed at `#theme` for a while, which is not an id this page has.
+   */
+  protected readonly criteriaId = 'criteria';
+
   private readonly rootRef = viewChild<ElementRef<HTMLElement>>('scrollRoot');
   private readonly ngZone = inject(NgZone);
   private cleanupFn: (() => void) | null = null;
@@ -32,6 +41,26 @@ export class ScrollWorldComponent implements OnDestroy {
     });
   }
 
+  /**
+   * Scrolls to the criteria section.
+   *
+   * The button is a real anchor, so middle-click and right-click still work and
+   * the target is in the status bar. This only takes over the plain click: the
+   * section is on this same page, so letting the browser jump would leave the
+   * reader at the section with no sense of having travelled, and the router's
+   * anchor scrolling does not re-fire for a fragment on the route it is
+   * already on.
+   */
+  protected scrollToCriteria(event: Event): void {
+    if (typeof document === 'undefined') return;
+
+    const target = document.getElementById(this.criteriaId);
+    if (!target) return;
+
+    event.preventDefault();
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   ngOnDestroy(): void {
     if (this.cleanupFn) {
       this.cleanupFn();
@@ -41,7 +70,9 @@ export class ScrollWorldComponent implements OnDestroy {
 
   private initLocked60FpsEngine(root: HTMLElement): () => void {
     const hasMM = typeof window !== 'undefined' && typeof window.matchMedia === 'function';
-    const reduceMotion = hasMM ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+    const reduceMotion = hasMM
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
 
     // Cached elements
     const scene1 = root.querySelector<HTMLElement>('#scene-spark');
@@ -110,7 +141,7 @@ export class ScrollWorldComponent implements OnDestroy {
 
       // Snappy, quick scene crossfade with tight center transition
       const s1Op = p < 0.22 ? 1 : smooth(1 - (p - 0.22) / 0.18);
-      const s2Op = p > 0.40 ? 1 : smooth((p - 0.22) / 0.18);
+      const s2Op = p > 0.4 ? 1 : smooth((p - 0.22) / 0.18);
       scene1.style.opacity = s1Op.toFixed(3);
       scene2.style.opacity = s2Op.toFixed(3);
       scene1.style.visibility = s1Op > 0.01 ? 'visible' : 'hidden';
@@ -118,7 +149,7 @@ export class ScrollWorldComponent implements OnDestroy {
 
       // Snappy copy crossfade & parallax
       const copy1Op = p < 0.24 ? smooth(1 - p / 0.24) : 0;
-      const copy2Op = p > 0.30 ? smooth((p - 0.30) / 0.26) : 0;
+      const copy2Op = p > 0.3 ? smooth((p - 0.3) / 0.26) : 0;
       copy1.style.opacity = copy1Op.toFixed(3);
       copy2.style.opacity = copy2Op.toFixed(3);
       if (!reduceMotion) {
@@ -199,7 +230,10 @@ export class ScrollWorldComponent implements OnDestroy {
     }
     if (dot2) {
       dot2.addEventListener('click', () => {
-        window.scrollTo({ top: rootTop + rootHeight * 0.52, behavior: reduceMotion ? 'auto' : 'smooth' });
+        window.scrollTo({
+          top: rootTop + rootHeight * 0.52,
+          behavior: reduceMotion ? 'auto' : 'smooth',
+        });
       });
     }
 
