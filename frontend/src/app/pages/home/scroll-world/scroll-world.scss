@@ -237,7 +237,10 @@
   font-size: 0.92rem;
   padding: 10px 22px;
   border-radius: 999px;
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .sw-cta-btn--primary {
@@ -348,7 +351,10 @@
   height: 8px;
   border-radius: 50%;
   background: rgba(66, 133, 244, 0.4);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .sw-route-dot:hover i {
@@ -377,7 +383,9 @@
   border-radius: 999px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
   border: 1px solid rgba(66, 133, 244, 0.15);
 }
 
@@ -431,9 +439,17 @@
 }
 
 @keyframes swWheel {
-  0% { opacity: 0; top: 4px; }
-  40% { opacity: 1; }
-  100% { opacity: 0; top: 14px; }
+  0% {
+    opacity: 0;
+    top: 4px;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    top: 14px;
+  }
 }
 
 /* Tablet & Mobile Responsive */

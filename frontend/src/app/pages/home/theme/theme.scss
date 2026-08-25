@@ -1,3 +1,5 @@
+@use 'sass:list';
+
 .theme {
   padding: clamp(64px, 10vw, 96px) 24px;
   text-align: center;
@@ -45,7 +47,10 @@
     0 1px 3px rgba(0, 0, 0, 0.02);
   text-align: left;
   backdrop-filter: blur(12px);
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 
   &:hover {
     transform: translateY(-2px);
@@ -167,119 +172,55 @@
   border: 1px solid rgba(245, 158, 11, 0.28);
 }
 
-/* Multi-Segment Proportion Bar */
-.theme__score-track {
-  display: flex;
-  height: 14px;
-  border-radius: 999px;
-  overflow: hidden;
-  gap: 3px;
-  padding: 2px;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  margin-bottom: 24px;
-}
-
-.theme__score-seg {
-  height: 100%;
-  border-radius: 999px;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-
-  &:hover {
-    transform: scaleY(1.3);
-    z-index: 2;
-  }
-}
-
-.theme__score-seg--blue {
-  background: linear-gradient(90deg, #4285f4, #1a56c4);
-}
-.theme__score-seg--green {
-  background: linear-gradient(90deg, #34a853, #1e7e34);
-}
-.theme__score-seg--red {
-  background: linear-gradient(90deg, #ea4335, #c5221f);
-}
-.theme__score-seg--yellow {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
-}
-
 /* Visualized Criteria List */
+/* Two rows per criterion: the name and its figure across the top, the bar
+   underneath.
+
+   One row would be simpler, and was what this had — but the name then shares
+   its line with a bar and a sentence, so it has to live in a fixed column and
+   the longest criteria were being cut off with an ellipsis. Given the whole
+   width, every name fits, and the bars still line up because they all start at
+   the same column on their own row.
+
+   The list holds the grid and the rows opt into it with `display: contents`,
+   so all seven share one set of columns. Left to themselves each row sized its
+   own, and the bars began at a different x on every line. */
 .theme__pillars {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .theme__pillar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 18px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid transparent;
-  transition:
-    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-
-  &:hover {
-    background: #ffffff;
-    border-color: rgba(245, 158, 11, 0.35);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
-    transform: translateX(4px);
-
-    .theme__pillar-indicator {
-      transform: scale(1.3);
-    }
-  }
-}
-
-.theme__pillar-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1;
-  min-width: 0;
+  display: contents;
 }
 
 .theme__pillar-indicator {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
+  grid-column: 1;
+  margin: 14px 0 0;
+  align-self: start;
 }
 
-.theme__pillar--blue .theme__pillar-indicator,
-.theme__pillar--blue .theme__pillar-bar {
-  background: #4285f4;
-}
-.theme__pillar--green .theme__pillar-indicator,
-.theme__pillar--green .theme__pillar-bar {
-  background: #34a853;
-}
-.theme__pillar--red .theme__pillar-indicator,
-.theme__pillar--red .theme__pillar-bar {
-  background: #ea4335;
-}
-.theme__pillar--yellow .theme__pillar-indicator,
-.theme__pillar--yellow .theme__pillar-bar {
-  background: #f59e0b;
+.theme__pillar-name {
+  grid-column: 2;
+  margin-top: 10px;
 }
 
-.theme__pillar-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-  min-width: 0;
+.theme__pillar-desc {
+  grid-column: 3;
+  margin-top: 10px;
+}
+
+/* Spans the name and figure columns, so it is the full width of the row and
+   every bar starts and ends in the same place. */
+.theme__pillar-bar-wrap {
+  grid-column: 2 / -1;
+  margin-bottom: 14px;
 }
 
 .theme__pillar-name {
@@ -289,24 +230,101 @@
   font-weight: 700;
   line-height: 1.3;
   color: var(--color-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+/* The colour chip, tying a row to its segment in the track above. */
+.theme__pillar-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* One colour per rank, and rank is position, so the stylesheet can assign it
+   without the component knowing any of these values. The track and the list are
+   rendered from the same sorted array, so `nth-child` lands the same colour on
+   a segment and on the row it belongs to — which is the whole reason the track
+   is readable rather than seven anonymous blocks.
+
+   The four brand colours take the four heaviest criteria, then teal, violet
+   and magenta from Google's wider palette. These were 300-level tints of the
+   first three, which was too pale to read: a 10px dot and an 8px bar have very
+   little area to carry a colour, and a wash of it disappears against white.
+   Full-strength hues that are simply different solve it, and the violet is the
+   one the audit log already uses.
+
+   The fallback matters: a config with more than seven criteria would otherwise
+   leave the extras with no colour at all. */
+.theme__pillar,
+.theme__score-seg {
+  --accent: var(--color-subtle);
+}
+
+$rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #00897b, #7c3aed, #d01884;
+
+@for $i from 1 through list.length($rank-accents) {
+  .theme__pillar:nth-child(#{$i}),
+  .theme__score-seg:nth-child(#{$i}) {
+    --accent: #{list.nth($rank-accents, $i)};
+  }
+}
+
+.theme__pillar-indicator,
+.theme__pillar-bar,
+.theme__score-seg {
+  background: var(--accent);
+}
+
+/* The whole, above the parts. Segments are sized by flex-grow, so the gaps
+   between them come out of the track rather than pushing it over 100%. */
+.theme__score-track {
+  display: flex;
+  gap: 4px;
+  height: 14px;
+  margin-bottom: 22px;
+}
+
+.theme__score-seg {
+  flex-basis: 0;
+  border-radius: 999px;
+  transform-origin: left center;
+  animation: pillar-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  /* Each segment starts a beat after the one to its left, and the whole track
+     finishes before the first row bar begins, so the eye reads the total and
+     then the breakdown rather than both at once. Indexed from the template,
+     the same way the rows are, rather than seven near-identical rules. */
+  animation-delay: calc(var(--seg-index, 0) * 60ms);
 }
 
 .theme__pillar-bar-wrap {
-  height: 6px;
-  flex: 1;
-  max-width: 160px;
-  background: rgba(0, 0, 0, 0.06);
+  height: 8px;
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 999px;
   overflow: hidden;
 }
 
+/* Width is the honest figure; the animation scales it in from nothing.
+   Growing `transform` rather than `width` because only the former is
+   composited, and seven of them run at once. */
 .theme__pillar-bar {
+  width: var(--share, 0%);
   height: 100%;
   border-radius: 999px;
-  transition: width 0.3s ease;
+  transform-origin: left center;
+  animation: pillar-grow 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  /* Each bar starts a beat after the one above, so the chart draws itself down
+     the list rather than snapping in as a block. The offset holds them until
+     the track overhead has finished drawing. */
+  animation-delay: calc(460ms + var(--row-index, 0) * 90ms);
+}
+
+@keyframes pillar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .theme__pillar-desc {
@@ -351,6 +369,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .theme__mystery-icon {
+    animation: none;
+  }
+
+  /* `backwards` holds the bar at zero width through its delay, so shortening
+     the duration is not enough: the chart would sit empty until each bar's
+     turn. Dropped outright. */
+  .theme__pillar-bar,
+  .theme__score-seg {
     animation: none;
   }
 }
