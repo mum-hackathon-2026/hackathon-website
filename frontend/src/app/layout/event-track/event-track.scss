@@ -258,25 +258,3 @@
 .track--animated .track__stop.is-revealed .track__stem::after {
   transform: scaleY(1);
 }
-
-/* Belt and braces: the component does not add `--animated` under this query,
-   so these rules should never apply. They are here in case the preference
-   changes after load, when the class is already on. */
-@media (prefers-reduced-motion: reduce) {
-  .track--animated .track__card {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-
-  .track--animated .track__dot {
-    opacity: 1;
-    transform: translateX(var(--dot-shift));
-    transition: none;
-  }
-
-  .track--animated .track__stem::after {
-    transform: scaleY(1);
-    transition: none;
-  }
-}

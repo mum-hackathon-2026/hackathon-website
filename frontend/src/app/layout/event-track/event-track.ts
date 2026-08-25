@@ -47,6 +47,12 @@ const OBSERVER_GRACE_MS = 1600;
  * them, so the page reads as progress down a line rather than as a list that
  * happens to be in order.
  *
+ * Reduced motion is handled by never starting: `canAnimate()` checks it once,
+ * and without the class none of the arrival CSS exists to override. There is
+ * deliberately no `prefers-reduced-motion` block in the stylesheet — it could
+ * only matter if the preference changed while the page was open, and the
+ * per-stylesheet budget is better spent elsewhere.
+ *
  * The motion is an enhancement and the content never depends on it. Nothing is
  * hidden until the component has confirmed it can put it back: the hidden
  * starting state lives behind a class this component adds, so a page whose
