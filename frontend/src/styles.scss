@@ -113,6 +113,93 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Page arrival.
+
+   Changing tab rebuilds the routed component, so a plain CSS animation runs
+   once per navigation with nothing to drive it — no script, no state, nothing
+   to get out of step.
+
+   An animation rather than a transition, and that distinction is the whole
+   reason this works. A transition only runs if the browser painted the
+   from-state first; on a navigation the element is created and shown inside a
+   single style pass, so the two collapse into each other and nothing moves. An
+   animation carries its own from-state and plays whenever the element appears.
+
+   What it is applied to is deliberately narrow. Animating a page container
+   would be simpler, but opacity below 1 and a transform both create a stacking
+   context, and two routed pages have `position: sticky` inside them — the
+   scroll scene on the home page and the action bar on a judge review. Either
+   would be positioned against the animating ancestor instead of the viewport
+   for as long as it ran, and jump when it ended. So the text blocks animate
+   and their containers are left alone. */
+@keyframes page-appear {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The title block every routed page opens with, the sign-in panel, and the
+   home page's own sections. `app-scroll-world` is left out by name: it is the
+   sticky one. */
+app-page-header,
+.sign-in,
+.missing,
+app-home-hero,
+app-home-theme,
+app-home-purpose,
+app-home-faq,
+app-home-sponsors,
+app-home-organizers,
+app-home-contact {
+  animation: page-appear 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Home arrives a beat at a time on the way down, so a tab change reads as the
+   page assembling rather than as one block flashing on. Each section is a
+   sibling of the last, so the delays are written once here rather than by a
+   script counting them. */
+app-home-theme {
+  animation-delay: 0.06s;
+}
+app-home-purpose {
+  animation-delay: 0.12s;
+}
+app-home-faq {
+  animation-delay: 0.18s;
+}
+app-home-sponsors {
+  animation-delay: 0.24s;
+}
+app-home-organizers {
+  animation-delay: 0.3s;
+}
+app-home-contact {
+  animation-delay: 0.36s;
+}
+
+/* `both` holds the from-state through the delay, so shortening the duration is
+   not enough under this preference: it would leave each block invisible until
+   its turn. Dropped outright instead. */
+@media (prefers-reduced-motion: reduce) {
+  app-page-header,
+  .sign-in,
+  .missing,
+  app-home-hero,
+  app-home-theme,
+  app-home-purpose,
+  app-home-faq,
+  app-home-sponsors,
+  app-home-organizers,
+  app-home-contact {
+    animation: none;
+  }
+}
+
 /* Available to screen readers, removed from the visual layout. */
 .visually-hidden {
   position: absolute;
