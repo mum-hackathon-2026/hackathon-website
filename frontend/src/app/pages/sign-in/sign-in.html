@@ -1,90 +1,80 @@
 <section class="sign-in">
-  <p class="section-eyebrow section-eyebrow--center">Authentication</p>
-  <h1 class="section-heading section-heading--center">Sign in to Monash Hackathon</h1>
-  <p class="sign-in__blurb">
-    You can only sign in if an organiser has already registered you as a participant, judge or
-    administrator.
-  </p>
+  <div class="sign-in__atmosphere" aria-hidden="true">
+    <div class="sign-in__glow sign-in__glow--amber"></div>
+    <div class="sign-in__glow sign-in__glow--blue"></div>
+    <div class="sign-in__grid"></div>
+  </div>
 
-  @if (errorMessage()) {
-    <div class="sign-in__error-alert" role="alert">
+  <div class="sign-in__card">
+    <div class="sign-in__brand">
+      <span class="sign-in__logo" aria-hidden="true">
+        <span class="sign-in__logo-block sign-in__logo-block--blue"></span>
+        <span class="sign-in__logo-block sign-in__logo-block--red"></span>
+        <span class="sign-in__logo-block sign-in__logo-block--yellow"></span>
+        <span class="sign-in__logo-block sign-in__logo-block--green"></span>
+      </span>
+      <span class="sign-in__badge">Monash Hackathon 2026</span>
+    </div>
+
+    <h1 class="sign-in__title">Sign in to your portal</h1>
+    <p class="sign-in__blurb">
+      Access your squad workspace, manage submissions, or review evaluations with your registered Google account.
+    </p>
+
+    @if (errorMessage()) {
+      <div class="sign-in__error-alert" role="alert">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <div class="sign-in__google-section">
+      <div #googleBtnContainer class="sign-in__google-btn"></div>
+
+      @if (isLoading()) {
+        <div class="sign-in__loading-state">
+          <div class="sign-in__spinner" aria-hidden="true"></div>
+          <p class="sign-in__loading-text">Authenticating securely with Google...</p>
+        </div>
+      }
+    </div>
+
+    <div class="sign-in__security-note">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
+        width="14"
+        height="14"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
+        aria-hidden="true"
       >
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
       </svg>
-      <span>{{ errorMessage() }}</span>
+      <span>Protected by Google Identity Services</span>
     </div>
-  }
 
-  <div class="sign-in__google-section">
-    <div #googleBtnContainer class="sign-in__google-btn"></div>
-
-    @if (isLoading()) {
-      <p class="sign-in__loading">Signing you in...</p>
-    }
+    <div class="sign-in__footer">
+      <a class="sign-in__back" routerLink="/">← Back to Homepage</a>
+    </div>
   </div>
-
-  <div class="sign-in__divider">
-    <span>OR</span>
-  </div>
-
-  <div class="sign-in__manual-section">
-    <button type="button" class="sign-in__toggle-btn" (click)="toggleManualInput()">
-      {{ showManualInput() ? 'Hide ID token input' : 'Paste a Google ID token directly' }}
-    </button>
-
-    @if (showManualInput()) {
-      <form (submit)="$event.preventDefault(); submitManualToken()" class="sign-in__manual-form">
-        <textarea
-          class="sign-in__manual-textarea"
-          [(ngModel)]="manualToken"
-          name="manualToken"
-          placeholder="Paste raw Google ID token (JWT) here to test POST /api/auth/google..."
-          rows="3"
-        ></textarea>
-        <button
-          type="submit"
-          class="sign-in__submit-token-btn"
-          [disabled]="!manualToken().trim() || isLoading()"
-        >
-          Verify and sign in
-        </button>
-      </form>
-    }
-  </div>
-
-  <div class="sign-in__demo-section">
-    <h2 class="sign-in__subheading">Demo accounts</h2>
-    <p class="sign-in__subblurb">For testing the interface without a backend.</p>
-
-    <ul class="sign-in__accounts">
-      @for (role of roles; track role) {
-        <li>
-          <button type="button" class="sign-in__account role--{{ role }}" (click)="signIn(role)">
-            <span class="sign-in__avatar" aria-hidden="true">{{ accounts[role].initials }}</span>
-            <span class="sign-in__details">
-              <span class="sign-in__name">{{ accounts[role].name }}</span>
-              <span class="sign-in__email">{{ accounts[role].email }}</span>
-            </span>
-            <span class="sign-in__role-tag role--{{ role }}">{{ roleLabels[role] }}</span>
-          </button>
-        </li>
-      }
-    </ul>
-  </div>
-
-  <p class="sign-in__footnote">
-    <a class="sign-in__back" routerLink="/">Back to the homepage</a>
-  </p>
 </section>

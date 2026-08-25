@@ -1,28 +1,56 @@
-<section class="organizers">
+<section class="organizers" id="organizers">
   <div class="organizers__inner">
     <p class="section-eyebrow section-eyebrow--center">Organizers</p>
     <h2 class="section-heading section-heading--center">Who runs it.</h2>
 
-    <ul class="organizers__partners">
-      @for (partner of partners; track partner.name) {
-        <li class="organizers__partner">
-          @if (partner.logo) {
-            <div class="organizers__partner-logo-box">
-              <img
-                [src]="partner.logo"
-                [alt]="partner.name + ' logo'"
-                class="organizers__partner-logo"
-                loading="lazy"
-              />
-            </div>
+    <!-- Infinite Auto-Scrolling Marquee for Partners -->
+    <div class="organizers__marquee" aria-label="Organizing Partners Showcase">
+      <div class="organizers__marquee-track">
+        <!-- Main Marquee Group -->
+        <ul class="organizers__partners organizers__marquee-group">
+          @for (partner of marqueePartners; track $index) {
+            <li class="organizers__partner">
+              @if (partner.logo) {
+                <div class="organizers__partner-logo-box">
+                  <img
+                    [src]="partner.logo"
+                    [alt]="partner.name + ' logo'"
+                    class="organizers__partner-logo"
+                    loading="lazy"
+                  />
+                </div>
+              }
+              <div class="organizers__partner-meta">
+                <p class="organizers__partner-role">{{ partner.role }}</p>
+                <p class="organizers__partner-name">{{ partner.name }}</p>
+              </div>
+            </li>
           }
-          <div class="organizers__partner-meta">
-            <p class="organizers__partner-role">{{ partner.role }}</p>
-            <p class="organizers__partner-name">{{ partner.name }}</p>
-          </div>
-        </li>
-      }
-    </ul>
+        </ul>
+
+        <!-- Duplicated Group for Seamless -50% Loop (aria-hidden for screen readers) -->
+        <ul class="organizers__partners organizers__marquee-group" aria-hidden="true">
+          @for (partner of marqueePartners; track $index) {
+            <li class="organizers__partner">
+              @if (partner.logo) {
+                <div class="organizers__partner-logo-box">
+                  <img
+                    [src]="partner.logo"
+                    [alt]="partner.name + ' logo'"
+                    class="organizers__partner-logo"
+                    loading="lazy"
+                  />
+                </div>
+              }
+              <div class="organizers__partner-meta">
+                <p class="organizers__partner-role">{{ partner.role }}</p>
+                <p class="organizers__partner-name">{{ partner.name }}</p>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
 
     <ul class="organizers__grid">
       @for (person of organizers; track person.name) {

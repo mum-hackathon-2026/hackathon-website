@@ -7,17 +7,18 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService, ROLE_LABELS, Role } from '../../core/auth/auth';
 import { ProfileMenu } from '../profile-menu/profile-menu';
 
 interface NavLink {
   readonly path: string;
   readonly label: string;
+  readonly fragment?: string;
   /** Home matches every URL as a prefix, so it needs an exact match to highlight. */
   readonly exact?: boolean;
-  /** Omitted means everyone sees it; otherwise the roles it belongs to. */
-  readonly roles?: readonly Role[];
+  /** Omitted means everyone sees it; 'public' means only when signed out; otherwise the roles it belongs to. */
+  readonly roles?: readonly (Role | 'public')[];
 }
 
 /**
@@ -28,9 +29,11 @@ interface NavLink {
 const NAV_LINKS: readonly NavLink[] = [
   { path: '/', label: 'Home', exact: true },
   { path: '/timeline', label: 'Timeline' },
-  { path: '/organizers', label: 'Organisers' },
-  { path: '/participant/team', label: 'My Team', roles: ['participant'] },
-  { path: '/participant/submission', label: 'My Submission', roles: ['participant'] },
+  { path: '/', fragment: 'criteria', label: 'Criteria', roles: ['public'] },
+  { path: '/', fragment: 'faq', label: 'FAQ', roles: ['public'] },
+  { path: '/', fragment: 'organizers', label: 'Organisers', roles: ['public'] },
+  { path: '/participant/team', label: 'Team', roles: ['participant'] },
+  { path: '/participant/submission', label: 'Submission', roles: ['participant'] },
   { path: '/participant/progress', label: 'Progress', roles: ['participant'] },
   { path: '/judge/portal', label: 'Judge Portal', roles: ['judge'] },
   { path: '/admin/dashboard', label: 'Dashboard', roles: ['admin'] },
@@ -50,6 +53,7 @@ const NAV_LINKS: readonly NavLink[] = [
 })
 export class NavBar {
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly accountArea = viewChild<ElementRef<HTMLElement>>('accountArea');
 
   protected readonly user = this.auth.user;
@@ -60,8 +64,25 @@ export class NavBar {
 
   protected readonly links = computed(() => {
     const role = this.auth.role();
-    return NAV_LINKS.filter((link) => !link.roles || (role && link.roles.includes(role)));
+    return NAV_LINKS.filter((link) => {
+      if (!link.roles) return true;
+      if (!role) return link.roles.includes('public');
+      return link.roles.includes(role);
+    });
   });
+
+  protected handleLinkClick(link: NavLink): void {
+    this.closeAll();
+    if (link.fragment && typeof window !== 'undefined') {
+      const isHome = this.router.url === '/' || this.router.url.startsWith('/#');
+      if (isHome) {
+        const el = document.getElementById(link.fragment);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+  }
 
   protected toggleProfile(): void {
     this.drawerOpen.set(false);

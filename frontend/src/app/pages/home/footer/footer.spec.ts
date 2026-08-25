@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { DEFAULT_EVENT_CONFIG, EVENT_CONFIG } from '../../../core/event/event-config';
 import { EventSettingsService } from '../../../core/event/event-settings';
 import { HomeFooter } from './footer';
@@ -18,7 +19,10 @@ describe('HomeFooter', () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [HomeFooter],
-      providers: [{ provide: EVENT_CONFIG, useValue: DEFAULT_EVENT_CONFIG }],
+      providers: [
+        provideRouter([]),
+        { provide: EVENT_CONFIG, useValue: DEFAULT_EVENT_CONFIG },
+      ],
     }).compileComponents();
     fixture = TestBed.createComponent(HomeFooter);
     await fixture.whenStable();

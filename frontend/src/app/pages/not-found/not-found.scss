@@ -1,70 +1,83 @@
 .missing {
-  max-width: 460px;
-  margin: 0 auto;
-  padding: 64px 0;
+  max-width: 520px;
+  margin: 40px auto 80px;
+  padding: 48px 32px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(16px);
   text-align: center;
 }
 
 .missing__code {
   margin: 0;
-  font-family: var(--font-numeric);
-  font-size: var(--text-6xl);
-  font-weight: 800;
+  font-family: var(--font-serif, serif);
+  font-size: clamp(4rem, 8vw, 6rem);
+  font-weight: 900;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-faint);
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #f59e0b, #d97706, #111827);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .missing__heading {
-  margin: 12px 0 0;
-  font-family: var(--font-serif);
+  margin: 16px 0 0;
+  font-family: var(--font-serif, serif);
   font-size: var(--text-2xl);
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
 }
 
 .missing__body {
-  margin: 12px 0 0;
+  margin: 12px auto 0;
   font-size: var(--text-md);
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--color-muted);
+  max-width: 38ch;
 }
 
 .missing__actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
-  margin-top: 28px;
+  gap: 12px;
+  margin-top: 32px;
 }
 
 .missing__primary,
 .missing__secondary {
-  padding: 10px 18px;
-  border-radius: 6px;
+  padding: 11px 24px;
+  border-radius: 999px;
   font-size: var(--text-sm);
   font-weight: 600;
   text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .missing__primary {
-  border: 1px solid var(--color-blue);
-  background: var(--color-blue);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #fff;
-}
+  border: none;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
 
-.missing__primary:hover {
-  background: var(--color-blue-ink);
-  border-color: var(--color-blue-ink);
+  &:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  }
 }
 
 .missing__secondary {
   border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-body);
-}
+  background: #ffffff;
+  color: var(--color-ink);
 
-.missing__secondary:hover {
-  border-color: var(--color-faint);
-  background: var(--color-hairline);
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  }
 }

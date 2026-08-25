@@ -60,8 +60,8 @@ describe('NavBar', () => {
       else auth.signOut();
       await fixture.whenStable();
 
-      const paths = Array.from(host().querySelectorAll('.nav__link')).map((a) =>
-        a.getAttribute('href'),
+      const paths = Array.from(host().querySelectorAll('.nav__link')).map(
+        (a) => a.getAttribute('href')!.split('#')[0] || '/',
       );
       expect(paths.length).toBeGreaterThan(0);
       for (const path of paths) {

@@ -1,4 +1,4 @@
-<section class="theme">
+<section class="theme" id="criteria">
   <div class="theme__intro">
     <p class="theme__eyebrow">Theme & Problem Statement</p>
     <h2 class="theme__title">Revealed at the opening ceremony</h2>
@@ -16,12 +16,43 @@
     </div>
   </div>
 
-  <ul class="theme__pillars">
-    @for (pillar of pillars(); track pillar.name) {
-      <li class="theme__pillar theme__pillar--{{ pillar.accent }}">
-        <p class="theme__pillar-name">{{ pillar.name }}</p>
-        <p class="theme__pillar-desc">{{ pillar.weight }}% of the final score</p>
-      </li>
-    }
-  </ul>
+  <!-- Score Distribution Visualization Board -->
+  <div class="theme__viz-wrapper">
+    <div class="theme__viz-header">
+      <div class="theme__viz-title-group">
+        <h3 class="theme__viz-title">Scoring Rubric Breakdown</h3>
+        <p class="theme__viz-subtitle">Evaluated out of 100 total points across 7 core dimensions</p>
+      </div>
+      <span class="theme__viz-total-badge">100% Total Score</span>
+    </div>
+
+    <!-- Segmented Multi-color Score Track Bar -->
+    <div class="theme__score-track" aria-hidden="true">
+      @for (pillar of pillars(); track pillar.name) {
+        <div
+          class="theme__score-seg theme__score-seg--{{ pillar.accent }}"
+          [style.width.%]="pillar.weight"
+          [attr.aria-label]="pillar.name + ': ' + pillar.weight + '%'"
+        ></div>
+      }
+    </div>
+
+    <!-- Visualized Criteria Rows -->
+    <ul class="theme__pillars">
+      @for (pillar of pillars(); track pillar.name) {
+        <li class="theme__pillar theme__pillar--{{ pillar.accent }}">
+          <div class="theme__pillar-left">
+            <span class="theme__pillar-indicator" aria-hidden="true"></span>
+            <div class="theme__pillar-info">
+              <p class="theme__pillar-name">{{ pillar.name }}</p>
+              <div class="theme__pillar-bar-wrap" aria-hidden="true">
+                <div class="theme__pillar-bar" [style.width.%]="pillar.weight * 4"></div>
+              </div>
+            </div>
+          </div>
+          <p class="theme__pillar-desc">{{ pillar.weight }}% of the final score</p>
+        </li>
+      }
+    </ul>
+  </div>
 </section>
