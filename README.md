@@ -9,9 +9,12 @@ Official website for the Monash University Malaysia hackathon — participant re
 | Frontend             | Angular 21 (standalone components, Signals)            |
 | Backend              | Spring Boot 4.1 (Java 21)                              |
 | Database             | PostgreSQL 16, schema managed by Flyway                |
-| Cache / live updates | Redis + Spring WebSocket (STOMP)                       |
+| Registration / submission intake | Google Forms → Google Sheets API → importers |
+| Deployment | Docker + Google Cloud Run (documented, not yet deployed) |
 | Auth                 | Google Sign-In via OAuth2/OIDC + Spring Security (JWT) |
 | CI/CD                | GitHub Actions                                         |
+
+> The WebSocket starter is on the classpath and **unconfigured** — there is no STOMP endpoint and no live-update feature. Redis was planned and never added; there is no Redis starter in `pom.xml`.
 
 ## Project Structure
 
@@ -19,8 +22,9 @@ Official website for the Monash University Malaysia hackathon — participant re
 hackathon-website/
 ├── frontend/       # Angular app
 ├── backend/        # Spring Boot app
-├── scripts/        # Database bootstrap
-├── docs/           # Proposal, schema diagrams, meeting notes
+├── scripts/        # Database bootstrap, sample registration CSV
+├── docs/           # Proposal, schema diagram, status tracker, setup guides
+├── security/       # AI security audit — reports/ and plans/
 └── .github/        # CI workflows, issue/PR templates
 ```
 
@@ -159,4 +163,14 @@ Tests run against `hackathon_db_test` and wipe it on every run, so don't keep an
 
 ## Docs
 
-See [`/docs`](./docs) for the full project proposal, database schema, and meeting notes.
+| Read | For |
+| ---- | --- |
+| [CLAUDE.md](./CLAUDE.md) | Conventions, traps, commands, and how each part actually works |
+| [docs/PROJECT-STATUS.md](./docs/PROJECT-STATUS.md) | What is built, what is not, what comes next |
+| [docs/README.md](./docs/README.md) | Which schema decisions are ratified and which are proposals |
+| [docs/SHEETS-SETUP.md](./docs/SHEETS-SETUP.md) | Google Sheets service account, the webhook, and what the importer rejects |
+| [docs/GCP_DEPLOYMENT_GUIDE.md](./docs/GCP_DEPLOYMENT_GUIDE.md) | Cloud Run deployment and monitoring |
+| [docs/EVENT-PROPOSAL.md](./docs/EVENT-PROPOSAL.md) | The event itself — format, tracks, prizes, dates |
+| [AGENTS.md](./AGENTS.md) | Security rules for generated code, with the stack translation |
+
+> ⚠️ **Two security items are open and block deployment**: `POST /api/auth/dev-login` returns a signed admin JWT to any anonymous caller, and `app.webhook.secret` ships blank, which disables the registration webhook's authentication. See [docs/PROJECT-STATUS.md](./docs/PROJECT-STATUS.md) §4.

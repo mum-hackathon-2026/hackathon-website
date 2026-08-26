@@ -8,11 +8,26 @@ It is **structural only**. It defines the tables, their columns, the primary key
 
 It does **not** specify data types, `ON DELETE` behaviour, CHECK vocabularies, or team size limits. Those were left to be decided separately, and the sections below track how far that has got.
 
-**The PDF is no longer the whole schema.** `V2__hard_delete_and_status_cleanup.sql`, `V3__form_registration.sql`, `V4__add_user_github_url.sql`, `V5__submission_additional_fields.sql` and `V6__team_size_two_to_five.sql` changed things the diagram still shows the old way — read V1 through V6, or read the live database, before trusting a slide.
+**The PDF is no longer the whole schema.** `V2__hard_delete_and_status_cleanup.sql`, `V3__form_registration.sql`, `V4__add_user_github_url.sql`, `V5__submission_additional_fields.sql`, `V6__team_size_two_to_five.sql`, `V7__seed_judging_criteria.sql` and `V8__judges_per_team_setting.sql` changed things the diagram still shows the old way — read V1 through **V8**, or read the live database, before trusting a slide.
 
 ## Ratified — settled, do not reopen
 
-**V2, V3, V4 and V6 closed these.** The migration files carry the full reasoning for each; this is the summary.
+**V2 through V8 closed these.** The migration files carry the full reasoning for each; this is the summary.
+
+### V8 — `event_settings.judges_per_team`
+
+`judges_per_team integer not null default 3`, CHECKed to 1–10 on the singleton row. It is how many judges the admin Assignments section expects each team to draw, and it follows the V6 pattern: **a policy number in `event_settings`, not a constant in code**.
+
+- **This one has a real column DEFAULT (`3`) and `EventSettings.judgesPerTeam` initialises to `3` to mirror it.** That is the convention CLAUDE.md describes — Hibernate always names the column in the INSERT, so the database DEFAULT never fires and the initialiser is what actually applies. Change one, change the other.
+- The migration is written with `if not exists` / `drop constraint if exists`, so it is re-runnable. Flyway still only applies it once.
+
+### V7 — the judging criteria are seeded, and the seed is destructive
+
+`V7__seed_judging_criteria.sql` installs the Averis 2026 preliminary-round rubric: **seven active criteria totalling 100 points, split 70 technical / 30 product.**
+
+- **It opens with `delete from scores;` and `delete from judging_criteria;`.** On a fresh database that is a no-op. On a database that already holds judging, it destroys every score that has been given. It is safe as applied — nothing had been scored when it landed — and it is **not a pattern to copy**: if the rubric changes again mid-event, write an `update` migration, or add new rows and set `is_active = false` on the old ones.
+- **`Score` snapshots `max_score` and `weight` at the moment it is written**, so criteria edited *after* scoring do not retroactively invalidate scores. That protection does not extend to deleting the criteria rows, which is why the `delete` above matters.
+- One criterion is explicitly provisional: **`Technology Integration (TBC)`**, 15 points, is a placeholder pending sponsor alignment. Its title says so. It is `is_active = true`, so judges see it.
 
 ### V6 — team size is 2–5, and it lives in `event_settings`
 
@@ -26,6 +41,13 @@ The proposal's team-size conflict is settled: **teams are 2 to 5 people. Solo en
 > **These two columns are now the only place the limits live.** `FormRegistrationImporter` reads both from the singleton row at import time; it used to carry its own constant, which is exactly why this policy change needed a code edit at all. There is no fallback: **if the row is missing or either value is null the importer aborts with exit `2` and imports nothing**, because importing a season's registrations against guessed limits is worse than not importing them.
 >
 > **Changing the limits again is an `UPDATE` plus a form change — no code change.** Update `event_settings`, then add or remove the matching `Member N: ...` block on the Google Form.
+
+### V5 — the submission form's extra fields
+
+`submissions` gained `slide_deck_url`, `video_demo_url`, `representative_name`, `representative_phone` and `representative_email`, all nullable.
+
+- **The two URL columns carry `~ '^https?://'` CHECKs**; the three `representative_*` columns carry none — they are free text the form collects, and the same argument V3 makes about `users.resume_url` applies.
+- These are what `tools/FormSubmissionImporter` writes. **The “no submission importer” note further down this file is out of date** — see *Importing form submissions*.
 
 ### V4 — `users.github_url`, and the two columns that share its name
 
@@ -52,7 +74,7 @@ Registration no longer happens on the site. A Google Form collects **one row per
 - **Three new columns on `users`: `phone`, `resume_url`, `linkedin_url`, all `text` and all NULLABLE.** The form requires all three of every participant, but **`users` is the accounts table, not the participants table** — judges and admins are rows in it too, are created by hand, and have no resume or LinkedIn. NOT NULL would make adding a judge impossible without inventing values. **Enforcement belongs to the form and the importer, not the database.** Do not "fix" these to NOT NULL; V3 says so at length in a comment.
 - **There are no CHECK constraints on the two URL columns**, for the same reason. The importer validates them and can report a readable reason to a human; a constraint violation cannot.
 
-**V3 deliberately did nothing else.** No `submitted` boolean on `teams`, nothing on `submissions`, nothing on `teams.status`. Submission-by-form is undecided, and a second column recording what `submissions.status` already records is precisely the duplication V2 removed.
+**V3 deliberately did nothing else.** No `submitted` boolean on `teams`, nothing on `submissions`, nothing on `teams.status`. A second column recording what `submissions.status` already records is precisely the duplication V2 removed, and that still holds. **Submission-by-form is no longer undecided** — V5 added the columns and `tools/FormSubmissionImporter` fills them; see *Importing form submissions*.
 
 ### V2 — hard delete and status cleanup
 
@@ -88,17 +110,17 @@ Expected columns, matched **case- and punctuation-insensitively**, with unrecogn
 Team Name
 Member 1 Name, Member 1 Email, Member 1 Phone, Member 1 Resume, Member 1 LinkedIn,
 Member 1 GitHub
-... and the same six for Member 2, Member 3 and Member 4.
+... and the same six for Member 2, Member 3, Member 4 and Member 5.
 ```
 
 `Member N GitHub` feeds `users.github_url` — **the person's own account**. The importer matches `github`, `github url`, `github link`, `github profile`, `github account` and `github username`, and deliberately matches nothing containing "project" or "repo", so a form question about a project repository cannot silently land in a participant's profile column.
 
 The importer prints which CSV column fed which field before it touches the database, and **refuses to run unless every member block that appears at all appears whole** — importing someone with a silently-null resume is the worst thing it could do.
 
-The rule is **all six columns or none at all**, and it applies to each of the four blocks:
+The rule is **all six columns or none at all**, and it applies to each of the five blocks:
 
 - **Member 1 is the leader**, every row has one, so its six columns are always required.
-- **Members 2–4 may be left out of the form entirely.** A sheet that only ever collects pairs has no Member 3 or Member 4 columns, and that is a legitimate shape — the report says `(no columns - not collected)` and the run proceeds.
+- **Members 2–5 may be left out of the form entirely.** A sheet that only ever collects pairs has no Member 3, 4 or 5 columns, and that is a legitimate shape — the report says `(no columns - not collected)` and the run proceeds. How many blocks are permitted is read from `event_settings.max_team_size`, not fixed in code.
 - **A block with only some of its columns halts the run.** That is a mis-titled question, not a smaller team: a team smaller than the maximum leaves those columns *empty*, it does not omit them. Before this guard existed, a question titled `Member 2 Project GitHub` imported the row, reported `rejected=0` and stored a null GitHub URL the form had actually collected.
 
 **Two columns with the same title also halt the run.** Google Forms lets two questions share a title, and values are keyed by normalised header, so the second column would silently win. Titles differing only in case or punctuation were already refused; exact duplicates now are too.
@@ -129,6 +151,43 @@ A `RESULT` line is printed for `0` and `1` and **never** for `2`, so an unattend
 
 Connection settings default to the local container as `hackathon_app` (DML only — an importer has no business holding DDL rights) and are overridable via `IMPORT_DB_URL` / `IMPORT_DB_USER` / `IMPORT_DB_PASSWORD`. Prefer those to `--password`, which is visible to anyone who can list processes.
 
+## Importing form submissions
+
+`tools/FormSubmissionImporter` is the registration importer's sibling: same CSV-or-Sheets input, same `0` / `1` / `2` exit codes, writing into `submissions` instead of `users` / `teams` / `team_members`. It matches a row to a team by team name or by the submitter's email, and it **updates** an existing submission rather than rejecting it — a team that resubmits overwrites its own row, which is the behaviour a Google Form that allows edits needs.
+
+It fills the V5 columns (`slide_deck_url`, `video_demo_url`, `representative_name`, `representative_phone`, `representative_email`) alongside V1's `project_title`, `description`, `github_url`, `track_label`, `status` and `submitted_at`.
+
+## Running the importers from inside the app
+
+**Neither importer is command-line-only any more.** `webhook/RegistrationImportService` and `webhook/SubmissionImportService` wrap them as Spring beans, and each has two triggers:
+
+- a **webhook** — `POST /api/webhooks/forms/registration` and `POST /api/webhook/submissions`, both `permitAll` in `SecurityConfig`, both driven by an Apps Script `onFormSubmit` trigger (see [SHEETS-SETUP.md](SHEETS-SETUP.md) §7);
+- a **`@Scheduled` poll** on `app.sheets.poll-interval-ms`, **default 15 000 ms**. A running backend re-reads its sheet every 15 seconds regardless of the webhook.
+
+Two things to know before running the backend locally:
+
+- **The sheet ids are committed in `application.properties`** and point at the team's live sheets, so every checkout that starts the backend polls them. Blanking `app.sheets.sheet-id` / `app.sheets.submission-sheet-id` in `application-local.properties` is the off switch — there is no separate enable flag.
+- **`app.webhook.secret` ships blank**, and the controller only checks `X-Webhook-Secret` when the property is non-blank. As committed, the webhook is unauthenticated. Set a real secret in anything deployed.
+
+## Screening: what rejects a registration today
+
+There is **no configurable auto-reject filter**, and `event_settings.screening_enabled` is a column that **nothing reads**. Three separate mechanisms get mistaken for one:
+
+| | What it is | Where | Configurable? |
+| - | ---------- | ----- | ------------- |
+| Row validation | Refuses to import a malformed row | `tools/TeamRow` | No — hardcoded, except team size |
+| Eligibility filter | Filters the admin Participants **table** | `admin-participants.ts` | It is a view control, not a policy |
+| `screening_enabled` | A boolean an admin can toggle | `event_settings` | **No consumer at all** |
+
+`TeamRow` **rejects** on: missing team name; team name over 120 characters; no member blocks; team size outside `event_settings`'s min/max; a member with no name or a name over 200 characters; a member with no email, a malformed email, or one outside 3–320 characters; a resume, LinkedIn or GitHub value that is **present but is not an `http(s)://` URL**; and the same email listed twice inside one team. The importer adds: a duplicate team name, a person already on another team, and a team already present with different members.
+
+`TeamRow` **warns but still imports** when a member leaves phone, resume, LinkedIn or GitHub **blank**. That is deliberate — `validateUrl` argues it in a comment: a value that is present but wrong is a mistake to chase, an absent one is a nullable column doing its job, and refusing a whole team over one blank box blocks a registration the organisers would rather have.
+
+**So "resume left empty" imports today.** If that should become a rejection, the change belongs in `TeamRow.validateBlock`, with the policy read from `event_settings` beside the size limits — the pattern V6 established, so tightening the rule is an `UPDATE` and not a recompile. Two design questions have to be answered first, and neither is a code question:
+
+1. **Per-field or one switch?** `screening_enabled` as a single boolean is the cheapest thing to wire, but "require a resume" and "require a LinkedIn" are not obviously the same decision.
+2. **Rejected means what?** Today a rejected row is simply *not imported*, and `users` is the sign-in allowlist — so the person cannot sign in and is never told why. There is no `rejected` state on any table and no notification path (`notifications_log` still has no consumer). Rejecting silently at import time and rejecting visibly are different features.
+
 ## Unratified — still proposals
 
 `submissions.status` was left untouched by V2 and keeps its full V1 vocabulary, which is a deliberate choice rather than an oversight (removing `'submitted'` from both tables would leave the system unable to record a submission at all) — but the *literals* have still never been signed off. The same holds for the rest below.
@@ -147,7 +206,7 @@ The frontend codes against these strings verbatim, so they have at least been re
 
 ### Never reviewed at all
 
-**No one has looked at these.** They exist only because V1 had to write something. There is no judge page and no admin page yet, so nothing consumes them and nothing has pushed back on them. Treat them as a first draft, and expect to revise them when those pages are designed.
+**No one formally ratified these**, and that has become more pressing rather than less. When this was written nothing consumed them; the judge portal and the admin workspace now both do. `assignments.status` is read and written by `JudgeController` / `AdminBackendService` and rendered by `app-status-pill` — it took V1's proposal verbatim rather than ratifying it. The two `notifications_log` vocabularies still have **no consumer at all**: nothing writes a notification row, so there is no notification path anywhere in the system.
 
 | Column | Current values |
 | ------ | -------------- |
@@ -158,6 +217,8 @@ The frontend codes against these strings verbatim, so they have at least been re
 ### Not vocabularies, but still open
 
 - **Column data types** — e.g. `audit_log.details` is implemented as `jsonb`; the diagram just says `details`.
+- **`event_settings.screening_enabled`** — a settable boolean with no consumer. See *Screening: what rejects a registration today*.
+- **`judging_criteria`'s seeded rubric** — V7 seeds seven criteria, one of which is titled `Technology Integration (TBC)` and is explicitly pending sponsor alignment.
 - **`ON DELETE` behaviour beyond what V2 settled.** V2 ratified `assignments.judge_id` and the hard-delete cascade set that follows from it. The remaining rules were written in V1 and have not been separately reviewed.
 - ~~**Team size limits**~~ — **settled by V6.** See the ratified section above.
 
