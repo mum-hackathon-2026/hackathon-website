@@ -50,7 +50,7 @@
           @if (person.avatarUrl) {
             <img
               [src]="person.avatarUrl"
-              [alt]="person.name"
+              [alt]="person.name + ' portrait'"
               class="organizers__photo organizers__photo--{{ person.accent }}"
               loading="lazy"
             />
@@ -101,7 +101,7 @@
                   [href]="person.linkedin"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="organizers__linkedin-btn"
+                  class="btn-linkedin organizers__linkedin-btn"
                   [attr.aria-label]="person.name + ' on LinkedIn'"
                 >
                   <svg class="organizers__btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

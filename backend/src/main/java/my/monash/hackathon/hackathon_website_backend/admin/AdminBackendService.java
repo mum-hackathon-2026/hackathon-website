@@ -747,11 +747,10 @@ public class AdminBackendService {
             String outcome = null;
             if ("disqualified".equalsIgnoreCase(st.team.getStatus())) {
                 outcome = "disqualified";
+            } else if (st.team.isShortlisted()) {
+                outcome = "finalist";
             } else if (rank != null) {
-                if (rank == 1) outcome = "winner";
-                else if (rank == 2) outcome = "runner_up";
-                else if (rank <= 5) outcome = "finalist";
-                else outcome = "participant";
+                outcome = (rank <= 10) ? "finalist" : "participant";
             }
 
             List<String> issues = new ArrayList<>();

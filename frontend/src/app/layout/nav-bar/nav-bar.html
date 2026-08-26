@@ -14,6 +14,7 @@
       @for (link of links(); track link.label) {
         <a
           class="nav__link"
+          [class.nav__link--finalist]="link.isFinalist"
           [routerLink]="link.path"
           [fragment]="link.fragment"
           [routerLinkActive]="link.fragment ? '' : 'nav__link--active'"
@@ -119,6 +120,7 @@
         @for (link of links(); track link.label) {
           <a
             class="nav__drawer-link"
+            [class.nav__drawer-link--finalist]="link.isFinalist"
             [routerLink]="link.path"
             [fragment]="link.fragment"
             [routerLinkActive]="link.fragment ? '' : 'nav__drawer-link--active'"

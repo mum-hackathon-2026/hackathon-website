@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService, ROLE_LABELS, Role } from '../../core/auth/auth';
+import { ResultsService } from '../../core/results/results';
 import { ProfileMenu } from '../profile-menu/profile-menu';
 
 interface NavLink {
@@ -19,12 +20,12 @@ interface NavLink {
   readonly exact?: boolean;
   /** Omitted means everyone sees it; 'public' means only when signed out; otherwise the roles it belongs to. */
   readonly roles?: readonly (Role | 'public')[];
+  readonly isFinalist?: boolean;
 }
 
 /**
  * Only routes that actually exist belong here. A link to an unregistered path
- * throws NG04002 on click, so each page's PR adds its own entry — the commented
- * lines are the draft's full navigation, waiting on their pages.
+ * throws NG04002 on click, so each page's PR adds its own entry.
  */
 const NAV_LINKS: readonly NavLink[] = [
   { path: '/', label: 'Home', exact: true },
@@ -54,6 +55,7 @@ const NAV_LINKS: readonly NavLink[] = [
 export class NavBar {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly results = inject(ResultsService);
   private readonly accountArea = viewChild<ElementRef<HTMLElement>>('accountArea');
 
   protected readonly user = this.auth.user;
@@ -62,13 +64,31 @@ export class NavBar {
   protected readonly profileOpen = signal(false);
   protected readonly drawerOpen = signal(false);
 
-  protected readonly links = computed(() => {
+  protected readonly isFinalist = computed(() => {
     const role = this.auth.role();
-    return NAV_LINKS.filter((link) => {
+    if (role !== 'participant') return false;
+    const res = this.results.myResult();
+    return res?.outcome === 'finalist';
+  });
+
+  protected readonly links = computed<readonly NavLink[]>(() => {
+    const role = this.auth.role();
+    const isQualifier = this.isFinalist();
+
+    const base = NAV_LINKS.filter((link) => {
       if (!link.roles) return true;
       if (!role) return link.roles.includes('public');
       return link.roles.includes(role);
     });
+
+    if (isQualifier) {
+      return [
+        ...base,
+        { path: '/finalist', label: 'Finalist 🎉', isFinalist: true },
+      ];
+    }
+
+    return base;
   });
 
   protected handleLinkClick(link: NavLink): void {

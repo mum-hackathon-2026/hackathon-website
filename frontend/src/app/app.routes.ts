@@ -88,6 +88,12 @@ export const routes: Routes = [
     title: 'Results · Monash Hackathon 2026',
   },
   {
+    path: 'finalist',
+    loadComponent: () => import('./pages/finalist/finalist').then((m) => m.Finalist),
+    canActivate: [signedInGuard],
+    title: 'Finalist Portal · Monash Hackathon 2026',
+  },
+  {
     path: 'sign-in',
     loadComponent: () => import('./pages/sign-in/sign-in').then((m) => m.SignIn),
     title: 'Sign in · Monash Hackathon 2026',

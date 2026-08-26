@@ -393,8 +393,6 @@ export class ResultsService {
 }
 
 function outcomeFor(rank: number): ResultOutcome {
-  if (rank === 1) return 'winner';
-  if (rank === 2) return 'runner_up';
   if (rank <= 10) return 'finalist';
   return 'participant';
 }

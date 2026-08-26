@@ -10,52 +10,68 @@
 <!-- ── Publication ────────────────────────────────────────────────────────── -->
 
 <section class="panel" aria-labelledby="publish-heading">
-  <h2 class="panel__title" id="publish-heading">Publication</h2>
+  <div class="panel__header-row">
+    <h2 class="panel__title" id="publish-heading">Preliminary Results & Finalist Selection</h2>
+    <div class="panel__badge-count" [class.panel__badge-count--ready]="finalistCount() === 10">
+      <span>Finalists Selected:</span>
+      <strong>{{ finalistCount() }} / 10</strong>
+    </div>
+  </div>
 
   <div class="publish">
     <div class="publish__state">
       <span class="publish__pill" [class.publish__pill--live]="published()">
-        {{ published() ? 'Published' : 'Not published' }}
+        {{ published() ? 'Results Published' : 'Not Published' }}
       </span>
       <p class="publish__detail">
         @if (published()) {
-          Every scored result carries a publication time.
+          Every scored squad has their preliminary evaluation published with finalist standings.
         } @else {
-          {{ publishable() }} scored {{ publishable() === 1 ? 'result is' : 'results are' }} ready
+          {{ publishable() }} scored {{ publishable() === 1 ? 'squad is' : 'squads are' }} ready
           to publish.
-          @if (flaggedCount() > 0) {
-            <strong>{{ flaggedCount() }}</strong> of them {{ flaggedCount() === 1 ? 'is' : 'are' }}
-            flagged below, and worth reading first.
+          @if (finalistCount() < 10) {
+            <span class="text-warning">Select {{ 10 - finalistCount() }} more finalists to reach the 10-squad final round roster.</span>
+          } @else {
+            <span class="text-success">10 finalists are selected and ready for publication.</span>
           }
         }
       </p>
     </div>
 
-    @if (published()) {
+    <div class="publish__btn-group">
       <button
         type="button"
-        class="button button--danger"
-        [disabled]="pending()"
-        (click)="confirming.set('unpublish')"
+        class="button button--secondary"
+        [disabled]="pending() || published()"
+        (click)="selectTop10Finalists()"
       >
-        Unpublish
+        <span>⚡ Auto-Select Top 10</span>
       </button>
-    } @else {
-      <button
-        type="button"
-        class="button button--primary"
-        [disabled]="pending()"
-        (click)="confirming.set('publish')"
-      >
-        Publish results
-      </button>
-    }
+
+      @if (published()) {
+        <button
+          type="button"
+          class="button button--danger"
+          [disabled]="pending()"
+          (click)="confirming.set('unpublish')"
+        >
+          Unpublish
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="button button--primary"
+          [disabled]="pending()"
+          (click)="confirming.set('publish')"
+        >
+          Publish Results
+        </button>
+      }
+    </div>
   </div>
 
   <p class="publish__caveat">
-    This marks every scored result as published and opens the participant results page. The two
-    happen together, so a published result is always one participants can actually read.
-    Unpublishing reverses both.
+    Publishing marks all preliminary evaluation scores live for participants, stamps their finalist status, and unlocks the dedicated Finalist portal for advancing squads.
   </p>
 </section>
 
@@ -101,16 +117,16 @@
       <thead>
         <tr>
           <th scope="col">Rank</th>
-          <th scope="col">Team</th>
+          <th scope="col">Team & Project</th>
           <th scope="col">Score</th>
           <th scope="col">Outcome</th>
-          <th scope="col">Shortlist</th>
+          <th scope="col">Finalist Status</th>
           <th scope="col">Published</th>
         </tr>
       </thead>
       <tbody>
         @for (row of rows(); track row.teamId) {
-          <tr>
+          <tr [class.grid__row--finalist]="row.shortlisted">
             <td class="grid__num">
               {{ row.rank ?? '—' }}
               @if (row.tied) {
@@ -126,10 +142,12 @@
                 </span>
               }
             </td>
-            <td class="grid__num">{{ row.finalScore ?? '—' }}</td>
+            <td class="grid__num font-bold">{{ row.finalScore ?? '—' }}</td>
             <td>
               @if (row.outcome) {
-                <span class="pill">{{ outcomeLabels[row.outcome] }}</span>
+                <span class="pill" [class.pill--success]="row.outcome === 'finalist'">
+                  {{ outcomeLabels[row.outcome] }}
+                </span>
               } @else {
                 <span class="grid__none">—</span>
               }
@@ -137,12 +155,13 @@
             <td>
               <button
                 type="button"
-                class="link-button"
-                [disabled]="pending()"
+                class="finalist-btn"
+                [class.finalist-btn--active]="row.shortlisted"
+                [disabled]="pending() || published()"
                 [attr.aria-pressed]="row.shortlisted"
                 (click)="toggleShortlist(row)"
               >
-                {{ row.shortlisted ? 'On the shortlist' : 'Add' }}
+                {{ row.shortlisted ? '★ Top 10 Finalist' : '+ Select Finalist' }}
               </button>
             </td>
             <td>
