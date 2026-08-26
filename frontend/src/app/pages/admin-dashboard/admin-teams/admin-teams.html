@@ -64,7 +64,6 @@
         <tr>
           <th scope="col">Team</th>
           <th scope="col" class="grid__num">Members</th>
-          <th scope="col">Track</th>
           <th scope="col">Status</th>
           <th scope="col">Submission</th>
           <th scope="col"><span class="visually-hidden">Actions</span></th>
@@ -84,9 +83,6 @@
               }
             </td>
             <td class="grid__num">{{ row.memberCount }}</td>
-            <td>
-              <span class="pill">{{ row.trackLabel }}</span>
-            </td>
             <td>
               <span class="dot" [class]="'dot--' + row.status"></span>
               {{ statusLabels[row.status] }}

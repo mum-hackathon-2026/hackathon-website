@@ -97,7 +97,6 @@
       <thead>
         <tr>
           <th scope="col">Team</th>
-          <th scope="col">Track</th>
           <th scope="col">Assigned judges</th>
         </tr>
       </thead>
@@ -111,9 +110,6 @@
                   <span>Short of a full panel</span>
                 </span>
               }
-            </td>
-            <td>
-              <span class="pill">{{ row.trackLabel }}</span>
             </td>
             <td>
               @if (row.judges.length === 0) {

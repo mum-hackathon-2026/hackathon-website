@@ -61,7 +61,7 @@
     @if (!isSubmitted()) {
       <app-form-link-card
         heading="Submit your project"
-        description="The form asks for your project title, track, description, repository link and
+        description="The form asks for your project title, description, repository link and
           demo links. Anyone on your team can fill it in."
         [href]="formUrl"
         buttonLabel="Open the submission form"
@@ -79,11 +79,6 @@
               {{ record.projectTitle || 'Untitled Project' }}
             </h2>
           </div>
-          @if (record.trackLabel) {
-            <span class="submission-showcase__track-badge">
-              {{ record.trackLabel }}
-            </span>
-          }
         </div>
 
         <!-- Description / Summary -->

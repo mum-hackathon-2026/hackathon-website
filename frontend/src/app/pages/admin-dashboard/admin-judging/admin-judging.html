@@ -120,22 +120,6 @@
     }
   </select>
 
-  <label class="visually-hidden" for="judging-track-filter">Filter by track</label>
-  <select
-    id="judging-track-filter"
-    class="input"
-    name="judgingTrack"
-    [ngModel]="trackFilter()"
-    (ngModelChange)="trackFilter.set($event)"
-  >
-    <option value="all">All tracks</option>
-    @for (t of tracks(); track t) {
-      @if (t !== 'all') {
-        <option [value]="t">{{ t }}</option>
-      }
-    }
-  </select>
-
   @if (filtersActive()) {
     <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
   }
@@ -164,7 +148,6 @@
         <thead>
           <tr>
             <th scope="col">Team & Project</th>
-            <th scope="col">Track</th>
             <th scope="col">Review progress</th>
             <th scope="col">Assigned judges</th>
             <th scope="col">Average score</th>
@@ -179,9 +162,6 @@
                   <span class="team-cell__name">{{ row.teamName }}</span>
                   <span class="team-cell__project">{{ row.projectTitle }}</span>
                 </div>
-              </td>
-              <td>
-                <span class="track-tag">{{ row.trackLabel }}</span>
               </td>
               <td>
                 <div class="table-progress">

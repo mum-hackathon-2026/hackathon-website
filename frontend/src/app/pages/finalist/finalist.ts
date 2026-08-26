@@ -53,10 +53,6 @@ export class Finalist implements AfterViewInit, OnDestroy {
     return this.myResult()?.projectTitle ?? 'Preliminary Submission';
   });
 
-  protected readonly trackLabel = computed(() => {
-    return this.myResult()?.trackLabel ?? 'General Track';
-  });
-
   protected readonly scoreText = computed(() => {
     const score = this.myResult()?.finalScore;
     return score !== null && score !== undefined ? score.toFixed(1) : '--';

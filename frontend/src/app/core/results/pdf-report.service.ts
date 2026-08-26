@@ -69,7 +69,7 @@ export class PdfReportService {
     doc.setFontSize(9.5);
     doc.setTextColor(71, 85, 105);
     doc.text(`Project: ${data.projectTitle || 'N/A'}`, margin + 6, y + 15);
-    doc.text(`Track: ${data.trackLabel}  |  Judges: ${data.judgeCount}`, margin + 6, y + 21);
+    doc.text(`Judges Evaluated: ${data.judgeCount}`, margin + 6, y + 21);
 
     // Final Score badge on the right
     doc.setFillColor(245, 158, 11);
