@@ -22,7 +22,39 @@
 
   <p class="hero__tagline">{{ config.site.tagline }}</p>
 
-  @if (milestone(); as next) {
+  @if (isResultsPhase()) {
+    <div class="hero__results-card">
+      <div class="hero__results-glow" aria-hidden="true"></div>
+      <div class="hero__results-content">
+        <span class="hero__results-badge">🎉 Preliminary Round Complete</span>
+        <h2 class="hero__results-title">Preliminary Results &amp; Finalists Announced</h2>
+        <p class="hero__results-desc">
+          Preliminary evaluation scores, rubric feedback breakdowns, and Top 10 Grand Finalist squad qualifications are now published.
+        </p>
+        <div class="hero__actions">
+          <a class="hero__cta hero__cta--filled" routerLink="/results">
+            <span>View Preliminary Results</span>
+            <svg
+              class="hero__arrow"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+          <a class="hero__cta hero__cta--outlined" routerLink="/timeline">
+            <span>Grand Finals Schedule</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  } @else if (milestone(); as next) {
     <div class="hero__countdown">
       <!-- The digits tick every second, so they are hidden from assistive tech
            and this sentence carries the same information instead. -->
@@ -42,29 +74,71 @@
         }
       </div>
     </div>
-  }
 
-  <div class="hero__actions">
-    <a
-      class="hero__cta hero__cta--filled"
-      href="https://docs.google.com/forms/u/0/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/formResponse"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <span>Register your team</span>
-      <svg
-        class="hero__arrow"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <line x1="5" y1="12" x2="19" y2="12" />
-        <polyline points="12 5 19 12 12 19" />
-      </svg>
-    </a>
-  </div>
+    <div class="hero__actions">
+      @if (!isRegistrationClosed()) {
+        <a
+          class="hero__cta hero__cta--filled"
+          href="https://docs.google.com/forms/u/0/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/formResponse"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>Register your team</span>
+          <svg
+            class="hero__arrow"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </a>
+      } @else if (phase() === 'submission') {
+        <a class="hero__cta hero__cta--filled" routerLink="/participant/submission">
+          <span>Go to My Submission</span>
+          <svg
+            class="hero__arrow"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </a>
+        <a class="hero__cta hero__cta--outlined" href="#criteria">
+          <span>Scoring Rubric</span>
+        </a>
+      } @else if (phase() === 'judging') {
+        <a class="hero__cta hero__cta--filled" routerLink="/timeline">
+          <span>View Event Timeline</span>
+          <svg
+            class="hero__arrow"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </a>
+        <a class="hero__cta hero__cta--outlined" href="#criteria">
+          <span>Scoring Rubric</span>
+        </a>
+      }
+    </div>
+  }
 </section>

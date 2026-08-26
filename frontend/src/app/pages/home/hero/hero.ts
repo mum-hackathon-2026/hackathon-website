@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../../core/event/event-config';
 import { PhaseService } from '../../../core/event/phase';
 
@@ -14,7 +15,7 @@ function pad(value: number): string {
 
 @Component({
   selector: 'app-home-hero',
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './hero.html',
   styleUrl: './hero.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,19 +29,26 @@ export class Hero {
   protected readonly phase = this.phaseService.phase;
   protected readonly milestone = this.phaseService.nextMilestone;
 
+  protected readonly isRegistrationClosed = computed(() => {
+    const p = this.phase();
+    return p !== 'before-registration' && p !== 'registration';
+  });
+
+  protected readonly isResultsPhase = computed(() => this.phase() === 'results');
+
   /** Short status for the badge, following the phase rather than a fixed string. */
   protected readonly status = computed(() => {
     switch (this.phase()) {
       case 'before-registration':
         return 'Registrations open soon';
       case 'registration':
-        return 'Registrations open';
+        return 'Registrations open · Problem Statement soon';
       case 'submission':
-        return 'Submissions open';
+        return 'Building period · Submissions open';
       case 'judging':
-        return 'Judging under way';
+        return 'Preliminary judging under way';
       case 'results':
-        return 'Results are out';
+        return 'Preliminary results announced';
     }
   });
 

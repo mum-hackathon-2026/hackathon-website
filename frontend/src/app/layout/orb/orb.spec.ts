@@ -143,7 +143,7 @@ describe('Orb', () => {
       // registration closing. Asserting through PhaseService's own label keeps
       // this honest when the schedule moves.
       const status = panel()!.querySelector('.orb__status')?.textContent ?? '';
-      expect(status).toContain('Registration closes');
+      expect(status).toContain('Problem statement release');
       expect(status).toMatch(/\d+ (day|days|hour|hours|minute|minutes)/);
     });
 
