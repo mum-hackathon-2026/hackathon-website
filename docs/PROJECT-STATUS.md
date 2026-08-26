@@ -1,8 +1,8 @@
 # Project status
 
 **Repo:** `mum-hackathon-2026/hackathon-website` — this file is `docs/PROJECT-STATUS.md`; paths below are relative to the git root.
-**As of:** `145e708` (= `origin/main`, through PR #59) plus the session-revalidation work on `feature/revalidate-session-on-reload`, 2026-08-16.
-**Verified:** the frontend suite, lint, format check and a production build were run against the branch; the backend sources were last compiled at `523911f` and the backend *test* figures are carried forward from `98e50df` because no Postgres was available for that pass — see [§7](#7-verification). Everything else here is read from the source tree.
+**As of:** `34f6df7` (= `origin/main`, through PR #76), 2026-08-26.
+**Verified:** read from the source tree on `docs/align-current-state`. **Neither suite was run for this pass** — the figures in [§7](#7-verification) are carried forward and are older than the code they describe. Treat every test count below as a lower bound of unknown age.
 
 This is the **progress tracker**: what is built, what is not, and what comes next. It does not explain *how* anything works — [CLAUDE.md](../CLAUDE.md) holds the conventions and [docs/README.md](README.md) holds the schema decisions. When a fact here needs detail, this file points at one of those rather than repeating it. See [§8](#8-where-the-detail-lives).
 
@@ -12,18 +12,21 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 
 | Area | State | One line |
 | ---- | ----- | -------- |
-| **Database** | 🟢 Done | 11 tables across V1 + V2 + V3 + V4, live and migrating cleanly |
-| **Backend persistence** | 🟢 Done | All 11 tables mapped, 11 repositories, 48 tests passing |
-| **Backend API** | 🟡 Auth only | 2 endpoints (`/api/auth/google`, `/api/auth/me`); nothing for teams, submissions or judging |
-| **Backend security** | 🟢 Built | `SecurityConfig` + JWT filter + Google ID-token verification — **but zero tests** |
-| **Frontend pages** | 🟢 Done | 12 components behind 14 route entries, all three roles covered |
-| **Admin workspace** | 🟡 9 of 10 | Everything but Judging Progress, which is the last stub |
-| **Frontend data** | 🟡 Stand-ins | 7 in-memory services shaped like the API that will replace them |
-| **Integration** | 🟡 One seam | Sign-in and session revalidation talk to the backend; every other page is still in-memory |
-| **CI** | 🟢 Done | Two jobs, both gating; a failing spec cannot reach `main` |
-| **Docs** | 🟢 Current | This file, CLAUDE.md and docs/README.md all current as of `640c8fd` |
+| **Database** | 🟢 Done | 11 tables across V1–V8, live and migrating cleanly |
+| **Backend persistence** | 🟢 Done | All 11 tables mapped, 11 repositories, 22 test classes |
+| **Backend API** | 🟢 Built | 9 controllers, ~40 endpoints — teams, submissions, judging, results, admin, event settings, webhooks |
+| **Backend security** | 🔴 Two holes | `SecurityConfig` + JWT filter are sound, but `POST /api/auth/dev-login` mints an admin token for anyone and the webhook secret ships blank. **Still zero tests in `auth/`** |
+| **Frontend pages** | 🟢 Done | 12 components behind 15 route entries, all three roles covered |
+| **Admin workspace** | 🟢 10 of 10 | Overview, Teams, Participants, Judges, Assignments, Submissions, Judging, Results, Audit, Settings |
+| **Frontend data** | 🟢 Live | All 7 core services are `HttpClient` callers; the in-memory stand-ins are gone |
+| **Integration** | 🟢 Wired | Every page reads the database. Registration and submission both sync from Google Sheets |
+| **Import pipeline** | 🟡 Works, unguarded | Two importers, each on a webhook **and** a 15-second poll against sheet ids committed in `application.properties` |
+| **Screening / auto-reject** | 🔴 Not built | `event_settings.screening_enabled` has no consumer; a blank resume imports |
+| **CI** | 🔴 Red | Two jobs, both gating — and **`npm run lint` currently fails on `main` with 31 errors** |
+| **Docs** | 🟡 Realigned here | Had drifted 89 commits (PRs #62–#76). This pass is the correction; the test figures in §7 are still stale |
+| **Deployment** | 🟡 Documented | Production `Dockerfile`s for both halves + `docs/GCP_DEPLOYMENT_GUIDE.md`. Not yet deployed |
 
-**The single most important line:** the two halves now speak, but only about **who you are**. Login is real — Google ID token in, JWT out, email checked against the `users` table — and every other page still runs on in-memory data that resets on reload. The pattern for connecting the rest exists; it just has one instance. [§6](#6-what-comes-next) is the order to do it in.
+**The single most important line:** the application is functionally complete and **not yet safe to expose**. `POST /api/auth/dev-login` is unauthenticated and returns a signed admin JWT to any caller; the registration webhook accepts any caller because `app.webhook.secret` is committed blank; and the `auth/` package — the only code that decides who gets in — still has no test. The 17-category audit under `security/` marks 16 of 17 PASS and mentions none of this. [§6](#6-what-comes-next) is reordered around it.
 
 ---
 
@@ -35,6 +38,10 @@ This is the **progress tracker**: what is built, what is not, and what comes nex
 - [x] **V2 `V2__hard_delete_and_status_cleanup.sql`** — ratifies hard delete, the `teams.status` cleanup, and the judge cascade
 - [x] **V3 `V3__form_registration.sql`** — registration moves to a Google Form: `users.google_sub` becomes nullable (NULL = registered, never signed in), and `phone` / `resume_url` / `linkedin_url` are added, all nullable because judges and admins are rows in `users` too
 - [x] **V4 `V4__add_user_github_url.sql`** — adds `users.github_url`, the third screening link the form collects and the one V3 missed. Nullable for the same reason. **Not the same column as `submissions.github_url`** — that is a team's project repo, this is a participant's own account; both are now commented in the database to keep them apart
+- [x] **V5 `V5__submission_additional_fields.sql`** — `submissions` gains `slide_deck_url`, `video_demo_url`, `representative_name`, `representative_phone`, `representative_email`. The two URL columns carry `~ '^https?://'` CHECKs.
+- [x] **V6 `V6__team_size_two_to_five.sql`** — the `event_settings` singleton moves to `min_team_size` 2 / `max_team_size` 5. **An `UPDATE`, not a DEFAULT change** — the column DEFAULTs stay 1 / 4 and the entity initialisers correctly mirror them.
+- [x] **V7 `V7__seed_judging_criteria.sql`** — seeds the Averis 2026 preliminary rubric: seven criteria, 100 points, 70 technical / 30 product. ⚠️ **It opens with `delete from scores` and `delete from judging_criteria`.** Harmless as applied; destructive if ever re-run against a scored database. One criterion, `Technology Integration (TBC)`, is a live placeholder pending sponsor alignment.
+- [x] **V8 `V8__judges_per_team_setting.sql`** — `event_settings.judges_per_team`, `not null default 3`, CHECKed 1–10. `EventSettings.judgesPerTeam = 3` mirrors the DEFAULT as the convention requires.
 - [x] Conventions held throughout V1: `bigint generated always as identity`, `timestamptz`, `text` + `CHECK` over `varchar(n)`, no Postgres `ENUM` types, `numeric` for scored values, every FK index-backed
 - [x] **Two Postgres roles with a privilege split** (`scripts/bootstrap.sql`) — `hackathon_migrator` owns the schema and runs Flyway; `hackathon_app` is DML-only with no DDL
 - [x] Local Postgres 16 in Docker (`hackathon-pg16`) on **5433**
@@ -51,7 +58,7 @@ The 11 tables: `users`, `event_settings`, `teams`, `team_members`, `submissions`
 
 ### Authentication (PRs #32, #34)
 
-The first and so far only HTTP surface. Eight classes in `auth/`, which owns no table.
+Nine classes in `auth/`, which owns no table of its own. It was the first HTTP surface and is no longer the only one — see *The rest of the API* below.
 
 - [x] **`POST /api/auth/google`** — verifies a Google ID token against Google's keys, requires a verified email, looks the address up in `users`, backfills `google_sub` / `email_verified` / `last_login_at` / display name, and returns a JWT plus the user
 - [x] **Access is by pre-existing row.** An unregistered email gets **403**; there is no self-registration endpoint. This is the whole of the admissions policy
@@ -60,11 +67,40 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 - [x] **`JwtService`** — HS256, claims `sub`/`email`/`role`/`name`, expiry from `app.jwt.expiration-ms`
 - [x] **Config validated at startup** — `app.jwt.secret` (≥32 chars) and `app.google.client-id` are `@NotBlank`, so a missing value fails the boot rather than a request
 
-> **Zero tests on the backend side.** The `auth/` package has no test class: CI compiles it and never executes it, making it the least-verified code in the repo. **The frontend side is covered** as of #54 — the request shape, the role fallback, all four error branches, the JWT round-trip and the GIS script loading — so the two halves of one flow are now verified very unevenly. See [§4](#4-what-is-not-done).
+- [x] **`POST /api/auth/dev-login`** — takes `{"role": "..."}`, finds the first user with that role (or any user at all) and returns a signed JWT for them. **No profile guard, no secret, no environment check**, and `/api/auth/**` is `permitAll`. See the warning below.
+
+> ⚠️ **`dev-login` is a production-reachable admin bypass.** Anyone who can reach the backend can POST `{"role":"admin"}` and receive a valid admin token. Gate it behind `@Profile("local")` or delete it before anything is deployed. **The `security/` audit does not mention it.**
+>
+> **Zero tests on the backend side.** The `auth/` package still has no test class: CI compiles `GoogleTokenVerifier`, `JwtService`, `AuthController` and the filter and never runs them. This has been item 1 on *what comes next* since PR #59 and is still open.
+
+### The rest of the API (PRs #63, #65, #67, #69)
+
+Eight more controllers landed after the docs were last aligned. All follow the packages-by-feature shape the entities use, and two carry a service class (`AdminBackendService`, `JudgeBackendService`); `common/GlobalExceptionHandler` translates errors centrally.
+
+| Controller | Prefix | Endpoints | Gate |
+| ---------- | ------ | --------- | ---- |
+| `AdminController` | `/api/admin` | 18 — overview, teams, participants, judges (single + batch register, role change, delete), assignments, audit, settings, results publish/unpublish | `hasAuthority("admin")` |
+| `JudgeController` | `/api/judge` | 5 — assignments, criteria, draft/complete/decline a review | `hasAuthority("judge")` |
+| `ResultController` | `/api/results` | 2 — public rankings, `/my` detailed result | `/api/results` permitted; `/my` authenticated |
+| `SubmissionController` | `/api` | 2 — `/submissions/my`, `POST /webhook/submissions` | mixed; the webhook is permitted |
+| `TeamController` | `/api/teams` | 1 — `/my` | authenticated |
+| `EventSettingsController` | `/api/event` | 1 — `/settings` | permitted |
+| `RegistrationWebhookController` | `/api/webhooks` | 1 — `/forms/registration` | permitted, secret optional |
+
+> ⚠️ **The registration webhook is unauthenticated as committed.** `RegistrationWebhookController` checks `X-Webhook-Secret` **only when `app.webhook.secret` is non-blank**, and `application.properties` ships it as `app.webhook.secret=` — empty. Any caller can trigger a full sheet import.
+
+### The Sheets import pipeline (PRs #63, #65, #67)
+
+- [x] **`tools/GoogleSheetsReader`** — reads a sheet directly through the Sheets API with a service-account key, so the importers no longer need an exported CSV. `CsvReader` still handles the file path.
+- [x] **`tools/FormSubmissionImporter`** — the registration importer's sibling, writing project submissions into `submissions`. Matches a row to a team by name or submitter email and **updates** rather than rejecting on resubmission.
+- [x] **`webhook/RegistrationImportService` and `webhook/SubmissionImportService`** — both importers as Spring beans, each with a webhook **and** a `@Scheduled(fixedDelayString = "${app.sheets.poll-interval-ms:15000}")` poll.
+- [x] **Apps Script `onFormSubmit` webhook** documented in `docs/SHEETS-SETUP.md` §7.
+
+> **Three things about this pipeline are worth flagging.** The **sheet ids are committed** in `application.properties` and point at the team's live sheets, so every checkout that starts the backend polls them four times a minute — the only off switch is blanking the id. The registration service **swallows scheduled-sync failures at `log.debug`**, so a sync that has been failing all day is silent at the default level (the submission service uses `log.warn` for the same case — make them agree). And the webhook secret is blank, as above.
 
 ### Tests
 
-- [x] **13 test classes / 48 tests** — 11 repository tests (JPA slice against real Postgres), `FlywayBaselineMigrationTests`, and the generated context-load test
+- [x] **22 test classes** — repository tests (JPA slice against real Postgres), `FlywayBaselineMigrationTests`, the two importer tests, and `@WebMvcTest`-style controller tests for admin, judge, result, submission, team and the registration webhook. **`auth/` has none.** ⚠️ The "48 tests" figure this line used to carry is from PR #59 and was not re-measured for this pass — see [§7](#7-verification).
 - [x] Slice pinned to the real database with `@AutoConfigureTestDatabase(replace = Replace.NONE)` — H2 was removed from `pom.xml` on purpose
 - [x] `FlywayBaselineMigrationTests` **refuses to run** unless live JDBC metadata shows a database ending in `/hackathon_db_test`, because it calls `flyway.clean()`
 - [x] Connection settings environment-overridable (`DB_TEST_URL` / `DB_TEST_USER` / `DB_TEST_PASSWORD`) so CI supplies its own
@@ -81,7 +117,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 ### Pages and routes
 
-**12 page components behind 14 route entries.** Two components take two paths each — `Progress` and `AdminDashboard` — which is why the counts differ. All three roles now have a landing page, and `ROLE_HOME` sends each one there on sign-in.
+**12 page components behind 15 route entries.** `Progress` takes three paths — `/participant/progress`, `/participant/progress/team` and `/participant/progress/event` — and `/admin/dashboard` is a redirect entry onto `/admin/dashboard/:section`, so a section is always named in the URL.
 
 | Route | Component | Guard |
 | ----- | --------- | ----- |
@@ -90,18 +126,20 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 | `/organizers` | `Organizers` | — |
 | `/participant/team` | `MyTeam` | `participantGuard` |
 | `/participant/submission` | `MySubmission` | `participantGuard` |
+| `/participant/progress` | `Progress` (default tab) | `participantGuard` |
 | `/participant/progress/team` | `Progress` (`tab: 'team'`) | `participantGuard` |
 | `/participant/progress/event` | `Progress` (`tab: 'event'`) | `participantGuard` |
 | `/judge/portal` | `JudgePortal` — **lazy-loaded** | `judgeGuard` |
 | `/judge/reviews/:assignmentId` | `JudgeReview` — **lazy-loaded** | `judgeGuard` |
-| `/admin/dashboard` | `AdminDashboard` — **lazy-loaded** | `adminGuard` |
+| `/admin/dashboard` | redirect → `/admin/dashboard/:section` | `adminGuard` |
+| `/admin/dashboard/:section` | `AdminDashboard` — **lazy-loaded** | `adminGuard` |
 | `/results` | `Results` | `signedInGuard` (any role) |
 | `/sign-in` | `SignIn` | — |
 | `**` | `NotFound` | — |
 
-> **The two participant write-flows are gone from the site (PR #40).** Team registration and project submission both happen on a Google Form now, so `MyTeam` and `MySubmission` are read-only status views plus a link out. There is no create/join/rename/leave, no draft editor, and **no join code anywhere** — the registration form collects one row per team, leader plus up to three members, so a team arrives whole and there is nothing to join. The URLs live on `SiteCopy` as `teamRegistrationFormUrl` / `projectSubmissionFormUrl` and are **placeholders** until the real links land.
+> **The two participant write-flows are gone from the site (PR #40).** Team registration and project submission both happen on a Google Form now, so `MyTeam` and `MySubmission` are read-only status views plus a link out. There is no create/join/rename/leave, no draft editor, and **no join code anywhere** — the registration form collects one row per team, leader plus up to four more members (2–5, read from `event_settings`), so a team arrives whole and there is nothing to join. The URLs live on `SiteCopy` as `teamRegistrationFormUrl` / `projectSubmissionFormUrl` and are **live as of #67**; the JSDoc above them still said PLACEHOLDER and was corrected in this pass.
 
-- [x] Two paths onto one `Progress` component, distinguished by `data: { tab }`, so each view is linkable
+- [x] Three paths onto one `Progress` component, distinguished by `data: { tab }`, so each view is linkable
 - [x] The three role-gated pages — `AdminDashboard`, `JudgePortal`, `JudgeReview` — are the lazy routes. Everything a signed-out visitor can reach is eager; everything behind an `adminGuard` or `judgeGuard` is not, because participants are most of the traffic and can never reach any of it.
 - [x] Wildcard `**` stays last
 
@@ -109,7 +147,7 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 - [x] `auth/` — `AuthService` with **two sign-in paths**: `signInWithGoogle()` (real, POSTs to the backend, stores the JWT under `hackathon.jwt-token`) and `signIn(role)` (the original demo path, no network, still what the specs and role buttons use). Both feed one `currentUser` signal through one `toAuthUser()` mapping, so nothing downstream can tell them apart — except `revalidateSession()`, which runs on construction, asks `GET /api/auth/me` about a stored JWT, and skips the tokenless demo session precisely because it has nothing to check. Plus the `roleGuard` factory (`participantGuard`, `judgeGuard`, `adminGuard`, `signedInGuard`) and three injection tokens — `SESSION_STORAGE`, `API_BASE_URL`, `GOOGLE_CLIENT_ID`
 - [x] `event/` — `EVENT_CONFIG` token (now the **seed**, not the live copy), `EventSettingsService` owning the `event_settings` singleton as mutable state, `PhaseService`, `MilestoneService`, static site copy
-- [x] `team/`, `submission/`, `results/` — participant-scoped stand-ins. **`TeamService` and `SubmissionService` keep their mutations but no page calls them any more** — the two participant pages only read. They are kept because the progress and results specs seed fixtures through `createTeam` / `joinTeam` / `submit`, and because the submission validation is the written-down copy of the table's CHECK constraints. Do not build a page on them.
+- [x] `team/`, `submission/`, `results/` — **now real `HttpClient` callers**, not stand-ins. **`TeamService` and `SubmissionService` keep their mutations but no page calls them any more** — the two participant pages only read. They are kept because the progress and results specs seed fixtures through `createTeam` / `joinTeam` / `submit`, and because the submission validation is the written-down copy of the table's CHECK constraints. Do not build a page on them.
 - [x] `judge/` — assignments, scores, criteria; validation repeats the tables' CHECK constraints so the UI never accepts what the API would reject
 - [x] `admin/` — event-wide read model (a join across `teams`, `team_members`, `submissions`, `assignments`), plus rename and settle mutations on a team
 
@@ -117,22 +155,22 @@ The first and so far only HTTP surface. Eight classes in `auth/`, which owns no 
 
 ### The admin workspace
 
-`admin/dashboard/:section` is ten sections, each its own URL. **Nine are built:**
+`admin/dashboard/:section` is ten sections, each its own URL. **All ten are built**, and every one reads live data over `/api/admin/*`:
 
 | Section | State | Note |
 | ------- | ----- | ---- |
 | Overview | ✅ Built | Six stat tiles, urgent actions, activity feed |
 | Teams | ✅ Built | Filterable; rename, withdraw, disqualify |
-| Participants | ✅ Built | Roster with derived eligibility; read-only |
+| Participants | ✅ Built | Roster with derived eligibility (email domain + `email_verified`); read-only, and the eligibility control is a **view filter**, not a policy — see [§4](#4-what-is-not-done) |
 | Submissions | ✅ Built | Filterable, with links |
 | Judges | ✅ Built | The panel with counted workloads; add and remove by `users.role` |
 | Assignments | ✅ Built | Assign/unassign judges, panel workload, coverage filters |
 | Audit Log | ✅ Built | Full log, grouped by day, filterable by kind; **and the dashboard's own actions now land in it** |
 | Results & Publication | ✅ Built | Rankings read from `ResultsService`, shortlist toggle, publish/unpublish stamping `team_results.published_at` |
 | Event Settings | ✅ Built | The `event_settings` row, editable; MYT-explicit datetimes, confirms before publishing results or closing judging |
-| Judging Progress | ⬜ Stub | Placeholder rather than hidden, so the shape is visible |
+| Judging Progress | ✅ Built | 184 lines of component + a 283-line template + a spec — the last stub was closed in #69 |
 
-**The one remaining section is not blocked on the schema.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
+**Every section was checked against the schema before it was built.** Each was checked against V1 + V2 rather than against the design draft alone, and where the draft wants something the database cannot hold, the section ships reduced and says so in place:
 
 - **Participants** — no student ID column and no eligibility column, so no Verify/Flag action. Eligibility is derived from the address and `users.email_verified` instead, screened against `site.studentEmailDomain`. `event_settings.screening_enabled` is surfaced but gates nothing.
 - **Teams** — no `locked` status in `teams_status_check`, so no Lock action; Withdraw and Disqualify are the settled states that do exist.
@@ -152,35 +190,72 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 ### Tests
 
-- [x] **61 spec files / 798 tests**, colocated, no database or dev server needed. Every file under `src/app/` has one except `app.config.ts` and `src/main.ts`, which are bootstrap wiring
+- [x] **72 spec files**, colocated, no database or dev server needed. ⚠️ The "798 tests" figure this line used to carry is from PR #60 and was not re-measured for this pass — see [§7](#7-verification). Every file under `src/app/` has one except `app.config.ts` and `src/main.ts`, which are bootstrap wiring
 - [x] Zoneless Angular 21 throughout — signals for state, `await fixture.whenStable()` in tests, vitest under jsdom (not Karma)
 
 ---
 
 ## 4. What is NOT done
 
-### The gap between the halves
+### CI is red on `main`
 
-- [ ] **One endpoint pair, and it is the auth one.** Nothing serves teams, submissions, judging, results or event settings — no controllers, services or DTOs outside `auth/`. Every repository is still called only by tests.
-- [ ] **Nothing persists in the UI.** Apart from the signed-in user, every page runs on in-memory stand-ins that reset on reload, by design.
-- [ ] **The Google Forms pipeline stops at registration.** `tools/FormRegistrationImporter` loads the registration CSV into `users` / `teams` / `team_members`, and that is the whole of it. **There is no submission form schema and no submission importer** — [docs/README.md](README.md) still records submission-by-form as undecided, and nothing populates `submissions.status` / `submitted_at`. The site now links participants to both forms, so `MySubmission` displays a status that nothing can currently set.
-- [ ] **Still no HTTP interceptor.** #60 added the first authenticated request — `revalidateSession()` — and it sets its own `Authorization` header rather than introducing an interceptor for a single call. That stays the right shape only while the count is one: the first non-auth endpoint needs a real interceptor, and should absorb this header when it arrives.
-- [ ] **The demo sign-in still bypasses everything.** `signIn(role)` picks one of three hardcoded users with no token, and the guards cannot tell that session from a real one. Guards gate *navigation*; only `SecurityConfig` gates data, and today it guards nothing anyone calls.
-- [x] ~~**A stored session is never revalidated.**~~ Closed in #60. `AuthService.revalidateSession()` runs on construction and asks `GET /api/auth/me` about the stored JWT, so an expired token or a deleted user no longer reads as signed in across a reload. **Two limits are deliberate and remain:** it signs out on 401/403 only, because an unreachable backend is not evidence a session is bad; and it does not gate navigation, so a stale session survives one render before the answer lands — the page behind the guard then has no data, since the API refuses the same token. `sessionCheck` is the promise to await if that window ever needs closing.
-- [ ] **The backend half of auth has no test.** The `auth/` package has no test class — CI compiles it and never runs it. **The frontend half was closed in #54**: `signInWithGoogle`, every error branch, the JWT round-trip and the GIS script loading are covered. The asymmetry is the point — a break in the client fails CI, the same break in the server does not.
+- [ ] ⚠️ **`npm run lint` fails on `main` with 31 errors** — 24 `@typescript-eslint/no-explicit-any` and 7 `@typescript-eslint/no-unused-vars`, across `core/admin/admin.ts`, `core/event/event-settings.ts`, `core/judge/judge.ts`, `admin-dashboard/admin-judging/admin-judging.ts`, and the `sponsors`, `judge-review`, `progress` and `sign-in` specs. The lint step has no `continue-on-error`, so the frontend CI job is failing. Verified 2026-08-26 on `34f6df7` with a clean `npm ci`.
+- [ ] **At least one merge bypassed the PR gate.** `900af35 Merge branch 'feature/judge-registration' into main` is a local merge pushed straight to `main`, not a squash-merge from a reviewed PR. CI still runs on `push: main`, but a red push-build blocks nothing.
+- [ ] **`npm run format:check` cannot be trusted locally on Windows.** `core.autocrlf=true` with no `.gitattributes` gives the working tree CRLF, and Prettier's default `endOfLine: "lf"` then flags ~148 files that are perfectly fine on CI. Adding a `.gitattributes` with `* text=auto eol=lf` would make the local check mean something.
 
-### Smaller gaps
+### Security — the blocking items
+
+**These are the only things standing between the current tree and something that could be exposed.** All three are open.
+
+- [ ] ⚠️ **`POST /api/auth/dev-login` is an unauthenticated admin bypass.** It takes `{"role": "admin"}`, finds a matching user (or any user), and returns a signed JWT for them. `/api/auth/**` is `permitAll`, and the endpoint carries no `@Profile`, no secret and no environment check. Fix: gate it behind `@Profile("local")`, or delete it and use a seeded row.
+- [ ] ⚠️ **The registration and submission webhooks accept any caller.** `RegistrationWebhookController` checks `X-Webhook-Secret` **only when `app.webhook.secret` is non-blank**, and `application.properties` commits it as empty. Fix: require the secret, and treat a blank one as a startup failure the way `app.jwt.secret` already is.
+- [ ] **The `auth/` package still has no test.** Unchanged since PR #32. It is the only code that decides who gets in, and CI compiles it without running it. **The frontend half was closed in #54**, so the asymmetry has now stood for 15 PRs.
+
+> **The `security/` audit is not evidence about any of these.** `AI-CHECKLIST.md` drove a 17-category pass that marks 16 of 17 PASS; it does not mention `dev-login` or the blank webhook secret. Read those reports as "this category was reviewed at that commit", not "this area is safe now".
+
+### Screening and auto-reject — not built
+
+- [ ] **There is no auto-reject filter for registrations, and `event_settings.screening_enabled` has no consumer.** The column is settable from the admin Event Settings section and read back by `AdminBackendService`, and **nothing branches on it**. `admin-participants.ts` says so in a comment.
+- [ ] **A blank resume imports today.** `tools/TeamRow` rejects a resume/LinkedIn/GitHub value that is *present but is not a URL*, and only **warns** when the field is left empty — `validateUrl` argues the case deliberately. Same for a missing phone.
+- [ ] **The admin Participants eligibility control is a view filter, not a policy.** `eligibilityOf(studentAddress, emailVerified)` derives `eligible` / `unverified` / `not_student` from the email domain and `users.email_verified`. It stores nothing and gates nothing, and it does not look at `resume_url`.
+- [ ] **There is no way to express "rejected".** No table carries a rejected state; a row that fails validation is simply not imported, and since `users` is the sign-in allowlist the person just cannot sign in and is never told why. `notifications_log` still has no writer, so there is no path to tell them.
+
+> **Where the work goes if this is picked up.** `TeamRow.validateBlock` is the enforcement point, and the policy should be read from `event_settings` beside the size limits — the pattern V6 established, so tightening a rule stays an `UPDATE` rather than a recompile. Turning a warning into a rejection is one line per field. The two open questions are design, not code: **per-field flags or one `screening_enabled` switch**, and **does "rejected" mean not-imported or imported-and-flagged** — the second needs a column and a notification path that do not exist.
+
+### The Sheets pipeline — works, but unguarded
+
+- [ ] **Live sheet ids are committed** in `application.properties`, and both services poll on a 15-second fixed delay, so every checkout that starts the backend hits the team's real sheets four times a minute. The only off switch is blanking the id — there is no enable flag.
+- [ ] **The registration scheduled sync logs its failures at `DEBUG`** and the submission one at `WARN`. At the default level a registration sync that has been failing all day is silent. Make them agree.
+- [ ] **Neither importer's in-app path has a test.** `FormRegistrationImporterTest` and `FormSubmissionImporterTest` cover the CLI entry points; `RegistrationImportService`, `SubmissionImportService` and the scheduled polls are untested.
+
+### Still open from before
+
+- [ ] **Still no HTTP interceptor, and the cost has multiplied.** Every authenticated call attaches `Authorization: Bearer …` by hand from `AuthService.token()`. That was one call when #60 shipped; `core/admin/admin.ts` alone now does it in **thirteen** places. Writing the interceptor is now cleanup, not a design decision.
+- [ ] **The demo sign-in still bypasses everything.** `signIn(role)` picks one of three hardcoded `DEMO_USERS` with no token, and the guards cannot tell that session from a real one. Guards gate *navigation*; only `SecurityConfig` gates data — and it now genuinely guards things people call.
+- [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
+- [ ] **Six CHECK vocabularies remain unratified** — see [docs/README.md](README.md). `assignments.status` is now consumed by both the judge portal and the admin workspace and was never ratified; the two `notifications_log` vocabularies still have **no consumer at all**.
+- [ ] **V7's seed is destructive if re-run.** `V7__seed_judging_criteria.sql` opens with `delete from scores; delete from judging_criteria;`. Safe as applied, and not a pattern to repeat — if the rubric changes mid-event, write an `update`.
+- [ ] **`Technology Integration (TBC)` is a live placeholder criterion**, worth 15 of 100 points, pending sponsor alignment. Judges see it.
+- [ ] **Nothing has been deployed.** Both `Dockerfile`s and `docs/GCP_DEPLOYMENT_GUIDE.md` exist; no environment does.
+- [ ] **41 commits on `main` still carry a tooling `Co-authored-by:` trailer.** Weighed on 16 Aug and **declined** — clearing them would rewrite 94 of 126 commits and hand new SHAs to two teammates who never had one. #58 stops new ones. Unchanged.
+- [ ] **Placeholder content remains in places.** `DEMO_USERS` still exists beside the real sign-in. Read the file header before treating a seed as a team decision.
+
+### Closed since this file was last updated
+
+- [x] ~~**One endpoint pair, and it is the auth one.**~~ Closed across #63/#65/#67/#69. Eight more controllers, ~40 endpoints, all three roles served.
+- [x] ~~**Nothing persists in the UI.**~~ Closed. All seven core services are `HttpClient` callers; the in-memory stand-ins are gone.
+- [x] ~~**The Google Forms pipeline stops at registration.**~~ Closed in #65/#67. `FormSubmissionImporter` plus `SubmissionImportService` populate `submissions.status` / `submitted_at`, and V5 added the columns the submission form collects.
+- [x] ~~**Judging Progress is the last stub.**~~ Closed in #69. The admin workspace is ten of ten.
+- [x] ~~**A stored session is never revalidated.**~~ Closed in #60.
+
+### Closed earlier, kept for the record
 
 - [x] ~~**The initial bundle is over budget.**~~ Resolved in #47 — the two judge routes went lazy and the initial bundle fell to 452.82 kB. **And #49 closed the mechanism that let it drift**: the error threshold moved from 1 MB to 500 kB, so a breach now fails the build and therefore CI, with a 480 kB warning as the early signal. The remaining eager routes are the public pages plus the four participant ones.
-- [ ] **The client id is configured in two places** — `GOOGLE_CLIENT_ID` on the frontend and `app.google.client-id` on the backend. They must match or login 401s on audience verification, and nothing checks that they do.
 - [x] ~~**No linting.**~~ Resolved in #50 — angular-eslint 21 over TypeScript and templates, `npm run lint`, and a CI step that fails the job on a violation. #51 added the template **accessibility** preset on top. One thing remains deliberately outside it: type-aware rules, because the compiler already does that work under `strict`.
-- [ ] **41 commits on `main` still carry a tooling `Co-authored-by:` trailer, and that is now a decision.** #58 stops new ones. The existing 41 put `claude` in the repo's Contributors sidebar, and clearing it needs *all* of them gone — which chains into rewriting 94 of 126 commits, because the trailer commits are interleaved with the database work and every descendant SHA changes with them. That would hand new SHAs to 41 of Darren's commits and 5 of Shariq's, neither of whom ever had the trailer, and force both to reset their clones. **Weighed on 16 Aug and declined as not worth the disruption.** Two things worth knowing if it is ever revisited: the REST `/contributors` endpoint reports only commit *authors* and will wrongly say the list is clean, and GitHub's permanent `refs/pull/N/head` means old PR pages keep the trailer regardless of any rewrite.
 - [x] ~~**Formatting was checked by nobody.**~~ Closed in #57. Prettier had been installed since setup and run by hand, so `app.config.ts` and `sign-in.html` had sat unformatted without anything reporting it. `npm run format:check` now runs in CI beside the lint step and fails the job. **The two checks do not overlap** — `eslint-config-prettier` switches every layout rule off, so a green lint was never evidence of a formatted tree. `frontend/.prettierignore` is what makes the check usable: Prettier ignores `.gitignore`, so the gitignored `figma-draft/` export was drowning the two real violations under ~32 of its own.
 - [x] ~~**Uneven test coverage — 22 files still have no spec.**~~ Closed in #52, which specced the remaining 21 source files: `core/results/results.ts`, `core/event/milestones.ts`, `event-content.ts` and `event-config.ts`, the whole layout kit, and every section component under `progress/`, `results/`, `judge-portal/`, `judge-review/` and `home/`. **Every file under `src/app/` now has a colocated spec except `app.config.ts`** (and `src/main.ts`), which are bootstrap wiring with nothing to assert. The count went 30 → 22 → 0 across #48 and #52. What is *not* closed by this is the auth gap below: coverage is now even across the frontend, and the backend `auth/` package still has none.
 - [x] ~~**`assignments.status` has two label maps.**~~ Merged in #55. `ADMIN_ASSIGNMENT_STATUS_LABELS` and the `AdminAssignmentStatus` union beside it are gone; `core/admin/admin.ts` imports `AssignmentStatus` from `core/judge/judge.ts`, and the admin Assignments chips render `app-status-pill` instead of their own `.chip--<status>` treatment. **The wording and the vocabulary now each live in exactly one place**, so a relabelling cannot leave the judge and organiser views disagreeing about the same row.
 - [x] ~~**Two homepage copy strings do not follow their config.**~~ Both fixed in #56. The hardcoded "one of three tracks" is gone — the blurb reads "Pick a track — A, B and C —", so the list carries the count instead of a second, separately-maintained statement of it. `trackList()` now special-cases one track (bare name, no orphan "and") and no tracks (''), which the template reads as "leave the aside out". The specs render one, two, four and zero tracks, so the shapes today's three-track config hides are now exercised rather than assumed.
-- [ ] **Six CHECK vocabularies remain unratified** — see [docs/README.md](README.md). Three are at least exercised by the frontend; three (`assignments.status`, `notifications_log.type`, `notifications_log.status`) had never been reviewed until the judge pages started consuming the first of them.
-- [ ] **Placeholder content.** `DEMO_USERS`, `DEFAULT_EVENT_CONFIG` dates and the service seeds are marked as placeholders in the source. Read the file header before treating any of it as a team decision.
 
 ---
 
@@ -249,67 +324,78 @@ All seven mirror their tables field for field, and the three team-facing ones sh
 
 | #60 | 08-16 | **A reload now checks the session instead of trusting it** — `AuthService.revalidateSession()` GETs `/api/auth/me` with the stored JWT on construction and signs out on 401/403, so an expired token or a deleted user stops looking signed in. `GET /api/auth/me` had been written for exactly this and had sat with no caller since #32. Three cases are deliberately left alone: the tokenless demo session, an unreachable backend, and an answer that arrives after the token changed. Both sign-in paths now map the backend user through one `toAuthUser()` helper. 782 → 798 tests |
 
+| #61 | 08-17 | Homepage "Register Now" CTA pointing at the live Google Form |
+| #62 | 08-17 | CLAUDE.md aligned with the tree as of #61. **The last time the docs were current before this pass.** |
+| #63 | 08-19 | **Google Sheets becomes a direct import source** — `tools/GoogleSheetsReader` reads the sheet through the Sheets API with a service-account key, so no CSV export is needed. With it: `POST /api/webhooks/forms/registration` and an Apps Script `onFormSubmit` guide, a **`@Scheduled` 15-second poll**, `docs/SHEETS-SETUP.md`, the first live admin endpoints (`AdminController` + `AdminBackendService`), `GET /api/teams/my` wired to My Team, admin accounts excluded from the participants roster, and imported teams set to `status = 'complete'` |
+| #64 | 08-19 | The Averis event proposal added to `docs/` |
+| #65 | 08-19 | **Project submissions sync from Sheets too** — `tools/FormSubmissionImporter`, `SubmissionImportService`, `POST /api/webhook/submissions`, and `GET /api/submissions/my` behind the live My Submission view. Fuzzy team matching on resubmission, audit entries written during sync, the submission date window dropped, GIS moved to FedCM, and COOP configured on the dev server |
+| #66 | 08-20 | **Copy and typography from the Averis proposal** — real event dates, the problem statement and partners, the schedule at phase level with clock times dropped, eligibility opened to any university, titles in serif and body in sans |
+| #67 | 08-21 | Live submission form URLs, the timeline subtab removed from Progress, and the team view streamlined |
+| #68 | 08-22 | **Team size stated as 2–5 across the site**, solo-entry copy removed, admin API responses typed |
+| #69 | 08-23 | **Judging end to end** — `JudgeController` + `JudgeBackendService`, the scoring rubric wired to the backend, **V7** seeding the criteria, **V8** adding `judges_per_team`, single and batch manual judge registration in the admin dashboard, results publication, and the Judging Progress section — the last admin stub. Also: the registered full name is no longer overwritten by the Google profile name |
+| #70 | 08-24 | **UI revamp** — the floating Averis orb on spring physics, partner cards led by the logo, a plain-language copy pass, and eight pages plus the orb taken out of the initial bundle |
+| #71 | 08-24 | Timeline arrives on scroll instead of scrolling horizontally; track stylesheet brought back inside budget |
+| #72 | 08-25 | Homepage, sign-in and site-wide navigation modernised; initial SVG scene and copy visibility fixed on immediate mount |
+| #73 | 08-25 | Pages fade in on tab change |
+| #74 | 08-25 | The orb becomes a Gemini sparkle, rocking rather than turning |
+| #75 | 08-25 | Scoring rubric made readable and self-consistent; the total bar returns with a colour per rank; the judging-criteria button points at a section that exists |
+| #76 | 08-26 | **SEO and production packaging** — `robots.txt`, `sitemap.xml`, Schema.org JSON-LD, live database state enforced across all portal pages, production `Dockerfile`s for both halves, and `docs/GCP_DEPLOYMENT_GUIDE.md`. Plus the 17-category security audit under `security/` |
+| — | 08-26 | **This pass** (`docs/align-current-state`) — CLAUDE.md, `docs/README.md` and this file realigned with the tree after 89 commits of drift. Docs only; no behaviour changed |
+
 **In flight:** nothing.
 
 ---
 
 ## 6. What comes next
 
-In order. The first item is not first by preference.
+In order. Item 0 blocks verifying any of the rest; items 1–3 block exposing this to anyone.
 
-1. **Test the auth package.** It is the only code that decides who gets in, it is the only code with no test, and CI cannot catch a break in it. A `@WebMvcTest` over `AuthController` with the verifier stubbed covers the three branches that matter (valid + registered → 200, valid + unregistered → 403, unverified email → 401); a `JwtService` round-trip test covers the rest. Do this before the endpoints multiply.
-2. **First non-auth controller + DTOs**, following the packages-by-feature shape the entities already use. Expect a 401 on the first call — `anyRequest().authenticated()` is the rule, and that is deliberate now rather than accidental.
-3. **An HTTP interceptor**, in the same change as that controller, to attach `AuthService.token()` as `Authorization: Bearer …`. One request does this by hand today — `revalidateSession()` — and should be moved onto the interceptor rather than left as a second way of doing it.
-4. **Replace the stand-ins one at a time.** They already return `Promise<{ok} | {ok:false, error}>`, so callers should not need reshaping — this is meant to be a change of data source. `signInWithGoogle()` is the worked example of the shape.
-5. **Close the remaining auth loophole** — ~~call `GET /api/auth/me` on reload~~ done in #60; what is left is deciding when the demo `signIn(role)` path comes out. That one is not a code problem: the moment it goes, everybody needs a real `users` row, so it waits on the form import having run.
-6. ~~**Keep an eye on the bundle**~~ — done. #47 bought 47 kB of headroom and #49 made 500 kB a hard error, so CI now catches a breach instead of warning past it. Only participant and public pages are left eager; the fix when the error fires is `loadComponent`, as the three role-gated pages already do.
-7. **Ratify the remaining CHECK vocabularies** now that judge and admin pages consume them, and note that `SecurityConfig`'s `hasAuthority("admin"/"judge")` is a third copy of the `users.role` literals.
-8. ~~**Add ESLint**~~ — done in #50, with the accessibility preset following in #51, and ~~the coverage gaps~~ closed in #52. **The one coverage gap left is item 1 on this list**: the frontend is evenly covered and the backend `auth/` package still has no test at all.
-
-Running alongside, and not waiting on any of the above: **Judging Progress**, the last workspace section. It is not blocked on the schema — it maps onto its tables as designed — but is parked pending a decision on how judging is run.
-
-**The publication chain is now closed end to end.** Publishing from the Results section stamps `team_results.published_at` *and* sets `event_settings.results_published_at`; `PhaseService` derives the phase from that column and `ResultsService.published` reads the phase, so an organiser publishing genuinely opens the participant results page. Unpublishing closes it again.
+0. **Get CI green.** `npm run lint` fails on `main` with 31 errors (24 `no-explicit-any`, 7 `no-unused-vars`). Nothing else on this list is verifiable while the gate is red. Most of the `any`s are in the API-response types added when the services were wired to the backend — typing them properly is the fix, not a suppression.
+1. **Close `dev-login`.** `POST /api/auth/dev-login` returns a signed admin JWT to any anonymous caller. Gate it behind `@Profile("local")` or delete it. One line, highest severity in the tree.
+2. **Require the webhook secret.** `app.webhook.secret` ships blank and the check is skipped when it is. Make a blank secret a startup failure the way `app.jwt.secret` already is, and set a real one wherever this runs.
+3. **Test the `auth/` package.** It has been item 1 on this list since PR #59 and is still empty. A `@WebMvcTest` over `AuthController` with the verifier stubbed covers the branches that matter (valid + registered → 200, valid + unregistered → 403, unverified email → 401, and — once it is gated — `dev-login` refusing outside `local`); a `JwtService` round-trip covers the rest.
+4. **Get the sheet ids and the poll out of committed config.** Move `app.sheets.*` into `application-local.properties` / environment variables so a fresh checkout does not poll the team's live sheets on startup, and make the registration service's scheduled-sync failure log a `warn` so a broken sync is visible.
+5. **Write the HTTP interceptor.** Thirteen hand-written `Authorization` headers in `core/admin/admin.ts` alone, plus the ones in the other services and `revalidateSession()`. Pure cleanup now; the design question was settled when the second call landed.
+6. **Decide the screening policy** — see [§4](#4-what-is-not-done). `event_settings.screening_enabled` is a toggle with nothing behind it and a blank resume imports today. The code change is small; the two decisions (per-field flags versus one switch, and what "rejected" means when there is no rejected state and no notification path) are not.
+7. **Retire the demo sign-in.** `signIn(role)` picks a hardcoded user with no token, and the guards cannot tell it from a real session. It waits on everyone having a real `users` row, which the form import now provides — so this is unblocked and just needs doing.
+8. **Ratify the remaining CHECK vocabularies.** `assignments.status` is now consumed by both the judge portal and the admin workspace and was never approved; `SecurityConfig`'s `hasAuthority("admin"/"judge")` is a third copy of the `users.role` literals. The two `notifications_log` vocabularies have no consumer at all — decide whether notifications are in scope before ratifying strings nothing writes.
+9. **Replace `Technology Integration (TBC)`** once the sponsor position is settled. It is worth 15 of 100 points and judges see the "(TBC)" in its title.
+10. **Deploy.** Both `Dockerfile`s and `docs/GCP_DEPLOYMENT_GUIDE.md` are written and nothing has been stood up. Items 1, 2 and 4 are prerequisites, not nice-to-haves.
 
 ---
+
 
 ## 7. Verification
 
+> ⚠️ **Nothing in this section was re-run for the 2026-08-26 docs pass.** Every figure below was measured on or before PR #60 and describes a tree that is 89 commits behind `main`. The spec count is now **72 files** (was 61) and the backend has **22 test classes** (was 13), so the pass/fail figures are certainly wrong and possibly optimistic. **Re-run both suites before quoting any number here.**
+
+```powershell
+# frontend
+cd frontend; npm ci; npm run lint; npm run format:check; npx ng test --watch=false; npm run build
+# backend — needs the container up on 5433
+docker start hackathon-pg16
+cd backend; .\mvnw.cmd -B clean verify
+```
+
+### Carried forward from PR #60 (2026-08-16) — stale
+
 | Suite | Command | Result | Run against |
 | ----- | ------- | ------ | ----------- |
-| Frontend | `npm run lint` | **All files pass linting — exit 0** (accessibility preset included) | `feature/revalidate-session-on-reload`, 2026-08-16 |
-| Frontend | `npm run format:check` | **All matched files use Prettier code style — exit 0** | `feature/revalidate-session-on-reload`, 2026-08-16 |
-| Frontend | `npx ng test --watch=false` | **61 files, 798 tests passed** | `feature/revalidate-session-on-reload`, 2026-08-16 |
-| Frontend | `npm run build` | **453.39 kB initial — ✅ exit 0, 27 kB below the 480 kB warning** | `feature/revalidate-session-on-reload`, 2026-08-16 |
-| Backend | `./mvnw -B clean test-compile` | **BUILD SUCCESS** (compiles; no tests run) | `523911f`, 2026-08-13 |
-| Backend | `./mvnw -B clean verify` | **44 tests, 0 failures, 0 errors — BUILD SUCCESS** | `98e50df`, 2026-08-12 |
+| Frontend | `npm run lint` | All files pass linting — exit 0 | `feature/revalidate-session-on-reload` |
+| Frontend | `npm run format:check` | All matched files use Prettier code style — exit 0 | `feature/revalidate-session-on-reload` |
+| Frontend | `npx ng test --watch=false` | 61 files, 798 tests passed | `feature/revalidate-session-on-reload` |
+| Frontend | `npm run build` | 453.39 kB initial — exit 0, 27 kB below the 480 kB warning | `feature/revalidate-session-on-reload` |
+| Backend | `./mvnw -B clean verify` | 44 tests, 0 failures, 0 errors | `98e50df` |
 
-**The backend suite was not re-run for this pass** — no Postgres was reachable, so only compilation was verified. The 44-test figure is carried forward from `98e50df` and predates the `auth/` package; since `auth/` has no tests of its own, the count is expected to be unchanged, but nobody has confirmed the context still loads against a real database with the new validated properties in play. Run `./mvnw -B clean verify` with the container up before relying on it.
+**What still holds regardless of the counts:**
 
-**The bundle is under budget for the first time since #34, and the budget is now enforced.** The warning arrived with the HTTP layer (490.74 kB → 517.29 kB) and drifted down as pages shed dependencies — #40 dropped `FormsModule` from the two participant pages, #45 removed the sponsor tier machinery. #47 ended it outright: moving `JudgePortal` and `JudgeReview` behind `loadComponent` took 52.53 kB out of the initial chunk (505.35 kB → **452.82 kB**), into a 20.03 kB and a 23.14 kB lazy chunk. Note the two figures do not net: the judge pages shared code with the eager bundle that now travels with them.
-
-#49 then made 500 kB the *error* threshold rather than 1 MB. **This was verified by breaching it deliberately** — thresholds temporarily lowered to 400/420 kB, at which `npm run build` printed `✘ [ERROR]` and exited **1**, then restored. Under the real values it exits 0 at **453.39 kB** — #60's revalidation added 0.57 kB, the only movement since. A budget nothing enforces is a comment, so it was worth proving the gate closes.
-
-**The spec count is 798 across 61 files**, the last 16 from #60's session revalidation — no new file, because they belong beside the auth specs they extend. They were held to the usual bar on four mutations, chosen as the four ways this feature could sign out somebody it should not: dropping the tokenless guard failed **24** tests (every real-session spec in the file, because a demo session then issues a request nothing answers); signing out on any error rather than 401/403 failed exactly the two that keep a session through an unreachable backend; and removing each of the two race guards in turn failed exactly one test each — the success-path guard is what stops a signed-out session being resurrected, the failure-path guard is what stops a stale 401 clobbering a fresh sign-in. Dropping the `Authorization` header failed the one spec that reads it, which matters more than it looks: without the header the backend's filter never populates the context, `/me` answers 401, and revalidation would sign out *every* session it was given rather than some.
-
-**Before that it was 778 across 61 files**, the 37 before these from #54's auth work — 23 on `AuthService.signInWithGoogle` and 14 on the sign-in page. They are the first frontend specs to use `provideHttpClientTesting()`, and they reach the credential handler through the paste-a-token form because jsdom cannot run Google Identity Services; the GIS callback and that form share the handler, so covering one covers both. Three mutations were checked: removing the `isRole` fallback so an unknown role passes through, moving the 403 branch to 409, and dropping `errorMessage.set(result.error)` — caught by 1, 3 and 3 tests respectively.
-
-**Before that it was 741 across 61 files, up from 502 across 40.** All 239 came from #52, which specced the last 21 frontend source files without one; #48 had done the same for the eight admin-dashboard components, and the two together take the untested count from 30 to zero. The build is unchanged at 452.82 kB across both, as it should be — specs are not bundled, so movement there would mean something had been imported into production code by mistake.
-
-**#52's specs were written against the reasoning, not the rendering.** Where a component encodes a schema rule or a decision, the test names it: `criterion-card` clearing to `null` rather than `0` because "unscored" and "scored zero" are different `scores` rows; `judging-progress` counting against the non-declined total because that is the denominator `percentComplete` uses; `rankings-table` prefixing a shared rank with `=` because standard competition ranking otherwise reads as a bug. Assertions run against the exported map or service where one exists — `ASSIGNMENT_STATUS_LABELS`, `ORGANIZERS`, `AdminService`-style — so a vocabulary change surfaces as a component that stopped reading it, not as a stale literal in a test.
-
-**`progress-stage.spec.ts` is the odd one:** the file it covers declares only types, so the spec holds the agreement instead. `ProgressStageId` is pinned by an exhaustive `Record`, which fails to *compile* if an id is added or renamed, and one test renders `Progress` to confirm it emits exactly as many stages as the union declares — the hand-written six-element `completion` array it indexes into is what a seventh stage would silently knock out of step.
-
-**The linter was checked the same way as the budget guard** — an unused import added to `app.ts`, at which `npm run lint` reported `@typescript-eslint/no-unused-vars` and exited **1**, then removed. A linter that has never failed is an untested one.
-
-Each new spec was checked by breaking the code it covers and confirming the right test failed — the cascade guard in Assignments, the competitor confirmation in Judges, and the `Math.max(1, …)` floor in the workload panel were each inverted in turn, and each was caught. A spec that passes either way tests nothing.
-
-**#52 was held to the same bar, on three mutations spanning a service, a component and a shared derivation.** `outcomeFor`'s finalist threshold was narrowed from rank 10 to 3 (caught by `results.spec.ts`); `criterion-card`'s `Number.isNaN` guard was removed so a typed `5abc` would emit `NaN` (caught by its own spec); and `MilestoneService`'s `Math.floor` was swapped for `Math.ceil` (caught **four** times, twice in `milestones.spec.ts` and twice in `event-timeline.spec.ts`, which is the point — the countdown is shared and both readers of it now assert on it).
-
-The backend run was a real one against the container on 5433, not a skip: `UserRepositoryTest` trips `users_email_lowercase_check` deliberately, and the log shows the constraint firing. It also means V1 + V2 apply cleanly and every entity mapping passes `ddl-auto=validate` against the live schema.
-
-**Backend tests require a running Postgres.** A connection error means the container is not up — start it with `docker start hackathon-pg16`.
+- **The bundle budget is a gate, not a warning.** #49 set the error threshold to 500 kB with a 480 kB warning, verified by breaching it deliberately. A breach fails the build and therefore CI.
+- **The linter and the formatter are both gating**, and they do not overlap — `eslint-config-prettier` switches every layout rule off, so a green lint was never evidence of a formatted tree.
+- **Backend tests require a running Postgres.** H2 was removed from `pom.xml` entirely; the baseline schema uses `timestamptz`, `jsonb`, identity columns and cross-column CHECKs that no substitute engine can execute. A connection error means the container is not up.
+- **`FlywayBaselineMigrationTests` refuses to run** unless the live JDBC connection metadata shows a database ending in `/hackathon_db_test`, read from the connection rather than a property. It now asserts **eight** migrations to target version `8` — adding a migration means updating it.
 
 ---
+
 
 ## 8. Where the detail lives
 
@@ -320,7 +406,11 @@ This file says *what state things are in*. It deliberately does not repeat the r
 | Conventions, traps, commands, Boot 4 gotchas, Angular 21 notes | [CLAUDE.md](../CLAUDE.md) |
 | Which schema decisions are ratified vs. still proposals | [docs/README.md](README.md) |
 | The structural schema (11 tables, 3 slides) | `docs/databaseSchema.pdf` — **structural only, and predates V2** |
-| The actual current schema | The live database, or V1 + V2 read together |
+| The actual current schema | The live database, or V1 through V8 read together |
+| Google Cloud service-account setup and the Apps Script webhook | [docs/SHEETS-SETUP.md](SHEETS-SETUP.md) |
+| Cloud Run deployment and monitoring | [docs/GCP_DEPLOYMENT_GUIDE.md](GCP_DEPLOYMENT_GUIDE.md) |
+| The event itself — format, tracks, prizes, dates | [docs/EVENT-PROPOSAL.md](EVENT-PROPOSAL.md) |
+| The security audit, and what it does **not** cover | `security/reports/` — read with [§4](#4-what-is-not-done) |
 
 **These go stale the same way everything else does.** This file, CLAUDE.md and docs/README.md describe the same system from different angles, and nothing checks them against each other. A migration that changes a CHECK vocabulary, a DEFAULT or an `ON DELETE` rule has to update all three, plus the frontend union that mirrors it. When in doubt, read the live constraint:
 

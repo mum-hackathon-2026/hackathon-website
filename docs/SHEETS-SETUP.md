@@ -67,6 +67,9 @@ This guide explains how to set up Google Sheets API access using a Google Cloud 
 | **Default Key Path** | `backend/credentials/sheets-key.json` |
 | **Env Var Override**| `GOOGLE_APPLICATION_CREDENTIALS` |
 | **Team size** | Read from `event_settings` at import time — see below |
+| **Submission sheet** | `app.sheets.submission-sheet-id` / `app.sheets.submission-tab`, falling back to the registration sheet id |
+| **Poll interval** | `app.sheets.poll-interval-ms`, **default 15000** — see §8 |
+| **Webhook secret** | `app.webhook.secret` — **ships blank, which disables the check**. See §7 |
 
 ---
 
@@ -142,6 +145,14 @@ cd backend
 
 ## 7. Instant Push Execution (Google Apps Script Webhook)
 
+> ⚠️ **Set `app.webhook.secret` before you use this.** `RegistrationWebhookController` checks the
+> `X-Webhook-Secret` header **only when the property is non-blank**, and `application.properties`
+> commits it as `app.webhook.secret=` — empty. As shipped, the endpoint is unauthenticated and
+> anyone who can reach the backend can trigger a full sheet import. Put a real secret in
+> `application-local.properties` (or an environment variable) and use the same value in the script
+> below. **Never commit the secret** — the placeholder in the snippet is deliberate.
+
+
 To automatically trigger registration import the moment a user submits the Google Form, set up an `onFormSubmit` Apps Script webhook:
 
 1. Open your linked Google Sheet (`1kdANBJLmrnc8s5enGOohfW7X80bnqKaM_Dr_uwxEOV4`).
@@ -155,7 +166,7 @@ To automatically trigger registration import the moment a user submits the Googl
 function onFormSubmit(e) {
   // Replace with your deployed backend server URL (or ngrok/tunnel for local testing)
   var WEBHOOK_URL = "https://your-server-domain.com/api/webhooks/forms/registration";
-  var WEBHOOK_SECRET = "dev_webhook_secret_2026"; // matches app.webhook.secret
+  var WEBHOOK_SECRET = "REPLACE_ME"; // must match app.webhook.secret — see the warning below
 
   var payload = {
     eventType: "form_submission",
@@ -190,3 +201,103 @@ function onFormSubmit(e) {
    - Select event type: **On form submit**
    - Click **Save** and grant permissions.
 
+
+---
+
+## 8. The importers also run inside the app
+
+The Apps Script webhook is one of **two** triggers, and the other one runs whether or not you set
+the webhook up.
+
+Both `webhook/RegistrationImportService` and `webhook/SubmissionImportService` carry:
+
+```java
+@Scheduled(fixedDelayString = "${app.sheets.poll-interval-ms:15000}", initialDelay = 3000)
+```
+
+**A running backend re-reads its sheet every 15 seconds.** Three consequences worth knowing before
+you start the app:
+
+- **The sheet ids are committed in `application.properties`** and point at the team's live sheets.
+  Every checkout that starts the backend polls them four times a minute against the Sheets API
+  quota. **The only off switch is blanking the id** — set `app.sheets.sheet-id=` and
+  `app.sheets.submission-sheet-id=` in `application-local.properties` if you do not want this.
+  There is no separate enable flag.
+- **The registration sync swallows its failures at `DEBUG`.** `RegistrationImportService.scheduledSync`
+  catches every exception and logs `log.debug(...)`, so at the default level a sync that has been
+  failing all day is completely silent. `SubmissionImportService` uses `log.warn` for the same case.
+- **The import is idempotent**, which is what makes polling safe: a team already present with the
+  same members is reported as already present and left alone.
+
+### The two endpoints
+
+| | Registration | Submission |
+| - | ------------ | ---------- |
+| Endpoint | `POST /api/webhooks/forms/registration` | `POST /api/webhook/submissions` |
+| Sheet id | `app.sheets.sheet-id` | `app.sheets.submission-sheet-id` (falls back to `sheet-id`) |
+| Tab | `app.sheets.tab` | `app.sheets.submission-tab` |
+| Writes | `users`, `teams`, `team_members` | `submissions` |
+| Re-submission | Rejected if the members differ | **Updates** the existing row |
+
+Both accept `?dryRun=true`, which does the real inserts and rolls them back.
+
+### Credential lookup order
+
+`resolveCredentialsPath` tries four locations in order and uses the first that exists:
+
+1. `app.sheets.credentials-path`
+2. `$GOOGLE_APPLICATION_CREDENTIALS`
+3. `backend/credentials/sheets-key.json`
+4. `credentials/sheets-key.json`
+
+`credentials/` is gitignored at both the repo root and inside `backend/`, and no key has ever been
+committed. Keep it that way.
+
+---
+
+## 9. What the importer rejects, and what it lets through
+
+This is the part people ask about when they mean "can we auto-reject applicants". **Today the
+answer is no** — the importer validates *shape*, not *eligibility*, and its rules are hardcoded.
+
+**Rejected** (the row is not imported; every other row still is, and the run ends with exit `1`):
+
+| | Rule |
+| - | ---- |
+| Team | No team name; team name over 120 characters; a team name already taken by a different set of members |
+| Size | Fewer members than `event_settings.min_team_size`, or more than `max_team_size` |
+| Name | A member with no name, or a name over 200 characters |
+| Email | A member with no email; a malformed email; an email outside 3–320 characters; the same email twice inside one team; an email already on another team |
+| Links | A resume, LinkedIn or GitHub value that is **present but is not an `http(s)://` URL** |
+
+**Warned, but still imported** — the row goes in and the warning is printed for a human to chase:
+
+- A member left **phone** blank.
+- A member left **resume**, **LinkedIn** or **GitHub** blank.
+- A blank member block sits *between* two filled ones (someone may have been dropped).
+
+**So a participant with no resume is imported today.** That is deliberate — `TeamRow.validateUrl`
+argues it in a comment: a value that is present but wrong is a mistake worth chasing, an absent one
+is a nullable column doing its job, and refusing a whole team over one empty box blocks a
+registration the organisers would rather have.
+
+### If you want an auto-reject filter
+
+There is a column waiting for it — **`event_settings.screening_enabled`** — and **nothing reads it**.
+It is settable from the admin Event Settings section and reported in the Participants section, and
+no code branches on it. (The eligibility dropdown in the admin Participants table is a *view filter*
+over rows that are already imported. It derives `eligible` / `unverified` / `not_student` from the
+email domain and `users.email_verified`, stores nothing, and never looks at `resume_url`.)
+
+The enforcement point is **`TeamRow.validateBlock`**, and the policy should be read from
+`event_settings` beside the size limits — the pattern V6 established, so tightening a rule stays an
+`UPDATE` rather than a recompile. Turning a warning into a rejection is one line per field.
+
+Two questions have to be answered first, and neither is a code question:
+
+1. **Per-field flags, or one `screening_enabled` switch?** "Require a resume" and "require a
+   LinkedIn" are not obviously the same decision, and one boolean cannot express both.
+2. **What does "rejected" mean?** Today a rejected row is simply *not imported*, and `users` is the
+   sign-in allowlist — so the person cannot sign in and is never told why. No table carries a
+   `rejected` state, and `notifications_log` has no writer, so there is no path to tell them.
+   Rejecting silently at import time and rejecting visibly are different features.

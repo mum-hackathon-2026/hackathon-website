@@ -44,11 +44,12 @@ export interface SiteCopy {
   /**
    * Registration and project submission both live on Google Forms — the site
    * only links out to them. A form collects one row per team (leader plus up to
-   * three members), which `tools/FormRegistrationImporter` reads into `users`,
-   * `teams` and `team_members`; nothing is written from the browser.
+   * four more members, 2-5 total, read from `event_settings`), which
+   * `tools/FormRegistrationImporter` reads into `users`, `teams` and
+   * `team_members`; the submission form feeds `tools/FormSubmissionImporter`.
+   * Nothing is written from the browser.
    *
-   * PLACEHOLDER URLS — not the real forms, same caveat as the dates above.
-   * Swap both values when the real links land.
+   * Both URLs are live as of #67 — they are no longer placeholders.
    */
   readonly teamRegistrationFormUrl: string;
   readonly projectSubmissionFormUrl: string;
