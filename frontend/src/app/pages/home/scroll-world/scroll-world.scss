@@ -15,8 +15,6 @@
   color: var(--sw-ink);
   font-family: var(--sw-font-body);
   contain: layout paint style;
-  scroll-snap-align: start;
-  scroll-snap-stop: normal;
 }
 
 :host {
