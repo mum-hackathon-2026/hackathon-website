@@ -47,6 +47,11 @@ export class EventSettingsService {
 
   constructor() {
     void this.fetchLiveSettings();
+    if (this.http) {
+      setInterval(() => {
+        void this.fetchLiveSettings();
+      }, 10000);
+    }
   }
 
   /** The whole row, for callers that read several fields at once. */

@@ -245,6 +245,13 @@ public class AdminBackendService {
         if (request.shortlisted() != null && request.shortlisted() != team.isShortlisted()) {
             team.setShortlisted(request.shortlisted());
             logAudit(actor, request.shortlisted() ? "Team shortlisted" : "Team removed from shortlist", "team", team.getId(), null);
+
+            var trOpt = teamResultRepository.findById(team.getId());
+            if (trOpt.isPresent()) {
+                TeamResult tr = trOpt.get();
+                tr.setOutcome(request.shortlisted() ? "finalist" : "participant");
+                teamResultRepository.save(tr);
+            }
         }
 
         teamRepository.save(team);

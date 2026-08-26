@@ -219,12 +219,28 @@ export class ResultsService {
 
   /** This participant's team result, or null when their team has none. */
   readonly myResult = computed<TeamResult | null>(() => {
-    if (this.auth.user()?.token) {
-      return this.liveMyResult();
-    }
+    const myTeam = this.teams.myTeam();
     const liveMine = this.liveMyResult();
-    if (liveMine) return liveMine;
-    return this.rankings().find((row) => row.isMine) ?? null;
+    if (this.auth.user()?.token) {
+      if (liveMine) {
+        if (myTeam?.shortlisted && liveMine.outcome !== 'finalist') {
+          return { ...liveMine, outcome: 'finalist' };
+        }
+        return liveMine;
+      }
+      return null;
+    }
+    if (liveMine) {
+      if (myTeam?.shortlisted && liveMine.outcome !== 'finalist') {
+        return { ...liveMine, outcome: 'finalist' };
+      }
+      return liveMine;
+    }
+    const seedMine = this.rankings().find((row) => row.isMine) ?? null;
+    if (seedMine && myTeam?.shortlisted && seedMine.outcome !== 'finalist') {
+      return { ...seedMine, outcome: 'finalist' };
+    }
+    return seedMine;
   });
 
   /** Per-criterion scores for this team, averaged across its judges. */
@@ -313,13 +329,14 @@ export class ResultsService {
   constructor() {
     effect((onCleanup) => {
       const isPublished = this.published();
-      if (this.http && isPublished) {
+      const user = this.auth.user();
+      if (this.http && (isPublished || user)) {
         void this.refreshResults();
         const timer = setInterval(() => {
           void this.refreshResults();
-        }, 15000);
+        }, 10000);
         onCleanup(() => clearInterval(timer));
-      } else if (!isPublished) {
+      } else if (!isPublished && !user) {
         this.liveRankings.set(null);
         this.liveMyResult.set(null);
         this.liveMyCriteria.set(null);

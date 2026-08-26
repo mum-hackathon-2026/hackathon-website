@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../core/event/event-config';
 import { EventSettingsService } from '../../core/event/event-settings';
 import { OUTCOME_LABELS, ResultsService } from '../../core/results/results';
+import { TeamService } from '../../core/team/team';
 import { PdfReportService } from '../../core/results/pdf-report.service';
 import { PageHeader } from '../../layout/page-header/page-header';
 import { StateLocked } from '../../layout/state-locked/state-locked';
@@ -32,6 +33,7 @@ interface TabDef {
 })
 export class Results {
   private readonly results = inject(ResultsService);
+  private readonly teams = inject(TeamService);
   private readonly pdfService = inject(PdfReportService);
 
   protected readonly config = inject(EVENT_CONFIG);
@@ -48,7 +50,8 @@ export class Results {
 
   protected readonly isFinalist = computed(() => {
     const mine = this.myResult();
-    return mine?.outcome === 'finalist';
+    const team = this.teams.myTeam();
+    return mine?.outcome === 'finalist' || team?.shortlisted === true;
   });
 
   protected readonly activeTab = signal<ResultsTab>('result');

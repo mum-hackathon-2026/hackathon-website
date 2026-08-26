@@ -95,7 +95,12 @@ public class ResultController {
             String teamName = tr.getTeam() != null ? tr.getTeam().getName() : "Team " + tr.getTeamId();
             String projectTitle = sub != null && sub.getProjectTitle() != null ? sub.getProjectTitle() : "";
             String trackLabel = sub != null && sub.getTrackLabel() != null ? sub.getTrackLabel() : "Open Innovation";
-            boolean tied = tr.getRank() != null && rankCounts.getOrDefault(tr.getRank(), 0L) > 1;
+            String outcome = tr.getOutcome();
+            if (tr.getTeam() != null && tr.getTeam().isShortlisted()) {
+                outcome = "finalist";
+            } else if (outcome == null && tr.getRank() != null) {
+                outcome = tr.getRank() <= 10 ? "finalist" : "participant";
+            }
 
             dtoList.add(new PublicTeamResultDto(
                     tr.getTeamId(),
@@ -104,7 +109,7 @@ public class ResultController {
                     trackLabel,
                     tr.getFinalScore(),
                     tr.getRank(),
-                    tr.getOutcome(),
+                    outcome,
                     tr.getJudgeCount(),
                     tied
             ));
@@ -146,6 +151,13 @@ public class ResultController {
                 .filter(r -> r.getPublishedAt() != null && tr.getRank().equals(r.getRank()))
                 .count() > 1;
 
+        String outcome = tr.getOutcome();
+        if (team.isShortlisted()) {
+            outcome = "finalist";
+        } else if (outcome == null && tr.getRank() != null) {
+            outcome = tr.getRank() <= 10 ? "finalist" : "participant";
+        }
+
         PublicTeamResultDto resultDto = new PublicTeamResultDto(
                 tr.getTeamId(),
                 team.getName(),
@@ -153,7 +165,7 @@ public class ResultController {
                 trackLabel,
                 tr.getFinalScore(),
                 tr.getRank(),
-                tr.getOutcome(),
+                outcome,
                 tr.getJudgeCount(),
                 tied
         );

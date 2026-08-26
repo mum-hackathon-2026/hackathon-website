@@ -10,6 +10,7 @@ import {
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService, ROLE_LABELS, Role } from '../../core/auth/auth';
 import { ResultsService } from '../../core/results/results';
+import { TeamService } from '../../core/team/team';
 import { ProfileMenu } from '../profile-menu/profile-menu';
 
 interface NavLink {
@@ -56,6 +57,7 @@ export class NavBar {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly results = inject(ResultsService);
+  private readonly teams = inject(TeamService);
   private readonly accountArea = viewChild<ElementRef<HTMLElement>>('accountArea');
 
   protected readonly user = this.auth.user;
@@ -68,7 +70,8 @@ export class NavBar {
     const role = this.auth.role();
     if (role !== 'participant') return false;
     const res = this.results.myResult();
-    return res?.outcome === 'finalist';
+    const team = this.teams.myTeam();
+    return res?.outcome === 'finalist' || team?.shortlisted === true;
   });
 
   protected readonly links = computed<readonly NavLink[]>(() => {
