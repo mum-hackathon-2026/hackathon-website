@@ -11,19 +11,15 @@
           @for (partner of marqueePartners; track $index) {
             <li class="organizers__partner">
               @if (partner.logo) {
-                <div class="organizers__partner-logo-box">
-                  <img
-                    [src]="partner.logo"
-                    [alt]="partner.name + ' logo'"
-                    class="organizers__partner-logo"
-                    loading="lazy"
-                  />
-                </div>
+                <img
+                  [src]="partner.logo"
+                  [alt]="partner.name + ' logo'"
+                  class="organizers__partner-logo"
+                  loading="lazy"
+                />
+              } @else {
+                <p class="organizers__partner-wordmark">{{ partner.name }}</p>
               }
-              <div class="organizers__partner-meta">
-                <p class="organizers__partner-role">{{ partner.role }}</p>
-                <p class="organizers__partner-name">{{ partner.name }}</p>
-              </div>
             </li>
           }
         </ul>
@@ -33,19 +29,15 @@
           @for (partner of marqueePartners; track $index) {
             <li class="organizers__partner">
               @if (partner.logo) {
-                <div class="organizers__partner-logo-box">
-                  <img
-                    [src]="partner.logo"
-                    [alt]="partner.name + ' logo'"
-                    class="organizers__partner-logo"
-                    loading="lazy"
-                  />
-                </div>
+                <img
+                  [src]="partner.logo"
+                  [alt]="partner.name + ' logo'"
+                  class="organizers__partner-logo"
+                  loading="lazy"
+                />
+              } @else {
+                <p class="organizers__partner-wordmark">{{ partner.name }}</p>
               }
-              <div class="organizers__partner-meta">
-                <p class="organizers__partner-role">{{ partner.role }}</p>
-                <p class="organizers__partner-name">{{ partner.name }}</p>
-              </div>
             </li>
           }
         </ul>

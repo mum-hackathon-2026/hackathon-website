@@ -248,6 +248,16 @@ export interface Partner {
   /** What they are to the event: organiser, club partner, sponsor. */
   readonly role: string;
   readonly responsibility: string;
+  /**
+   * Path to the logo under frontend/public/, carrying no `assets/` prefix —
+   * angular.json copies that folder to the build root.
+   *
+   * These are the full lockups from `docs/Averis Hackathon Design Guidline`,
+   * mark and wordmark together, because the home-page marquee renders the logo
+   * on its own and lets the wordmark name the partner. A mark-only crop would
+   * leave those cards unlabelled. `name` stays the accessible name, and the
+   * marquee falls back to it as a wordmark when this is absent.
+   */
   readonly logo?: string;
 }
 
@@ -267,6 +277,12 @@ export const PARTNERS: readonly Partner[] = [
     role: 'Club partner',
     responsibility: 'Publicity, and oversees event execution',
     logo: 'logos/mumtec.png',
+  },
+  {
+    name: 'MD',
+    role: 'Institution partner',
+    responsibility: 'Premier Digital Tech Institution accreditation',
+    logo: 'logos/md.png',
   },
 ];
 
