@@ -168,7 +168,7 @@ Tests run against `hackathon_db_test` and wipe it on every run, so don't keep an
 | [CLAUDE.md](./CLAUDE.md) | Conventions, traps, commands, and how each part actually works |
 | [docs/PROJECT-STATUS.md](./docs/PROJECT-STATUS.md) | What is built, what is not, what comes next |
 | [docs/README.md](./docs/README.md) | Which schema decisions are ratified and which are proposals |
-| [docs/SHEETS-SETUP.md](./docs/SHEETS-SETUP.md) | Google Sheets service account, the webhook, and what the importer rejects |
+| [docs/SHEETS-SETUP.md](./docs/SHEETS-SETUP.md) | Google Sheets service account, the webhook, and what the importer imports, holds for a human, and rejects |
 | [docs/GCP_DEPLOYMENT_GUIDE.md](./docs/GCP_DEPLOYMENT_GUIDE.md) | Cloud Run deployment and monitoring |
 | [docs/EVENT-PROPOSAL.md](./docs/EVENT-PROPOSAL.md) | The event itself — format, tracks, prizes, dates |
 | [AGENTS.md](./AGENTS.md) | Security rules for generated code, with the stack translation |

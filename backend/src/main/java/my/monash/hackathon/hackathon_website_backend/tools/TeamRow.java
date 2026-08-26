@@ -95,9 +95,14 @@ final class TeamRow {
     /**
      * {@code githubUrl} is the person's own GitHub account, collected for screening. It is
      * unrelated to {@code submissions.github_url}, which is a team's project repository.
+     *
+     * <p>{@code major} has no column in {@code users} and is never written anywhere. It is
+     * read for one purpose — {@link EligibilityScreening}'s IT course check — and then
+     * discarded with the row. It is carried verbatim, punctuation and capitalisation
+     * included, because the report quotes it back to whoever has to judge it.
      */
-    record Member(int block, String fullName, String email, String phone, String resumeUrl,
-                  String linkedinUrl, String githubUrl) {}
+    record Member(int block, String fullName, String email, String phone, String major,
+                  String resumeUrl, String linkedinUrl, String githubUrl) {}
 
     /** A row that could not be interpreted; {@code reason} is written for a human. */
     static final class InvalidRowException extends RuntimeException {
@@ -143,11 +148,18 @@ final class TeamRow {
         return warnings;
     }
 
-    /** The six values collected per person, with the header spellings each will match. */
+    /** The values collected per person, with the header spellings each will match. */
     enum Field {
         NAME("Name", "name", "fullname", "fullnamefirstfamilyname"),
         EMAIL("Email", "email", "emailaddress"),
         PHONE("Phone", "phone", "phonenumber", "contactnumber", "mobile", "phonewhatsappnumber"),
+        // Feeds the IT course check and nothing else - there is no users.major column. The
+        // aliases are wide on purpose: this question is titled differently on every form
+        // ("Major", "Course", "Field of Study", "Degree Programme"), and a spelling that
+        // fails to map halts the whole run rather than importing anyone unscreened.
+        MAJOR("Major", "major", "fieldofstudy", "majorfieldofstudy", "majororfieldofstudy",
+                "fieldofstudymajor", "course", "courseofstudy", "majorcourse", "degree",
+                "degreeprogramme", "degreeprogram", "programme", "program", "studyfield"),
         RESUME("Resume", "resume", "resumeurl", "resumelink", "cv", "cvlink", "resumecvpdf"),
         LINKEDIN("LinkedIn", "linkedin", "linkedinurl", "linkedinlink", "linkedinprofile", "linkedinprofileurl"),
         // The person's own account. Nothing here matches a "project"/"repo" spelling on
@@ -341,26 +353,30 @@ final class TeamRow {
             warnings.add(who + " (" + fullName + ") gave no phone number");
         }
 
-        String resumeUrl = validateUrl(values.get(Field.RESUME), "resume", who, fullName, warnings);
-        String linkedinUrl =
-                validateUrl(values.get(Field.LINKEDIN), "LinkedIn", who, fullName, warnings);
-        String githubUrl =
-                validateUrl(values.get(Field.GITHUB), "GitHub", who, fullName, warnings);
+        // Verbatim, not lowercased and not blank-to-nulled: the screening report quotes it
+        // back to a human, and "" is itself the answer to "what did they put?".
+        String major = values.get(Field.MAJOR);
 
-        return new Member(block, fullName, email, phone, resumeUrl, linkedinUrl, githubUrl);
+        String resumeUrl = validateUrl(values.get(Field.RESUME), "resume", who, fullName);
+        String linkedinUrl = validateUrl(values.get(Field.LINKEDIN), "LinkedIn", who, fullName);
+        String githubUrl = validateUrl(values.get(Field.GITHUB), "GitHub", who, fullName);
+
+        return new Member(block, fullName, email, phone, major, resumeUrl, linkedinUrl, githubUrl);
     }
 
     /**
      * A value that is present but is not a URL is a rejection — "will send later" in the
-     * resume box is exactly the thing a human needs to chase. A value that is simply absent
-     * is a warning: the column is nullable, and refusing the whole team over a blank box
-     * would block a registration the organisers would rather have.
+     * resume box is a form somebody filled in wrongly on purpose, and no amount of chasing
+     * turns that string into a link. A value that is simply absent returns null and is
+     * picked up by {@link EligibilityScreening} as a PENDING reason instead: the column is
+     * nullable, and a blank box is a person to remind, not a team to refuse.
+     *
+     * <p>Shape only. Which domain the URL points at is screening's business, not this
+     * class's — a wrong domain is a paste error and must not reject the row.
      */
-    private static String validateUrl(String value, String what, String who, String fullName,
-                                      List<String> warnings) {
+    private static String validateUrl(String value, String what, String who, String fullName) {
         String trimmed = blankToNull(value);
         if (trimmed == null) {
-            warnings.add(who + " (" + fullName + ") gave no " + what + " link");
             return null;
         }
         if (!URL.matcher(trimmed).matches()) {

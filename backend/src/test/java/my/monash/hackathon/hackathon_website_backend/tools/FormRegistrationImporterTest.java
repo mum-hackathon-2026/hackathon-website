@@ -50,10 +50,17 @@ class FormRegistrationImporterTest {
     private static final String TEAM_PREFIX = "ITEST ";
 
     private static final List<String> FIELDS =
-            List.of("Name", "Email", "Phone", "Resume", "LinkedIn", "GitHub");
+            List.of("Name", "Email", "Phone", "Major", "Resume", "LinkedIn", "GitHub");
 
-    /** Six empty cells: a member block that is present in the form but not filled in. */
-    private static final String NO_MEMBER = ",,,,,";
+    /** Seven empty cells: a member block that is present in the form but not filled in. */
+    private static final String NO_MEMBER = ",,,,,,";
+
+    /**
+     * The major every fixture member is on unless the test is about screening. It matches
+     * the "computer science" keyword, so a team built from {@link #member(String)} passes
+     * the IT course check and the test can be about whatever it is actually about.
+     */
+    private static final String IT_MAJOR = "Computer Science";
 
     @TempDir private Path tempDir;
 
@@ -73,19 +80,19 @@ class FormRegistrationImporterTest {
 
     @Test
     void memberBlockMissingOneColumnAbortsAndNamesIt() throws IOException, SQLException {
-        // Member 3's block declares five of its six columns - the shape a mis-titled form
+        // Member 3's block declares six of its seven columns - the shape a mis-titled form
         // question produces. Before the guard existed this imported happily, storing a null
         // GitHub URL for a member whose GitHub URL the form had actually collected.
         Path file = csv("missing-column.csv",
                 "Timestamp,Team Name,"
-                        + "Member 1 Name,Member 1 Email,Member 1 Phone,Member 1 Resume,"
-                        + "Member 1 LinkedIn,Member 1 GitHub,"
-                        + "Member 3 Name,Member 3 Email,Member 3 Phone,Member 3 Resume,"
-                        + "Member 3 LinkedIn",
+                        + "Member 1 Name,Member 1 Email,Member 1 Phone,Member 1 Major,"
+                        + "Member 1 Resume,Member 1 LinkedIn,Member 1 GitHub,"
+                        + "Member 3 Name,Member 3 Email,Member 3 Phone,Member 3 Major,"
+                        + "Member 3 Resume,Member 3 LinkedIn",
                 "2026/08/01 9:00:00 AM GMT+8," + team("Partial Block") + ","
                         + member("Leader One") + ","
                         + "Third Person," + email("Third Person") + ",+60 12-000 0000,"
-                        + "https://drive.google.com/file/d/third/view,"
+                        + IT_MAJOR + ",https://drive.google.com/file/d/third/view,"
                         + "https://www.linkedin.com/in/third");
 
         Run run = runImporter("--file=" + file);
@@ -93,8 +100,8 @@ class FormRegistrationImporterTest {
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
         assertThat(run.output())
                 .contains("STOPPING: member 3's block is incomplete - no column for GitHub.")
-                .contains("A member block is all six columns or none at all: "
-                        + "Name, Email, Phone, Resume, LinkedIn, GitHub.")
+                .contains("A member block is all 7 columns or none at all: "
+                        + "Name, Email, Phone, Major, Resume, LinkedIn, GitHub.")
                 .contains("'Member 3 GitHub'")
                 .doesNotContain("RESULT ");
         assertThat(countUsers()).isZero();
@@ -106,8 +113,8 @@ class FormRegistrationImporterTest {
         // Two mis-titled blocks are both named, so one trip to the spreadsheet fixes both.
         Path file = csv("two-partial.csv",
                 "Timestamp,Team Name,"
-                        + "Member 1 Name,Member 1 Email,Member 1 Phone,Member 1 Resume,"
-                        + "Member 1 LinkedIn,Member 1 GitHub,"
+                        + "Member 1 Name,Member 1 Email,Member 1 Phone,Member 1 Major,"
+                        + "Member 1 Resume,Member 1 LinkedIn,Member 1 GitHub,"
                         + "Member 2 Name,Member 2 Email,"
                         + "Member 4 Name,Member 4 Phone",
                 "2026/08/01 9:00:00 AM GMT+8," + team("Two Partial") + ","
@@ -120,18 +127,18 @@ class FormRegistrationImporterTest {
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
         assertThat(run.output())
                 .contains("STOPPING: member 2's block is incomplete - no column for "
-                        + "Phone, Resume, LinkedIn, GitHub.")
+                        + "Phone, Major, Resume, LinkedIn, GitHub.")
                 .contains("STOPPING: member 4's block is incomplete - no column for "
-                        + "Email, Resume, LinkedIn, GitHub.");
+                        + "Email, Major, Resume, LinkedIn, GitHub.");
     }
 
     @Test
     void leaderBlockMissingOneColumnStillAborts() throws IOException {
         Path file = csv("no-leader-resume.csv",
                 "Timestamp,Team Name,Member 1 Name,Member 1 Email,Member 1 Phone,"
-                        + "Member 1 LinkedIn,Member 1 GitHub",
+                        + "Member 1 Major,Member 1 LinkedIn,Member 1 GitHub",
                 "2026/08/01 9:00:00 AM GMT+8," + team("No Resume") + ",Leader One,"
-                        + email("Leader One") + ",+60 12-000 0000,"
+                        + email("Leader One") + ",+60 12-000 0000," + IT_MAJOR + ","
                         + "https://www.linkedin.com/in/leader-one,https://github.com/leader-one");
 
         Run run = runImporter("--file=" + file);
@@ -252,7 +259,7 @@ class FormRegistrationImporterTest {
                         + member("Alpha One") + "," + member("Beta Two") + ","
                         + NO_MEMBER + "," + NO_MEMBER,
                 "2026/08/01 9:05:00 AM GMT+8," + team("Bad Team") + ","
-                        + "Broken Person,not-an-email,+60 12-000 0000,"
+                        + "Broken Person,not-an-email,+60 12-000 0000," + IT_MAJOR + ","
                         + "https://drive.google.com/file/d/broken/view,"
                         + "https://www.linkedin.com/in/broken,https://github.com/broken,"
                         + member("Second Person") + "," + NO_MEMBER + "," + NO_MEMBER);
@@ -276,11 +283,13 @@ class FormRegistrationImporterTest {
         Path file = csv("two-bad-rows.csv",
                 header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Bad One") + ",Broken,not-an-email,"
-                        + "+60 12-000 0000,https://drive.google.com/file/d/b/view,"
+                        + "+60 12-000 0000," + IT_MAJOR
+                        + ",https://drive.google.com/file/d/b/view,"
                         + "https://www.linkedin.com/in/b,https://github.com/b,"
                         + member("Beta Two"),
                 "2026/08/01 9:05:00 AM GMT+8,,Nameless Team,other@" + EMAIL_DOMAIN
-                        + ",+60 12-000 0000,https://drive.google.com/file/d/c/view,"
+                        + ",+60 12-000 0000," + IT_MAJOR
+                        + ",https://drive.google.com/file/d/c/view,"
                         + "https://www.linkedin.com/in/c,https://github.com/c,"
                         + member("Gamma Three"));
 
@@ -295,7 +304,8 @@ class FormRegistrationImporterTest {
         Path file = csv("dry-bad.csv",
                 header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Bad One") + ",Broken,not-an-email,"
-                        + "+60 12-000 0000,https://drive.google.com/file/d/b/view,"
+                        + "+60 12-000 0000," + IT_MAJOR
+                        + ",https://drive.google.com/file/d/b/view,"
                         + "https://www.linkedin.com/in/b,https://github.com/b,"
                         + member("Beta Two"));
 
@@ -311,7 +321,7 @@ class FormRegistrationImporterTest {
         Path file = csv("malformed.csv",
                 header(1),
                 "2026/08/01 9:00:00 AM GMT+8,\"" + team("Unterminated") + ",Alice,"
-                        + email("Alice") + ",+60 12-000 0000,"
+                        + email("Alice") + ",+60 12-000 0000," + IT_MAJOR + ","
                         + "https://drive.google.com/file/d/a/view,"
                         + "https://www.linkedin.com/in/a,https://github.com/a");
 
@@ -403,12 +413,13 @@ class FormRegistrationImporterTest {
                         + "Member 1: Year of Study,Member 1: Semester,Member 1: Dietary Restrictions,"
                         + "Do you want to add another team member?,"
                         + "Member 2: Full Name (First & Family Name),Member 2: Email Address,"
-                        + "Member 2: Phone / WhatsApp Number,Member 2: Resume / CV (PDF),"
+                        + "Member 2: Phone / WhatsApp Number,Member 2: Major,"
+                        + "Member 2: Resume / CV (PDF),"
                         + "Member 2: LinkedIn Profile URL,Member 2: GitHub Profile URL",
                 "2026/08/01 9:00:00 AM GMT+8,Primary Guy,primary@" + EMAIL_DOMAIN + ",+60 11-111 1111,Male,Monash,"
                         + team("Unknown Cols") + ",Real Leader," + email("Real Leader") + ",+60 12-000 0000,"
                         + "https://drive.google.com/file/d/real/view,https://www.linkedin.com/in/real,"
-                        + "https://github.com/real,No,Monash,CS,Y2,S1,None,No,"
+                        + "https://github.com/real,No,Monash,Computer Science,Y2,S1,None,No,"
                         + member("Real Second"));
 
         Run run = runImporter("--file=" + file);
@@ -457,9 +468,13 @@ class FormRegistrationImporterTest {
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
         assertThat(run.output())
                 .contains("Exit codes:")
-                .contains("0   the import ran to the end and nothing was rejected")
-                .contains("1   the import ran to the end, but rejected= is non-zero")
-                .contains("2   nothing was imported.");
+                .contains("0   the import ran to the end and nothing needs a human")
+                .contains("1   the import ran to the end, but rejected= or pending= is non-zero")
+                .contains("2   nothing was imported.")
+                // The three outcomes and the limits of the URL check are documented where
+                // an operator will actually meet them, not only in docs/.
+                .contains("PENDING   screening held it for a human")
+                .contains("Links are checked for SHAPE and DOMAIN ONLY.");
     }
 
     @Test
@@ -593,17 +608,17 @@ class FormRegistrationImporterTest {
 
     @Test
     void partiallyPresentMemberFiveBlockAborts() throws IOException, SQLException {
-        // The all-six-or-none guard now reaches block 5, because block 5 is inside the
-        // limit. Five of its six columns is a mis-titled question, not a smaller team.
+        // The all-or-none guard now reaches block 5, because block 5 is inside the limit.
+        // Six of its seven columns is a mis-titled question, not a smaller team.
         Path file = csv("partial-five.csv",
                 header(4)
-                        + ",Member 5 Name,Member 5 Email,Member 5 Phone,Member 5 Resume,"
-                        + "Member 5 LinkedIn",
+                        + ",Member 5 Name,Member 5 Email,Member 5 Phone,Member 5 Major,"
+                        + "Member 5 Resume,Member 5 LinkedIn",
                 "2026/08/01 9:00:00 AM GMT+8," + team("Partial Five") + ","
                         + member("Alpha One") + "," + member("Beta Two") + ","
                         + NO_MEMBER + "," + NO_MEMBER + ","
                         + "Fifth Person," + email("Fifth Person") + ",+60 12-000 0000,"
-                        + "https://drive.google.com/file/d/fifth/view,"
+                        + IT_MAJOR + ",https://drive.google.com/file/d/fifth/view,"
                         + "https://www.linkedin.com/in/fifth");
 
         Run run = runImporter("--file=" + file);
@@ -623,8 +638,8 @@ class FormRegistrationImporterTest {
         // person, and a project repo must not land in it for member 5 either.
         Path file = csv("repo-header-five.csv",
                 header(4)
-                        + ",Member 5 Name,Member 5 Email,Member 5 Phone,Member 5 Resume,"
-                        + "Member 5 LinkedIn,Member 5: GitHub Project Repository",
+                        + ",Member 5 Name,Member 5 Email,Member 5 Phone,Member 5 Major,"
+                        + "Member 5 Resume,Member 5 LinkedIn,Member 5: GitHub Project Repository",
                 "2026/08/01 9:00:00 AM GMT+8," + team("Repo Five") + ","
                         + member("Alpha One") + "," + member("Beta Two") + ","
                         + NO_MEMBER + "," + NO_MEMBER + "," + member("Epsilon Five"));
@@ -706,6 +721,337 @@ class FormRegistrationImporterTest {
         assertThat(queryOne("select count(*) from event_settings where id = 1")).isEqualTo(1);
     }
 
+    // ------------------------------------------------------------ screening: IT course
+
+    @Test
+    void oneItMemberIsEnoughForTheWholeTeam() throws IOException, SQLException {
+        // Mixed teams are the point of the event. One member on an IT course carries the
+        // team; the business student beside them is not a problem to be reported.
+        Path file = csv("one-it-member.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Mixed") + ","
+                        + member("Alpha One", "Bachelor of Business Administration") + ","
+                        + member("Beta Two", "Bachelor of Software Engineering"));
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
+        assertThat(run.output())
+                .contains("IMPORTED")
+                .contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0 pending=0")
+                .doesNotContain("PENDING");
+        assertThat(countTeams()).isEqualTo(1);
+    }
+
+    @Test
+    void majorMatchesOnSubstringNotOnEquality() throws IOException, SQLException {
+        // The real sheet's answers are sentences, not vocabulary terms. "Computer Science in
+        // Data Science" has to match "computer science" or the check is useless in practice.
+        Path file = csv("substring-major.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Substring") + ","
+                        + member("Alpha One", "Computer Science in Data Science") + ","
+                        + member("Beta Two", "Actuarial Science"));
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
+        assertThat(run.output()).contains("IMPORTED").doesNotContain("PENDING");
+        assertThat(countTeams()).isEqualTo(1);
+    }
+
+    @Test
+    void teamWithNoItMemberIsPendingNotRejectedAndIsNotInTheDatabase()
+            throws IOException, SQLException {
+        // The distinction this whole change exists for. Nobody on the team is obviously on
+        // an IT course - which is a question for a person, not grounds for a refusal - so
+        // the row is held, every major is quoted back verbatim, and nothing is written.
+        Path file = csv("no-it-member.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("No IT") + ","
+                        + member("Alpha One", "Business Analytics") + ","
+                        + member("Beta Two", "Actuarial Science"));
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("PENDING")
+                .contains("'" + team("No IT") + "' - no clear IT-related course")
+                .contains("(majors: \"Business Analytics\", \"Actuarial Science\")")
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=1")
+                // Held, not refused: the two are on different lists and mean different work.
+                .doesNotContain("REJECTED");
+
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+    }
+
+    @Test
+    void pendingTeamsReappearOnASecondRun() throws IOException, SQLException {
+        // Nothing was written the first time, so nothing suppresses the second report. This
+        // is what makes PENDING self-clearing: fix the sheet and the team simply imports.
+        Path file = csv("pending-twice.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Held Twice") + ","
+                        + member("Alpha One", "Business Analytics") + ","
+                        + member("Beta Two", "Actuarial Science"));
+
+        Run first = runImporter("--file=" + file);
+        Run second = runImporter("--file=" + file);
+
+        assertThat(first.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(second.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(second.output())
+                .contains("PENDING")
+                .contains("'" + team("Held Twice") + "' - no clear IT-related course")
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=1")
+                // Not reported as already present: a held team holds no rows to match on.
+                .doesNotContain("SKIPPED");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+    }
+
+    @Test
+    void aMissingMajorColumnAbortsWithExitTwo() throws IOException, SQLException {
+        // The worst available outcome is importing a season of registrations unscreened
+        // because a form question was renamed, so this is fatal rather than reported.
+        StringBuilder header = new StringBuilder("Timestamp,Team Name");
+        for (int block = 1; block <= 2; block++) {
+            for (String field : List.of("Name", "Email", "Phone", "Resume", "LinkedIn", "GitHub")) {
+                header.append(",Member ").append(block).append(' ').append(field);
+            }
+        }
+        Path file = csv("no-major-column.csv",
+                header.toString(),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Unscreenable") + ","
+                        + "Alpha One," + email("Alpha One") + ",+60 12-000 0000,"
+                        + "https://drive.google.com/file/d/a/view,"
+                        + "https://www.linkedin.com/in/a,https://github.com/a,"
+                        + "Beta Two," + email("Beta Two") + ",+60 12-000 0000,"
+                        + "https://drive.google.com/file/d/b/view,"
+                        + "https://www.linkedin.com/in/b,https://github.com/b");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_ABORTED);
+        assertThat(run.output())
+                .contains("STOPPING: the sheet has no Major column for any member, so no team "
+                        + "can be screened for an IT-related course.")
+                .contains("Member N: Major / Field of Study")
+                .doesNotContain("RESULT ");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+    }
+
+    @Test
+    void theKeywordListIsPrintedInFull() throws IOException {
+        // A team held for "no clear IT-related course" was judged against these exact terms.
+        // Whoever reads the report should not have to open the source to find out which.
+        Path file = csv("keywords.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Keywords") + ","
+                        + member("Alpha One") + "," + member("Beta Two"));
+
+        Run run = runImporter("--file=" + file, "--dry-run");
+
+        assertThat(run.output()).contains("computer science, information technology, "
+                + "information system, information security, computer engineering, "
+                + "computer system, computer application, computing, informatics, software, "
+                + "data science, data engineering, data analytics, artificial intelligence, "
+                + "machine learning, cyber security, digital forensics, network engineering, "
+                + "web development, game development");
+    }
+
+    // ------------------------------------------------------- screening: links and phone
+
+    @Test
+    void aGithubUrlInTheLinkedInFieldIsPending() throws IOException, SQLException {
+        // This is in the real registration data. It is a paste error, not a bad-faith
+        // registration, and refusing the team over it would be absurd - but importing a
+        // GitHub URL as somebody's LinkedIn profile is silently wrong forever.
+        Path file = csv("swapped-link.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Swapped") + ","
+                        + member("Alpha One") + ","
+                        + "Beta Two," + email("Beta Two") + ",+60 12-000 0000," + IT_MAJOR + ","
+                        + "https://drive.google.com/file/d/b/view,"
+                        + "https://github.com/beta-two,https://github.com/beta-two");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("PENDING")
+                .contains("member 2 (Beta Two) gave a github.com link for LinkedIn")
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=1");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+    }
+
+    @Test
+    void aMissingResumeIsPending() throws IOException, SQLException {
+        // This used to import with a note attached, which meant it imported and nobody read
+        // the note. A participant with no resume is a participant an organiser has to chase.
+        Path file = csv("no-resume.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("No Resume Given") + ","
+                        + member("Alpha One") + ","
+                        + "Beta Two," + email("Beta Two") + ",+60 12-000 0000," + IT_MAJOR + ","
+                        + ",https://www.linkedin.com/in/beta-two,https://github.com/beta-two");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("PENDING")
+                .contains("member 2 (Beta Two) gave no resume link")
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=1");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+    }
+
+    @Test
+    void aResumeOnTheWrongHostIsPendingAndAGoogleDocIsNot() throws IOException, SQLException {
+        // docs.google.com is as good as drive.google.com; dropbox.com is a question for a
+        // person, because the form asked for a Drive link and did not get one.
+        Path file = csv("resume-hosts.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Docs Link") + ","
+                        + member("Alpha One") + ","
+                        + "Beta Two," + email("Beta Two") + ",+60 12-000 0000," + IT_MAJOR + ","
+                        + "https://docs.google.com/document/d/b/edit,"
+                        + "https://www.linkedin.com/in/beta-two,https://github.com/beta-two",
+                "2026/08/01 9:05:00 AM GMT+8," + team("Dropbox Link") + ","
+                        + member("Gamma Three") + ","
+                        + "Delta Four," + email("Delta Four") + ",+60 12-000 0000," + IT_MAJOR
+                        + ",https://www.dropbox.com/s/d/resume.pdf,"
+                        + "https://www.linkedin.com/in/delta-four,https://github.com/delta-four");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("member 2 (Delta Four) gave a dropbox.com link for the resume")
+                .contains("RESULT mode=live rows=2 imported=1 skipped=0 rejected=0 pending=1");
+
+        // Only the Google Docs team is in the database.
+        assertThat(countTeams()).isEqualTo(1);
+        assertThat(queryOne("select count(*) from teams where name = ?", team("Docs Link")))
+                .isEqualTo(1);
+    }
+
+    @Test
+    void anUnreadablePhoneNumberIsPendingButABlankOneIsOnlyANote()
+            throws IOException, SQLException {
+        Path file = csv("phones.csv",
+                header(2),
+                // Blank: a note, and the team still imports.
+                "2026/08/01 9:00:00 AM GMT+8," + team("No Phone") + ","
+                        + member("Alpha One") + ","
+                        + "Beta Two," + email("Beta Two") + ",," + IT_MAJOR + ","
+                        + "https://drive.google.com/file/d/b/view,"
+                        + "https://www.linkedin.com/in/beta-two,https://github.com/beta-two",
+                // Present but not a number: somebody typed something else into the box.
+                "2026/08/01 9:05:00 AM GMT+8," + team("Odd Phone") + ","
+                        + member("Gamma Three") + ","
+                        + "Delta Four," + email("Delta Four") + ",call me,"
+                        + IT_MAJOR + ",https://drive.google.com/file/d/d/view,"
+                        + "https://www.linkedin.com/in/delta-four,https://github.com/delta-four");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("note: member 2 (Beta Two) gave no phone number")
+                .contains("member 2 (Delta Four) gave a phone number that is not 8 to 15 "
+                        + "digits: 'call me'")
+                .contains("RESULT mode=live rows=2 imported=1 skipped=0 rejected=0 pending=1");
+        assertThat(queryOne("select count(*) from teams where name = ?", team("No Phone")))
+                .isEqualTo(1);
+    }
+
+    @Test
+    void aLinkedInUrlWithTheDomainInTheUserinfoIsPending() throws IOException, SQLException {
+        // Parsed as a URL, not searched for a substring: the host here is example.com and a
+        // "does it contain linkedin.com" check would have waved it through.
+        Path file = csv("userinfo-host.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Userinfo") + ","
+                        + member("Alpha One") + ","
+                        + "Beta Two," + email("Beta Two") + ",+60 12-000 0000," + IT_MAJOR + ","
+                        + "https://drive.google.com/file/d/b/view,"
+                        + "https://www.linkedin.com@example.com/in/beta,"
+                        + "https://github.com/beta-two");
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("member 2 (Beta Two) gave a example.com link for LinkedIn");
+        assertThat(countTeams()).isZero();
+    }
+
+    // ------------------------------------------------- the three outcomes in one report
+
+    @Test
+    void pendingAndRejectedAreCountedAndListedSeparately() throws IOException, SQLException {
+        // One of each, in one run. The two follow-up lists exist because the two jobs are
+        // different: a pending team needs the sheet corrected, a rejected one needs a new
+        // registration, and whoever chases them should not have to sort them by eye.
+        Path file = csv("one-of-each.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Clean") + ","
+                        + member("Alpha One") + "," + member("Beta Two"),
+                "2026/08/01 9:05:00 AM GMT+8," + team("Held") + ","
+                        + member("Gamma Three", "Business Analytics") + ","
+                        + member("Delta Four", "Actuarial Science"),
+                "2026/08/01 9:10:00 AM GMT+8," + team("Refused") + ","
+                        + member("Epsilon Five") + "," + NO_MEMBER);
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("RESULT mode=live rows=3 imported=1 skipped=0 rejected=1 pending=1")
+                .contains("PENDING - 1 team was NOT imported, waiting on a human:")
+                .contains("REJECTED - 1 team could not be imported as it stands:")
+                .contains("'" + team("Held") + "' - no clear IT-related course")
+                .contains("'" + team("Refused") + "' - team has 1 member; the minimum is 2")
+                .contains("2 rows need a human");
+
+        // Exactly one team reached the database, and it is the clean one.
+        assertThat(countTeams()).isEqualTo(1);
+        assertThat(countUsers()).isEqualTo(2);
+        assertThat(queryOne("select count(*) from teams where name = ?", team("Clean")))
+                .isEqualTo(1);
+    }
+
+    @Test
+    void existingRejectionsAreUnchangedByScreening() throws IOException, SQLException {
+        // The rules that were already here still reject rather than hold: a person on two
+        // teams is not a judgement call, and screening must not have softened it.
+        Path file = csv("still-rejected.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("First Claim") + ","
+                        + member("Alpha One") + "," + member("Beta Two"),
+                // Same person, second team.
+                "2026/08/01 9:05:00 AM GMT+8," + team("Second Claim") + ","
+                        + member("Beta Two") + "," + member("Gamma Three"),
+                // Two people, same email inside one team.
+                "2026/08/01 9:10:00 AM GMT+8," + team("Same Email") + ","
+                        + member("Delta Four") + "," + member("Delta Four"));
+
+        Run run = runImporter("--file=" + file);
+
+        assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(run.output())
+                .contains("RESULT mode=live rows=3 imported=1 skipped=0 rejected=2 pending=0")
+                .contains("A person may only be on one team.")
+                .contains("duplicate email within this team");
+        assertThat(countTeams()).isEqualTo(1);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private Run runImporter(String... extraArgs) {
@@ -742,13 +1088,19 @@ class FormRegistrationImporterTest {
         return header.toString();
     }
 
-    /** The six cell values for one member, all valid. */
+    /** The seven cell values for one member, all valid and all passing screening. */
     private static String member(String name) {
+        return member(name, IT_MAJOR);
+    }
+
+    /** The same, with the major named — for the tests that are about the course check. */
+    private static String member(String name, String major) {
         String slug = slug(name);
         return String.join(",",
                 name,
                 email(name),
                 "+60 12-000 0000",
+                major,
                 "https://drive.google.com/file/d/" + slug + "/view",
                 "https://www.linkedin.com/in/" + slug,
                 "https://github.com/" + slug);

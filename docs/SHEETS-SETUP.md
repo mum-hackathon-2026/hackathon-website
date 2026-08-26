@@ -102,22 +102,30 @@ An `UPDATE` plus a form change. **No code change, and no new migration.**
 update event_settings set min_team_size = 2, max_team_size = 6 where id = 1;
 ```
 
-Then add or remove the matching block of six questions on the Google Form, titled exactly:
+Then add or remove the matching block of seven questions on the Google Form, titled exactly:
 
 ```
 Member 6: Full Name (First & Family Name)
 Member 6: Email Address
 Member 6: Phone / WhatsApp Number
+Member 6: Major / Field of Study
 Member 6: LinkedIn Profile URL
 Member 6: Resume / CV (PDF)
 Member 6: GitHub Profile URL
 ```
 
 Header matching ignores case and punctuation and is generated per block number, so a new
-block needs no alias list of its own. **A block must be all six columns or none** — five of
-six is a mis-titled question and halts the run. Keep "Repository" and "repo" out of the
+block needs no alias list of its own. **A block must be all seven columns or none** — six of
+seven is a mis-titled question and halts the run. Keep "Repository" and "repo" out of the
 GitHub question title: `users.github_url` is the person's own account, not a project repo,
 and a title containing either word aborts the import on purpose.
+
+**Never delete or rename the Major question.** It is the only input to the IT course check,
+and a sheet with no Major column anywhere aborts the import with exit `2` rather than
+importing registrations nobody screened. Its answer is used for that check and stored in no
+column. If the question has to be retitled, the importer also accepts `Major`, `Course`,
+`Field of Study`, `Course of Study`, `Degree`, `Degree Programme`, `Programme`, `Program`
+and `Study Field`, each prefixed `Member N`.
 
 ---
 
@@ -255,10 +263,12 @@ committed. Keep it that way.
 
 ---
 
-## 9. What the importer rejects, and what it lets through
+## 9. What the importer rejects, holds, and lets through
 
-This is the part people ask about when they mean "can we auto-reject applicants". **Today the
-answer is no** — the importer validates *shape*, not *eligibility*, and its rules are hardcoded.
+Every team ends in one of **three** states. `REJECTED` is structural and unfixable without a new
+registration; `PENDING` is eligibility screening holding the team for a human; everything else is
+imported. Both `REJECTED` and `PENDING` end the run with exit `1` and are listed separately in the
+report, because the follow-up work is different.
 
 **Rejected** (the row is not imported; every other row still is, and the run ends with exit `1`):
 
@@ -270,34 +280,55 @@ answer is no** — the importer validates *shape*, not *eligibility*, and its ru
 | Email | A member with no email; a malformed email; an email outside 3–320 characters; the same email twice inside one team; an email already on another team |
 | Links | A resume, LinkedIn or GitHub value that is **present but is not an `http(s)://` URL** |
 
+**Pending** (the row is **not imported**, nothing is written for it, and the run ends with exit `1`):
+
+| | Rule |
+| - | ---- |
+| Course | **No** member's major contains an IT keyword. One IT member is enough for the whole team. The message quotes every member's major verbatim so a person can judge it |
+| Links | A **blank** resume, LinkedIn or GitHub; or a link on the wrong domain — LinkedIn must be `linkedin.com`, GitHub `github.com`, a resume `drive.google.com` or `docs.google.com` (subdomains count) |
+| Phone | A phone number that is **present** but is not 8–15 digits once spaces, `+`, `-` and brackets are stripped |
+
+**A held team leaves no trace.** No row, no flag, no column — so the next run reads the sheet and
+screens it again. **Correcting the spreadsheet is the entire fix**, and a team stays on the report
+every run until somebody resolves it. That is the point; it is not a queue that can go stale.
+
+**Links are checked for shape and domain only.** Nothing calls the network. The importer cannot
+tell you a LinkedIn profile exists, that a Drive file is shared with anyone, or that a GitHub
+account belongs to the person who typed it. **Do not read a clean run as evidence that a link
+resolves.** Checking that is a different feature and needs a decision about rate limits, timeouts
+and what a 404 from a private Drive file is supposed to mean.
+
 **Warned, but still imported** — the row goes in and the warning is printed for a human to chase:
 
-- A member left **phone** blank.
-- A member left **resume**, **LinkedIn** or **GitHub** blank.
+- A member left **phone** blank. (Chaseable at any time and blocks nothing; a *malformed* phone
+  number is different and holds the team.)
 - A blank member block sits *between* two filled ones (someone may have been dropped).
 
-**So a participant with no resume is imported today.** That is deliberate — `TeamRow.validateUrl`
-argues it in a comment: a value that is present but wrong is a mistake worth chasing, an absent one
-is a nullable column doing its job, and refusing a whole team over one empty box blocks a
-registration the organisers would rather have.
+**A missing resume no longer imports with a note.** It used to, which in practice meant it imported
+and nobody read the note. It is now `PENDING`.
 
-### If you want an auto-reject filter
+### The keyword list needs a human before registration opens
 
-There is a column waiting for it — **`event_settings.screening_enabled`** — and **nothing reads it**.
-It is settable from the admin Event Settings section and reported in the Participants section, and
-no code branches on it. (The eligibility dropdown in the admin Participants table is a *view filter*
-over rows that are already imported. It derives `eligible` / `unverified` / `not_student` from the
-email domain and `users.email_verified`, stores nothing, and never looks at `resume_url`.)
+The IT course check is a case-, space- and punctuation-insensitive **substring** match against one
+constant, `EligibilityScreening.IT_COURSE_KEYWORDS`, and the list is **printed in full in every run
+header** so a "no clear IT-related course" line can be read against the terms that decided it.
 
-The enforcement point is **`TeamRow.validateBlock`**, and the policy should be read from
-`event_settings` beside the size limits — the pattern V6 established, so tightening a rule stays an
-`UPDATE` rather than a recompile. Turning a warning into a rejection is one line per field.
+- A course **missing** from the list costs somebody a manual check — the team is held, not refused,
+  so the cost is time rather than a lost registration.
+- A term that is **too broad** turns the check into a rubber stamp. `analytics` would match Business
+  Analytics, `technology` matches Food Technology and Biotechnology, and `it` appears inside
+  ordinary words like hospitality. All three are excluded on purpose.
 
-Two questions have to be answered first, and neither is a code question:
+Review it against the courses your universities actually offer. Adding a term is one line.
 
-1. **Per-field flags, or one `screening_enabled` switch?** "Require a resume" and "require a
-   LinkedIn" are not obviously the same decision, and one boolean cannot express both.
-2. **What does "rejected" mean?** Today a rejected row is simply *not imported*, and `users` is the
-   sign-in allowlist — so the person cannot sign in and is never told why. No table carries a
-   `rejected` state, and `notifications_log` has no writer, so there is no path to tell them.
-   Rejecting silently at import time and rejecting visibly are different features.
+### What is still not built
+
+- **Nobody tells the registrant.** A held or rejected team learns nothing unless an organiser
+  contacts them: no table carries a rejected state, `users` is the sign-in allowlist so they simply
+  cannot sign in, and `notifications_log` still has no writer. The report names the team, the member
+  and the reason in plain language exactly so a person can send that email by hand.
+- **`event_settings.screening_enabled` still gates nothing.** Screening always runs; the importer
+  never reads that column. A safety check that defaults to off is not a safety check. (The
+  eligibility dropdown in the admin Participants table is also *not* this — it is a view filter over
+  already-imported rows, deriving `eligible` / `unverified` / `not_student` from the email domain and
+  `users.email_verified`, storing nothing and never looking at `resume_url`.)

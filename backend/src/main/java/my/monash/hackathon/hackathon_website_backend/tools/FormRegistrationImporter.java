@@ -25,6 +25,18 @@ import java.util.Set;
  * Imports Google Form team registrations from an exported CSV or directly from Google Sheets API
  * into users, teams and team_members.
  *
+ * <h2>Three outcomes</h2>
+ *
+ * <p>A team is IMPORTED, PENDING or REJECTED. IMPORTED and REJECTED are the original pair:
+ * clean rows are written, structurally broken rows are refused. PENDING is
+ * {@link EligibilityScreening}'s: the row is fine but somebody has to look at it — no member
+ * on an obviously IT course, a GitHub URL in the LinkedIn box, a missing resume.
+ *
+ * <p><strong>A PENDING team is not written to the database at all</strong>, and nothing
+ * records that it was held. That is what makes it self-clearing: the next run reads the
+ * sheet again and screens it again, so correcting the spreadsheet is the entire fix and
+ * there is no state to reconcile if a human decides the team is fine after all.
+ *
  * <h2>Usage</h2>
  *
  * <pre>{@code
@@ -45,9 +57,14 @@ public final class FormRegistrationImporter {
 
     // Exit codes. An unattended caller reads these; the RESULT line stays the record of what
     // happened, but a scheduler should not have to parse anything to learn that a run failed.
-    /** The import ran to the end and no row was rejected. */
+    /** The import ran to the end and no row was rejected or held pending. */
     static final int EXIT_OK = 0;
-    /** The import ran to the end, but at least one row was rejected and needs a human. */
+    /**
+     * The import ran to the end, but at least one row needs a human — either rejected
+     * outright or held PENDING by screening. One code covers both because the question an
+     * unattended caller asks is "does somebody have to look at this?", and the answer is yes
+     * either way; the RESULT line's {@code rejected=} and {@code pending=} say which.
+     */
     static final int EXIT_REJECTIONS = 1;
     /** Nothing was imported: bad arguments, an unreadable or mis-titled sheet, or no database. */
     static final int EXIT_ABORTED = 2;
@@ -117,12 +134,17 @@ public final class FormRegistrationImporter {
     /** Join codes minted in this run — a dry run rolls them back, so the DB cannot see them. */
     private final Set<String> joinCodesMinted = new HashSet<>();
 
+    /**
+     * {@code success} is false when anything needs a human, pending or rejected — the
+     * webhook reports it as a partial success, which is what it is.
+     */
     public record ImportSummary(
             boolean success,
             int totalRows,
             int imported,
             int skipped,
             int rejected,
+            int pending,
             List<String> logMessages
     ) {}
 
@@ -140,16 +162,17 @@ public final class FormRegistrationImporter {
         try {
             limits = readTeamSizeLimits(connection);
         } catch (MissingLimitsException e) {
-            return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(),
+            return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(), 0,
                     List.of("STOPPING: " + e.getMessage()));
         }
 
         if (!reportColumnMapping(sheet, limits)) {
-            return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(),
-                    List.of("Column mapping failed - incomplete member block or disallowed repository question"));
+            return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(), 0,
+                    List.of("Column mapping failed - incomplete member block, a missing "
+                            + "Major column, or a disallowed repository question"));
         }
         if (sheet.rows().isEmpty()) {
-            return new ImportSummary(true, 0, 0, 0, 0, List.of("The sheet has no data rows"));
+            return new ImportSummary(true, 0, 0, 0, 0, 0, List.of("The sheet has no data rows"));
         }
 
         FormRegistrationImporter importer = new FormRegistrationImporter();
@@ -160,7 +183,10 @@ public final class FormRegistrationImporter {
         for (CsvReader.Row row : sheet.rows()) {
             Outcome outcome = importer.processRow(connection, row, limits, dryRun);
             outcomes.add(outcome);
-            logMessages.add("line " + row.lineNumber() + " " + outcome.status().label + " " + outcome.detail());
+            // Flattened: a pending reason spans lines in the console report, and a log line
+            // that contains a newline is a log line that reads as two unrelated entries.
+            logMessages.add("line " + row.lineNumber() + " " + outcome.status().label + " "
+                    + outcome.detail().replace("\n", " "));
         }
 
         int imported = (int) outcomes.stream()
@@ -168,14 +194,21 @@ public final class FormRegistrationImporter {
                 .count();
         int skipped = (int) outcomes.stream().filter(o -> o.status() == Status.ALREADY_PRESENT).count();
         int rejected = (int) outcomes.stream().filter(o -> o.status() == Status.REJECTED).count();
+        int pending = (int) outcomes.stream().filter(o -> o.status() == Status.PENDING).count();
 
-        return new ImportSummary(rejected == 0, outcomes.size(), imported, skipped, rejected, logMessages);
+        return new ImportSummary(rejected == 0 && pending == 0, outcomes.size(), imported,
+                skipped, rejected, pending, logMessages);
     }
 
     private enum Status {
         IMPORTED("IMPORTED"),
         WOULD_IMPORT("WOULD IMPORT"),
         ALREADY_PRESENT("SKIPPED"),
+        /**
+         * Screening held this team back. Nothing was written, so the next run screens it
+         * again from the sheet — correcting the spreadsheet is the whole of the fix.
+         */
+        PENDING("PENDING"),
         REJECTED("REJECTED");
 
         private final String label;
@@ -335,8 +368,14 @@ public final class FormRegistrationImporter {
             }
 
             // Printed so the operator can see which limits were actually enforced, rather
-            // than assuming the ones they have in mind.
+            // than assuming the ones they have in mind. The keyword list is printed for the
+            // same reason: a team held for "no clear IT-related course" was judged against
+            // these exact terms, and the person reading the report should not have to open
+            // the source to find out what they were.
             System.out.println("  team size   : " + limits.describe() + " (from event_settings)");
+            System.out.println("  IT keywords : " + EligibilityScreening.IT_COURSE_KEYWORDS.size()
+                    + " terms, matched as case-insensitive substrings of a member's major");
+            System.out.println("                " + EligibilityScreening.describeKeywords());
             System.out.println();
 
             if (!reportColumnMapping(sheet, limits)) {
@@ -362,24 +401,60 @@ public final class FormRegistrationImporter {
                           TeamRow.SizeLimits limits, boolean dryRun) throws SQLException {
         List<Outcome> outcomes = new ArrayList<>();
 
+        // Kept alongside the outcomes so the two follow-up lists can be reprinted together
+        // at the end. Whoever chases these reads the bottom of the output, not the middle:
+        // in a run of eighty rows the six that need a person are invisible in row order.
+        List<String> pendingReport = new ArrayList<>();
+        List<String> rejectedReport = new ArrayList<>();
+
         System.out.println("Rows");
         System.out.println("-".repeat(78));
 
         for (CsvReader.Row row : sheet.rows()) {
             Outcome outcome = processRow(connection, row, limits, dryRun);
             outcomes.add(outcome);
+            printOutcome(row.lineNumber(), outcome);
 
-            System.out.printf("line %-4d %-13s %s%n",
-                    row.lineNumber(), outcome.status().label, outcome.detail());
-            for (String warning : outcome.warnings()) {
-                System.out.printf("%s  note: %s%n", " ".repeat(18), warning);
+            if (outcome.status() == Status.PENDING) {
+                pendingReport.add(describeForFollowUp(row.lineNumber(), outcome));
+            } else if (outcome.status() == Status.REJECTED) {
+                rejectedReport.add(describeForFollowUp(row.lineNumber(), outcome));
             }
         }
 
-        printSummary(outcomes, dryRun);
+        printSummary(outcomes, dryRun, pendingReport, rejectedReport);
 
-        boolean anyRejected = outcomes.stream().anyMatch(o -> o.status() == Status.REJECTED);
-        return anyRejected ? EXIT_REJECTIONS : EXIT_OK;
+        boolean needsHuman = outcomes.stream()
+                .anyMatch(o -> o.status() == Status.REJECTED || o.status() == Status.PENDING);
+        return needsHuman ? EXIT_REJECTIONS : EXIT_OK;
+    }
+
+    /**
+     * One row of the per-line report. A detail may run to several lines — a pending team
+     * lists every reason it was held, and the course check quotes every major — so the
+     * continuation lines are indented under the first rather than wrapped into it.
+     */
+    private static void printOutcome(int lineNumber, Outcome outcome) {
+        List<String> lines = outcome.detail().lines().toList();
+        System.out.printf("line %-4d %-13s %s%n",
+                lineNumber, outcome.status().label, lines.getFirst());
+        for (String continuation : lines.subList(1, lines.size())) {
+            System.out.printf("%s  %s%n", " ".repeat(18), continuation);
+        }
+        for (String warning : outcome.warnings()) {
+            System.out.printf("%s  note: %s%n", " ".repeat(18), warning);
+        }
+    }
+
+    /** "line 4   'Team' - reason", with any continuation lines indented under it. */
+    private static String describeForFollowUp(int lineNumber, Outcome outcome) {
+        List<String> lines = outcome.detail().lines().toList();
+        StringBuilder text = new StringBuilder(String.format("  line %-4d %s", lineNumber,
+                lines.getFirst()));
+        for (String continuation : lines.subList(1, lines.size())) {
+            text.append(System.lineSeparator()).append("            ").append(continuation);
+        }
+        return text.toString();
     }
 
     /**
@@ -454,6 +529,21 @@ public final class FormRegistrationImporter {
             }
         } catch (SQLException e) {
             return Outcome.of(Status.REJECTED, label + " - database error: " + readable(e));
+        }
+
+        // Screening runs last, on a team that would otherwise have been imported. Everything
+        // above it is structural and decides the row on its own terms: a team of six or a
+        // person already on another team is not "pending a look", it is wrong, and reporting
+        // it as pending would put it on the wrong list and understate it.
+        //
+        // A pending team deliberately does NOT claim() its name or emails. It holds no rows
+        // in the database and no reservation in this run, because it may never be imported
+        // at all - and a name reserved by a team that never arrives would reject the team
+        // that legitimately takes it.
+        List<String> pendingReasons = EligibilityScreening.screen(team);
+        if (!pendingReasons.isEmpty()) {
+            return new Outcome(Status.PENDING, label + " - " + String.join("\n", pendingReasons),
+                    team.warnings());
         }
 
         return insertTeam(connection, team, label, dryRun);
@@ -711,11 +801,55 @@ public final class FormRegistrationImporter {
                     + TeamRow.teamNameHeaders() + " once case and punctuation are ignored.");
             return false;
         }
+        if (!hasAnyMajorColumn(sheet, limits)) {
+            reportMissingMajorColumn();
+            return false;
+        }
         if (!incompleteBlocks.isEmpty()) {
             reportIncompleteBlocks(incompleteBlocks);
             return false;
         }
         return true;
+    }
+
+    /** Whether the sheet carries a Major column for any member block at all. */
+    private static boolean hasAnyMajorColumn(CsvReader.Sheet sheet, TeamRow.SizeLimits limits) {
+        for (int block = 1; block <= limits.max(); block++) {
+            for (String alias : TeamRow.Field.MAJOR.aliases(block)) {
+                if (sheet.hasHeader(alias)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The one failure this tool must never turn into a quiet success.
+     *
+     * <p>Screening decides whether a team is on an IT course by reading their major. With no
+     * Major column there is no answer to read, and the only two things the importer could do
+     * instead are import everybody unchecked or hold everybody pending. The first silently
+     * admits a season of registrations nobody screened, which is the exact outcome this
+     * check exists to prevent; the second reports every team as needing a human and buries
+     * the real ones. So it stops, imports nothing, and says which column to add.
+     *
+     * <p>It is deliberately reported separately from the generic incomplete-block message,
+     * which would otherwise render this as "member 1's block is incomplete" — true, but it
+     * reads as a typo in one question rather than as the whole screening step being absent.
+     */
+    private static void reportMissingMajorColumn() {
+        System.out.println("STOPPING: the sheet has no Major column for any member, so no team "
+                + "can be screened for an IT-related course.");
+        System.out.println();
+        System.out.println("Nothing was imported. This is not a row-level problem to chase - the "
+                + "question is missing from the form, and importing everyone unscreened because "
+                + "a column vanished is worse than importing nobody.");
+        System.out.println();
+        System.out.println("Add the question to the Google Form, titled 'Member N: Major / Field "
+                + "of Study', and re-export. Recognised spellings for member 1, once case and "
+                + "punctuation are ignored:");
+        System.out.println("  " + String.join(", ", TeamRow.Field.MAJOR.aliases(1)));
     }
 
     private static String findDisallowedGithubHeader(CsvReader.Sheet sheet, int block) {
@@ -732,7 +866,7 @@ public final class FormRegistrationImporter {
         return null;
     }
 
-    /** Explains every member block that mapped some but not all of its six columns. */
+    /** Explains every member block that mapped some but not all of its columns. */
     private static void reportIncompleteBlocks(Map<Integer, List<String>> incompleteBlocks) {
         for (Map.Entry<Integer, List<String>> entry : incompleteBlocks.entrySet()) {
             int block = entry.getKey();
@@ -743,9 +877,9 @@ public final class FormRegistrationImporter {
                     + String.join(", ", entry.getValue()) + ".");
         }
         System.out.println();
-        System.out.println("A member block is all six columns or none at all: "
-                + String.join(", ", TeamRow.fieldLabels()) + ".");
-        System.out.println("Member 1 is the leader and every row has one, so its six columns are "
+        System.out.println("A member block is all " + TeamRow.fieldLabels().size()
+                + " columns or none at all: " + String.join(", ", TeamRow.fieldLabels()) + ".");
+        System.out.println("Member 1 is the leader and every row has one, so its columns are "
                 + "always required. Members 2-5 may be left out of the form entirely, but a team "
                 + "with fewer than five members leaves those columns EMPTY - it does not omit "
                 + "them. A block with only some of its columns is a mis-titled question, and "
@@ -757,24 +891,55 @@ public final class FormRegistrationImporter {
         }
     }
 
-    private static void printSummary(List<Outcome> outcomes, boolean dryRun) {
+    private static void printSummary(List<Outcome> outcomes, boolean dryRun,
+                                     List<String> pendingReport, List<String> rejectedReport) {
         long imported = outcomes.stream()
                 .filter(o -> o.status() == Status.IMPORTED || o.status() == Status.WOULD_IMPORT)
                 .count();
         long alreadyPresent =
                 outcomes.stream().filter(o -> o.status() == Status.ALREADY_PRESENT).count();
         long rejected = outcomes.stream().filter(o -> o.status() == Status.REJECTED).count();
+        long pending = outcomes.stream().filter(o -> o.status() == Status.PENDING).count();
 
         System.out.println("-".repeat(78));
-        System.out.printf("%d data row%s: %d %s, %d already present, %d rejected%n",
+        System.out.printf("%d data row%s: %d %s, %d already present, %d pending, %d rejected%n",
                 outcomes.size(), outcomes.size() == 1 ? "" : "s",
                 imported, dryRun ? "would import" : "imported",
-                alreadyPresent, rejected);
+                alreadyPresent, pending, rejected);
+
+        long needingAHuman = pending + rejected;
+        if (needingAHuman > 0) {
+            System.out.printf("%d row%s %s a human - see the two lists below.%n",
+                    needingAHuman, needingAHuman == 1 ? "" : "s",
+                    needingAHuman == 1 ? "needs" : "need");
+        }
+
+        // The two lists are printed apart because the two jobs are different. Chasing a
+        // pending team means editing the spreadsheet; a rejected team has to register again.
+        // Whoever does the chasing should not have to sort one from the other by eye.
+        if (pending > 0) {
+            System.out.println();
+            System.out.printf("PENDING - %d team%s NOT imported, waiting on a human:%n",
+                    pending, pending == 1 ? " was" : "s were");
+            pendingReport.forEach(System.out::println);
+            System.out.println("  Nothing was written for these teams. Fix the sheet and run "
+                    + "again - they are re-checked");
+            System.out.println("  from scratch every run, so there is nothing to undo and "
+                    + "nothing to clear.");
+        }
 
         if (rejected > 0) {
-            System.out.printf("%d row%s %s a human - see the REJECTED lines above.%n",
-                    rejected, rejected == 1 ? "" : "s", rejected == 1 ? "needs" : "need");
+            System.out.println();
+            System.out.printf("REJECTED - %d team%s not be imported as %s stand%s:%n",
+                    rejected, rejected == 1 ? " could" : "s could",
+                    rejected == 1 ? "it" : "they", rejected == 1 ? "s" : "");
+            rejectedReport.forEach(System.out::println);
+            System.out.println("  These are not fixable by re-running. The row itself has to "
+                    + "change - usually a new");
+            System.out.println("  registration from the team, or a decision about which team "
+                    + "keeps a name or a member.");
         }
+
         if (dryRun) {
             System.out.println();
             System.out.println("DRY RUN - nothing was committed. Every team above was written and "
@@ -782,9 +947,13 @@ public final class FormRegistrationImporter {
                     + "--dry-run to keep the results.");
         }
 
+        // The four original keys keep their names, their meanings and their order: they are
+        // documented as stable and something unattended may already be reading them.
+        // pending= is appended rather than inserted for the same reason.
         System.out.println();
-        System.out.printf("RESULT mode=%s rows=%d imported=%d skipped=%d rejected=%d%n",
-                dryRun ? "dry-run" : "live", outcomes.size(), imported, alreadyPresent, rejected);
+        System.out.printf("RESULT mode=%s rows=%d imported=%d skipped=%d rejected=%d pending=%d%n",
+                dryRun ? "dry-run" : "live", outcomes.size(), imported, alreadyPresent, rejected,
+                pending);
     }
 
     private static Options parseArguments(String[] args) {
@@ -876,19 +1045,38 @@ public final class FormRegistrationImporter {
 
                 The final line is machine-readable and its keys are stable:
 
-                  RESULT mode=live rows=8 imported=2 skipped=0 rejected=6
+                  RESULT mode=live rows=8 imported=2 skipped=0 rejected=5 pending=1
 
                 Exit codes:
 
-                  0   the import ran to the end and nothing was rejected
-                  1   the import ran to the end, but rejected= is non-zero and those
-                      rows need a human. Everything else was still imported
+                  0   the import ran to the end and nothing needs a human
+                  1   the import ran to the end, but rejected= or pending= is non-zero and
+                      those rows need a human. Everything else was still imported
                   2   nothing was imported. Bad arguments, unreadable credentials or sheet,
-                      a member block missing some of its columns, a file with no
-                      data rows, or no reachable database
+                      a member block missing some of its columns, no Major column at all,
+                      a file with no data rows, or no reachable database
 
                 A RESULT line is printed for 0 and 1 and never for 2, so an unattended
                 caller can rely on the exit code alone.
+
+                Three outcomes per team:
+
+                  IMPORTED  clean, written to the database
+                  PENDING   screening held it for a human. NOT written to the database, and
+                            re-checked from the sheet on every run - correct the sheet and
+                            the team imports itself; there is nothing to undo or clear
+                  REJECTED  structurally wrong and unfixable without a new registration: a
+                            duplicate email, a person on two teams, a duplicate team name,
+                            a team outside the permitted size
+
+                Screening holds a team PENDING when no member's major contains an IT
+                keyword, when a resume, LinkedIn or GitHub link is blank or on the wrong
+                domain, or when a phone number is not 8-15 digits. The keyword list is
+                printed in the run header, before anything is read.
+
+                Links are checked for SHAPE and DOMAIN ONLY. Nothing calls the network, so
+                a clean run is not evidence that a link resolves, that a Drive file is
+                shared, or that a profile exists or belongs to the person who typed it.
 
                 Connection settings also read IMPORT_DB_URL, IMPORT_DB_USER and
                 IMPORT_DB_PASSWORD. Prefer those over --password, which is visible to
@@ -898,13 +1086,17 @@ public final class FormRegistrationImporter {
                 Google's Timestamp are skipped):
 
                   Team Name
-                  Member 1 Name, Member 1 Email, Member 1 Phone, Member 1 Resume,
-                  Member 1 LinkedIn, Member 1 GitHub
-                  ... and the same six for Member 2, Member 3, Member 4 and Member 5.
+                  Member 1 Name, Member 1 Email, Member 1 Phone, Member 1 Major,
+                  Member 1 Resume, Member 1 LinkedIn, Member 1 GitHub
+                  ... and the same seven for Member 2, Member 3, Member 4 and Member 5.
 
                 Member N GitHub is the PERSON's GitHub account, collected so admins can
                 screen applicants. It is not a project repository - this tool never
                 writes submissions.github_url.
+
+                Member N Major feeds the IT course check and is stored nowhere: users has
+                no major column. If the sheet has no Major column at all, the run aborts
+                with exit 2 rather than importing a season of registrations unscreened.
 
                 Re-running is safe. A team already in the database with exactly the members
                 the CSV lists is reported and left alone; each team is one transaction, so
