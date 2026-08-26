@@ -83,21 +83,37 @@ describe('OrganizersSection', () => {
   describe('partners', () => {
     function partnerCards(): HTMLElement[] {
       return Array.from(
-        host().querySelectorAll<HTMLElement>('.organizers__marquee-group:not([aria-hidden]) .organizers__partner'),
+        host().querySelectorAll<HTMLElement>(
+          '.organizers__marquee-group:not([aria-hidden]) .organizers__partner',
+        ),
       );
     }
 
-    it('names every partner with its role, and nothing more', () => {
+    /*
+     * The card is the lockup and nothing else, so `alt` is the only thing that
+     * names the partner — a missing or wrong one leaves the marquee unlabelled
+     * to a screen reader with nothing on screen to give the game away.
+     */
+    it('names every partner through its logo alone', () => {
       const primaryCards = partnerCards().slice(0, PARTNERS.length);
-      expect(primaryCards.length).toBe(PARTNERS.length);
 
       primaryCards.forEach((card, i) => {
-        expect(textOf(card, '.organizers__partner-role')).toBe(PARTNERS[i].role);
-        expect(textOf(card, '.organizers__partner-name')).toBe(PARTNERS[i].name);
-        // The card is a logo and a name. `responsibility` is deliberately not
-        // rendered here; the section says who runs it, not who does what.
-        expect(card.querySelector('.organizers__partner-does')).toBeNull();
+        const img = card.querySelector<HTMLImageElement>('.organizers__partner-logo');
+        expect(img?.getAttribute('alt')).toBe(`${PARTNERS[i].name} logo`);
+        // No role pill, no name, and `responsibility` is deliberately absent
+        // too — the section says who runs it, not who does what.
+        expect(card.textContent!.trim()).toBe('');
+        expect(card.querySelector('.organizers__partner-role')).toBeNull();
+        expect(card.querySelector('.organizers__partner-name')).toBeNull();
       });
+    });
+
+    // The track repeats the list to fill the loop, so the count has to stay a
+    // whole multiple of it — adding a partner without adjusting the repeats
+    // would otherwise show a partial pass at the seam.
+    it('repeats the whole list rather than part of it', () => {
+      expect(partnerCards().length).toBeGreaterThanOrEqual(PARTNERS.length);
+      expect(partnerCards().length % PARTNERS.length).toBe(0);
     });
 
     it('renders a logo for each partner', () => {
