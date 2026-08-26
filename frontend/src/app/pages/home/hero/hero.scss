@@ -1,5 +1,12 @@
 .hero {
-  padding: clamp(56px, 10vw, 96px) 24px clamp(64px, 10vw, 96px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  padding: clamp(64px, 8vh, 96px) 24px clamp(32px, 4vh, 48px);
   text-align: center;
   border-bottom: 1px solid var(--color-hairline);
   /* Translucent, so the dot grid carries through the tallest section on the
@@ -7,6 +14,8 @@
      a lighter tint: anything else draws a hard line across the page where the
      section stops, since what follows paints no background at all. */
   background: linear-gradient(180deg, rgba(232, 240, 254, 0.5) 0%, rgba(232, 240, 254, 0) 100%);
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
 }
 
 .hero__badge {
