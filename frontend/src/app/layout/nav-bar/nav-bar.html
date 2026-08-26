@@ -20,8 +20,12 @@
           [routerLinkActive]="link.fragment ? '' : 'nav__link--active'"
           [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
           (click)="handleLinkClick(link)"
-          >{{ link.label }}</a
         >
+          <span>{{ link.label }}</span>
+          @if (link.isFinalist) {
+            <span class="nav__finalist-icon" aria-hidden="true">🎉</span>
+          }
+        </a>
       }
     </nav>
 
@@ -126,8 +130,12 @@
             [routerLinkActive]="link.fragment ? '' : 'nav__drawer-link--active'"
             [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
             (click)="handleLinkClick(link)"
-            >{{ link.label }}</a
           >
+            <span>{{ link.label }}</span>
+            @if (link.isFinalist) {
+              <span class="nav__finalist-icon" aria-hidden="true">🎉</span>
+            }
+          </a>
         }
       </nav>
 

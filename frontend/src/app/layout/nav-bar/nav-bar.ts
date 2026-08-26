@@ -87,7 +87,7 @@ export class NavBar {
     if (isQualifier) {
       return [
         ...base,
-        { path: '/finalist', label: 'Finalist 🎉', isFinalist: true },
+        { path: '/finalist', label: 'Finalist', isFinalist: true },
       ];
     }
 

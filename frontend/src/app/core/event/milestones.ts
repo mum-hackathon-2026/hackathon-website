@@ -100,7 +100,7 @@ export class MilestoneService {
         end: null,
         accent: 'green',
         description:
-          'Scores, rankings and prize winners go out to everyone who registered, all at the same time.',
+          'Preliminary evaluation scores, rubric breakdowns, and certified PDF reports are released. Top 10 finalist qualifications are announced for the Grand Finals.',
       },
     ];
 
