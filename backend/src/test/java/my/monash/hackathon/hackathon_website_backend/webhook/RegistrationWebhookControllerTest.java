@@ -41,7 +41,7 @@ class RegistrationWebhookControllerTest {
         WebhookProperties props = new WebhookProperties("expected_secret_123");
 
         FormRegistrationImporter.ImportSummary summary = new FormRegistrationImporter.ImportSummary(
-                true, 2, 1, 1, 0, List.of("line 2 IMPORTED", "line 3 SKIPPED")
+                true, 2, 1, 1, 0, 0, List.of("line 2 IMPORTED", "line 3 SKIPPED")
         );
         when(service.syncFromSheets(anyBoolean())).thenReturn(summary);
 
@@ -65,7 +65,7 @@ class RegistrationWebhookControllerTest {
         WebhookProperties props = new WebhookProperties("expected_secret_123");
 
         FormRegistrationImporter.ImportSummary summary = new FormRegistrationImporter.ImportSummary(
-                true, 1, 1, 0, 0, List.of("line 2 IMPORTED")
+                true, 1, 1, 0, 0, 0, List.of("line 2 IMPORTED")
         );
         when(service.syncFromSheets(anyBoolean())).thenReturn(summary);
 

@@ -52,8 +52,10 @@ public class RegistrationWebhookController {
 
         try {
             FormRegistrationImporter.ImportSummary summary = importService.syncFromSheets(dryRun);
-            log.info("Webhook import completed: total={}, imported={}, skipped={}, rejected={}",
-                    summary.totalRows(), summary.imported(), summary.skipped(), summary.rejected());
+            log.info("Webhook import completed: total={}, imported={}, skipped={}, rejected={}, "
+                            + "pending={}",
+                    summary.totalRows(), summary.imported(), summary.skipped(), summary.rejected(),
+                    summary.pending());
 
             return ResponseEntity.ok(Map.of(
                     "status", summary.success() ? "success" : "partial_success",
@@ -62,6 +64,9 @@ public class RegistrationWebhookController {
                     "imported", summary.imported(),
                     "skipped", summary.skipped(),
                     "rejected", summary.rejected(),
+                    // Teams screening held back. They are not in the database and will be
+                    // screened again on the next poll; the reasons are in logMessages.
+                    "pending", summary.pending(),
                     "logMessages", summary.logMessages()
             ));
         } catch (Exception e) {
