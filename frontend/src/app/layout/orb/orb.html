@@ -30,6 +30,10 @@
           </a>
         }
       </div>
+    } @else if (nudgeMessage(); as line) {
+      <!-- Decorative only: a passing attention-getter, not information —
+           the button's own aria-label already says what opening it does. -->
+      <div class="orb__nudge" aria-hidden="true">{{ line }}</div>
     }
 
     <button

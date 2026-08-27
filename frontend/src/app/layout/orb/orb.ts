@@ -15,7 +15,7 @@ import { AuthService } from '../../core/auth/auth';
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { PhaseService } from '../../core/event/phase';
 import { SpringState, idleOffset, scrollPull, stepSpring } from './orb-motion';
-import { Point, Rect, chooseSpot, isComfortable } from './orb-placement';
+import { Point, Rect, bubbleRect, chooseSpot, isBubbleClear, isComfortable } from './orb-placement';
 
 /**
  * The route trees the orb stays out of. Both are dense working surfaces — a
@@ -47,6 +47,58 @@ const MS_PER_MINUTE = 60_000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 
+/** Matches --orb-gap in the stylesheet — the space between the orb and whatever hangs beside it. */
+const ORB_GAP = 12;
+
+/**
+ * The nudge bubble's own box (see .orb__nudge), for the text-clearance check
+ * in `fireNudge`. A rectangle to one side of the orb, not a radius around it
+ * — see `bubbleRect`'s own doc for why that distinction matters here.
+ */
+const NUDGE_WIDTH = 190;
+const NUDGE_HEIGHT = 36;
+/** A little slack beyond a bare touch, so the bubble never reads as crowding text. */
+const NUDGE_CLEARANCE = 8;
+
+/** How long a nudge stays up before it fades itself back out. */
+const NUDGE_VISIBLE_MS = 5_000;
+
+/**
+ * Escalating at first to catch a first-time visitor's eye, then settling into
+ * an occasional reminder for as long as they stay anonymous. Read in order;
+ * once exhausted, every later nudge waits the last, steady interval instead.
+ */
+const ANON_NUDGE_SCHEDULE_MS = [15_000, 25_000, 35_000, 60_000, 120_000, 90_000] as const;
+
+/** Calmer once someone is already registered — a supportive tap, not a nag. */
+const REGISTERED_NUDGE_MIN_MS = 5 * MS_PER_MINUTE;
+const REGISTERED_NUDGE_MAX_MS = 10 * MS_PER_MINUTE;
+
+const PLAYFUL_NUDGES = [
+  'Click me!',
+  'Psst, over here 👆',
+  'Tap me!',
+  "Don't ignore me 😄",
+  'Right here! →',
+] as const;
+
+const SUPPORTIVE_NUDGES = [
+  'You’ve got this! 💪',
+  'Keep building!',
+  'Rooting for your team!',
+  'Almost there!',
+] as const;
+
+/** Never the same line twice in a row, so a short cadence doesn't feel canned. */
+function pickNudge(pool: readonly string[], avoid: string | null): string {
+  if (pool.length === 1) return pool[0];
+  let choice: string;
+  do {
+    choice = pool[Math.floor(Math.random() * pool.length)];
+  } while (choice === avoid);
+  return choice;
+}
+
 /**
  * A floating orb in the sponsor's orange that hops around the page, always
  * landing somewhere clear of text.
@@ -58,6 +110,13 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
  *
  * It reads three services and writes to none of them. The geometry lives in
  * `orb-placement.ts`; this class only measures the page and applies the answer.
+ *
+ * Easy to miss on a page with this much else going on, so it also nudges: a
+ * short line beside it, gone a few seconds later, on a schedule that starts
+ * eager for a first-time visitor and calms down once they are registered (see
+ * `nextNudgeDelay`). A nudge only ever shows where the bubble itself would
+ * also land clear of text — see `bubbleRect` in `orb-placement.ts` — and
+ * never while the real panel is open or the pointer is on the orb.
  */
 @Component({
   selector: 'app-orb',
@@ -118,8 +177,21 @@ export class Orb {
     return `${next.label} in ${humanise(remaining)}`;
   });
 
+  /**
+   * The periodic attention-getter: a short line beside the orb, gone again a
+   * few seconds later. Null is hidden. Never opens alongside the real panel —
+   * the `settled` effect below clears it the moment a hover or a click would
+   * otherwise show both at once.
+   */
+  readonly nudgeMessage = signal<string | null>(null);
+
   private settleTimer: ReturnType<typeof setTimeout> | null = null;
   private leaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
+  private nudgeHideTimer: ReturnType<typeof setTimeout> | null = null;
+  /** How far into the anonymous schedule the next nudge is; resets once signed in. */
+  private nudgeStep = 0;
+  private lastNudgeText: string | null = null;
 
   /** Null until the first placement; after that the loop owns it. */
   private spring: SpringState | null = null;
@@ -143,7 +215,17 @@ export class Orb {
    */
   private driftMs = 0;
 
+  /**
+   * So a sign-in mid-visit is noticed by the effect below rather than only by
+   * the next `fireNudge` — otherwise a nudge already scheduled on the eager
+   * anonymous track still lands once more, right on the calmer schedule's
+   * heels, before the switch takes effect.
+   */
+  private wasSignedIn: boolean;
+
   constructor() {
+    this.wasSignedIn = this.signedIn();
+
     // One subscription does all the arrival jobs: retarget the URL, drop any
     // panel that would otherwise hang over the page you land on, and hop to a
     // clear spot on the new page. Plain rather than piped through rxjs
@@ -170,9 +252,12 @@ export class Orb {
       this.stopLoop();
       this.cancelLeave();
       if (this.settleTimer !== null) clearTimeout(this.settleTimer);
+      if (this.nudgeTimer !== null) clearTimeout(this.nudgeTimer);
+      if (this.nudgeHideTimer !== null) clearTimeout(this.nudgeHideTimer);
     });
 
     this.afterLayout(() => this.hop());
+    this.scheduleNudge();
 
     // The anchor only exists while the orb is visible, so the loop follows the
     // element rather than the component: it starts when the orb appears on a
@@ -181,6 +266,21 @@ export class Orb {
       const element = this.anchor();
       if (element && !prefersReducedMotion()) this.startLoop();
       else this.stopLoop();
+    });
+
+    // A hover or a click always wins: nothing should still be showing a nudge
+    // once the real panel is up, or beside it if the pointer is just passing.
+    effect(() => {
+      if (this.settled()) this.nudgeMessage.set(null);
+    });
+
+    // Registering mid-visit should be felt immediately, not just on whichever
+    // nudge happens to fire next — see `wasSignedIn`.
+    effect(() => {
+      const isSignedIn = this.signedIn();
+      if (isSignedIn === this.wasSignedIn) return;
+      this.wasSignedIn = isSignedIn;
+      this.scheduleNudge();
     });
   }
 
@@ -214,6 +314,60 @@ export class Orb {
     if (this.leaveTimer === null) return;
     clearTimeout(this.leaveTimer);
     this.leaveTimer = null;
+  }
+
+  private scheduleNudge(): void {
+    if (this.nudgeTimer !== null) clearTimeout(this.nudgeTimer);
+    this.nudgeTimer = setTimeout(() => this.fireNudge(), this.nextNudgeDelay());
+  }
+
+  /** Escalates while anonymous; a slow random cadence once registered — see the class doc. */
+  private nextNudgeDelay(): number {
+    if (this.signedIn()) {
+      this.nudgeStep = 0;
+      const span = REGISTERED_NUDGE_MAX_MS - REGISTERED_NUDGE_MIN_MS;
+      return REGISTERED_NUDGE_MIN_MS + Math.random() * span;
+    }
+    const step = ANON_NUDGE_SCHEDULE_MS[Math.min(this.nudgeStep, ANON_NUDGE_SCHEDULE_MS.length - 1)];
+    this.nudgeStep++;
+    return step;
+  }
+
+  /**
+   * Whether or not this tick actually shows a bubble, the next one is always
+   * scheduled first — a skipped tick (hovered, hidden tab, no clear spot)
+   * must not silently end the whole sequence.
+   */
+  private fireNudge(): void {
+    this.scheduleNudge();
+
+    if (!this.visible() || this.settled() || prefersReducedMotion()) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+
+    // Only where the bubble itself would also land clear of text — measured
+    // as the actual box it draws to one side of the orb, not a radius around
+    // it. A radius wide enough to cover the bubble's reach demands the same
+    // clearance in every direction, including ones it never occupies, and
+    // rejects spots the orb itself was perfectly happy with.
+    const spot = this.spot();
+    if (!spot) return;
+    const rect = bubbleRect({
+      at: spot,
+      orbRadius: ORB_RADIUS,
+      gap: ORB_GAP,
+      width: NUDGE_WIDTH,
+      height: NUDGE_HEIGHT,
+      onRight: this.panelOnRight(),
+    });
+    if (!isBubbleClear(rect, this.textRects(), NUDGE_CLEARANCE)) return;
+
+    const pool = this.signedIn() ? SUPPORTIVE_NUDGES : PLAYFUL_NUDGES;
+    const message = pickNudge(pool, this.lastNudgeText);
+    this.lastNudgeText = message;
+    this.nudgeMessage.set(message);
+
+    if (this.nudgeHideTimer !== null) clearTimeout(this.nudgeHideTimer);
+    this.nudgeHideTimer = setTimeout(() => this.nudgeMessage.set(null), NUDGE_VISIBLE_MS);
   }
 
   @HostListener('document:keydown.escape')
