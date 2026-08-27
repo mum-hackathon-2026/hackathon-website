@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { ContactSection } from './contact/contact';
+import { DirectorSection } from './director/director';
 import { FaqSection } from './faq/faq';
 import { HomeFooter } from './footer/footer';
 import { Hero } from './hero/hero';
@@ -19,7 +19,7 @@ import { ThemeSection } from './theme/theme';
     FaqSection,
     SponsorsSection,
     OrganizersSection,
-    ContactSection,
+    DirectorSection,
     HomeFooter,
   ],
   templateUrl: './home.html',

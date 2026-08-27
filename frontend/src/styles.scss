@@ -161,7 +161,7 @@ app-home-purpose,
 app-home-faq,
 app-home-sponsors,
 app-home-organizers,
-app-home-contact {
+app-home-director {
   animation: page-appear 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -184,7 +184,7 @@ app-home-sponsors {
 app-home-organizers {
   animation-delay: 0.3s;
 }
-app-home-contact {
+app-home-director {
   animation-delay: 0.36s;
 }
 
@@ -201,7 +201,7 @@ app-home-contact {
   app-home-faq,
   app-home-sponsors,
   app-home-organizers,
-  app-home-contact {
+  app-home-director {
     animation: none;
   }
 }

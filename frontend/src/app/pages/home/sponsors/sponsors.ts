@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { EventSettingsService } from '../../../core/event/event-settings';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { SPONSORS, Sponsor } from '../../../core/event/event-content';
 
 @Component({
@@ -17,9 +16,6 @@ export class SponsorsSection {
     ...SPONSORS,
     ...SPONSORS,
   ];
-
-  /** The signal itself, not a snapshot — an admin rename has to reach the thank-you line. */
-  protected readonly eventName = inject(EventSettingsService).eventName;
 
   /** Sponsors whose logo file failed to load, so we can fall back to a wordmark. */
   private readonly missingLogos = signal(new Set<string>());
