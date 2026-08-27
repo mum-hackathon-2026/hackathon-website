@@ -1,168 +1,96 @@
-/* The dot grid.
-
-   24px spacing on a 1.5px dot covers about 1.2% of the area, which is what
-   keeps this readable under body text. Both are tokens so the density can be
-   tuned in one place rather than in three rules. */
-:host {
-  --dot-gap: 28px;
-  --dot-size: 1.5px;
-  /* The grid's own weight, before any colour. This is what makes it read as a
-     drawn grid rather than as speckle: without it a dot only exists where a
-     well happens to sit, and the eye sees dust in the corners instead of
-     structure across the page. */
-  --dot-ink: rgba(100, 116, 139, 0.17);
-  /* How much colour the wells add on top. */
-  --field-strength: 0.85;
-}
-
-/* Sits behind everything: fixed to the viewport, out of the layout, and
-   invisible to the pointer so it can never intercept a click meant for the
-   page. Content paints over it because it is the only thing here at z-index
-   -1; the page's own backgrounds are translucent so it shows through. */
-.backdrop {
+/* The guideline's hexagon/circuit/wave motif — the page canvas texture, on
+   top of the plain Averis cream page background (--color-page-bg). Fixed and
+   entirely static: nothing here animates, so it costs no compositing layer
+   and no GPU memory beyond the handful of small SVGs. Corner- and
+   edge-anchored and kept low-opacity, so it reads as canvas texture behind
+   the nav pill and page content, never as something competing with either.
+   One colour family per shape, not a rainbow per cluster: the guideline's own
+   pages never mix more than two hues in one piece of line art. */
+.backdrop-motif {
   position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-
-  /* Fills every dot on the page. The wells then tint the ones they reach, so
-     the grid is continuous and the colour is the thing that varies. */
-  background-color: var(--dot-ink);
-
-  /* The grid itself. It masks the wells rather than being painted, so a dot is
-     bright where a well sits under it and neutral where none does. The mask
-     lives on this container, which never moves — that is the whole effect. */
-  --dot-mask: radial-gradient(
-    circle at center,
-    #000 0,
-    #000 var(--dot-size),
-    transparent calc(var(--dot-size) + 0.5px)
-  );
-
-  /* Second mask, intersected with the first: the page is a centred column, so
-     this thins the grid to a trace behind the reading width and leaves it at
-     full strength in the margins. Without it the dots sit in the gaps between
-     words and lines, which costs legibility and looks like dirt on the screen.
-     The column keeps a trace rather than going blank so the grid still reads
-     as continuous across the page. */
-  --column-mask: linear-gradient(
-    90deg,
-    #000 0%,
-    rgba(0, 0, 0, 0.14) 27%,
-    rgba(0, 0, 0, 0.14) 73%,
-    #000 100%
-  );
-
-  -webkit-mask-image: var(--dot-mask), var(--column-mask);
-  mask-image: var(--dot-mask), var(--column-mask);
-  -webkit-mask-size:
-    var(--dot-gap) var(--dot-gap),
-    100% 100%;
-  mask-size:
-    var(--dot-gap) var(--dot-gap),
-    100% 100%;
-  -webkit-mask-repeat: repeat, no-repeat;
-  mask-repeat: repeat, no-repeat;
-  /* Safari spells `intersect` as `source-in`. */
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
 }
 
-/* Each well is one soft field of colour. Separate elements rather than four
-   background layers on one, so each can drift on its own timing: moving them
-   together would read as one sheet sliding, which is the thing this is not. */
-/* Sized in vmax so the field scales with the window rather than the page, and
-   kept to 58 rather than something grander: each of these becomes a composited
-   layer for as long as it animates, and four layers the size of the screen is
-   real GPU memory on a cheap laptop. No `will-change` for the same reason — a
-   running transform animation is promoted anyway, so declaring it would only
-   pin that memory for the whole session. */
-.backdrop__well {
+.backdrop-motif__honeycomb {
   position: absolute;
-  opacity: var(--field-strength);
-  width: 58vmax;
-  height: 58vmax;
+  top: -3%;
+  right: -3%;
+  width: clamp(120px, 15vw, 200px);
+  height: auto;
+}
+
+.backdrop-motif__hex-solo {
+  position: absolute;
+  bottom: 6%;
+  right: 4%;
+  width: clamp(70px, 9vw, 120px);
+  height: auto;
+}
+
+.backdrop-motif__circuit {
+  position: absolute;
+  top: 6%;
+  left: -16px;
+  width: clamp(190px, 20vw, 260px);
+  height: auto;
+}
+
+.backdrop-motif__wave-lines {
+  position: absolute;
+  left: 0;
+  bottom: 8%;
+  width: clamp(280px, 34vw, 480px);
+  height: auto;
+}
+
+.backdrop-motif__wave-contour {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: clamp(90px, 12vw, 160px);
+}
+
+.backdrop-motif__dot {
+  position: absolute;
   border-radius: 50%;
 }
 
-.backdrop__well--blue {
-  top: -16vmax;
-  left: -14vmax;
-  background: radial-gradient(circle closest-side, var(--color-blue), transparent);
-  animation: backdrop-drift-a 71s ease-in-out infinite;
+.backdrop-motif__dot--red {
+  top: 22%;
+  left: 4%;
+  width: 10px;
+  height: 10px;
+  background: #fd2c25;
+  opacity: 0.55;
 }
 
-.backdrop__well--red {
-  top: -10vmax;
-  right: -16vmax;
-  background: radial-gradient(circle closest-side, var(--color-red), transparent);
-  animation: backdrop-drift-b 89s ease-in-out infinite;
+.backdrop-motif__dot--blue {
+  top: 46%;
+  right: 5%;
+  width: 8px;
+  height: 8px;
+  background: #2b82fb;
+  opacity: 0.55;
 }
 
-.backdrop__well--green {
-  bottom: -18vmax;
-  left: -8vmax;
-  background: radial-gradient(circle closest-side, var(--color-green), transparent);
-  animation: backdrop-drift-c 103s ease-in-out infinite;
+.backdrop-motif__dot--green {
+  bottom: 14%;
+  left: 8%;
+  width: 12px;
+  height: 12px;
+  background: #00a150;
+  opacity: 0.45;
 }
 
-.backdrop__well--yellow {
-  bottom: -14vmax;
-  right: -12vmax;
-  background: radial-gradient(circle closest-side, var(--color-yellow), transparent);
-  animation: backdrop-drift-d 79s ease-in-out infinite;
-}
-
-/* Long, and deliberately co-prime-ish periods (71s, 79s, 89s, 103s) so the
-   four never fall back into the same arrangement on any timescale a reader
-   would notice. The distances are large because the wells are large: this
-   should read as the light changing, not as shapes moving. */
-@keyframes backdrop-drift-a {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(14vmax, 9vmax, 0);
-  }
-}
-
-@keyframes backdrop-drift-b {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(-11vmax, 13vmax, 0);
-  }
-}
-
-@keyframes backdrop-drift-c {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(12vmax, -10vmax, 0);
-  }
-}
-
-@keyframes backdrop-drift-d {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(-13vmax, -8vmax, 0);
-  }
-}
-
-/* The global reduce block already collapses these durations. Stopping them
-   outright is the honest version: the grid keeps its colour, and nothing on
-   the page moves. */
-@media (prefers-reduced-motion: reduce) {
-  .backdrop__well {
-    animation: none;
-  }
+.backdrop-motif__dot--yellow {
+  top: 8%;
+  left: 26%;
+  width: 9px;
+  height: 9px;
+  background: #ffc119;
+  opacity: 0.5;
 }

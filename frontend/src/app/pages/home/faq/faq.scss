@@ -7,3 +7,11 @@
   max-width: 720px;
   margin: 0 auto;
 }
+
+/* Bigger than the shared .section-heading default (a fixed --text-2xl): with
+   the "Common questions" eyebrow-and-heading pair collapsed to just "FAQ",
+   this is the only text opening the section, so it needs the presence a
+   heading alone has to carry on its own. */
+.faq__heading {
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));
+}

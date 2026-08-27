@@ -36,22 +36,6 @@ export class Hero {
 
   protected readonly isResultsPhase = computed(() => this.phase() === 'results');
 
-  /** Short status for the badge, following the phase rather than a fixed string. */
-  protected readonly status = computed(() => {
-    switch (this.phase()) {
-      case 'before-registration':
-        return 'Registrations open soon';
-      case 'registration':
-        return 'Registrations open · Problem Statement soon';
-      case 'submission':
-        return 'Building period · Submissions open';
-      case 'judging':
-        return 'Preliminary judging under way';
-      case 'results':
-        return 'Preliminary results announced';
-    }
-  });
-
   protected readonly segments = computed(() => {
     const remaining = this.phaseService.remainingMs();
     if (remaining === null) return null;

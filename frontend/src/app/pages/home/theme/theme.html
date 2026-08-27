@@ -1,7 +1,7 @@
 <section class="theme" id="criteria">
   <div class="theme__intro">
-    <p class="theme__eyebrow">Theme & Problem Statement</p>
-    <h2 class="theme__title">Revealed at the opening ceremony</h2>
+    <h2 class="theme__title">Theme & Problem Statement</h2>
+    <p class="theme__subtitle">Revealed at the opening ceremony</p>
 
     <div class="theme__mystery-card">
       <div class="theme__mystery-icon" aria-hidden="true">?</div>
@@ -26,24 +26,6 @@
         </p>
       </div>
       <span class="theme__viz-total-badge">100% Total Score</span>
-    </div>
-
-    <!-- The whole, so the parts below have something to be parts of.
-         Decorative: every segment's name and figure are in the list under it,
-         so there is nothing here for a screen reader to read twice. The
-         segments used to carry aria-labels, which did nothing at all while
-         their container was hidden. -->
-    <div class="theme__score-track" aria-hidden="true">
-      @for (pillar of pillars(); track pillar.name; let i = $index) {
-        <!-- flex-grow rather than a width percentage: the track has gaps
-             between segments, and percentages would add up to more than the
-             space left once the gaps are taken out. -->
-        <span
-          class="theme__score-seg"
-          [style.flex-grow]="pillar.weight"
-          [style.--seg-index]="i"
-        ></span>
-      }
     </div>
 
     <ul class="theme__pillars">

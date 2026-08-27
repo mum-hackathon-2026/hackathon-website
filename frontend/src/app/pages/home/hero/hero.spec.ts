@@ -41,10 +41,6 @@ async function renderAt(when: string, overrides: Partial<EventConfig['settings']
   return fixture.nativeElement as HTMLElement;
 }
 
-function badge(host: HTMLElement): string {
-  return host.querySelector('.hero__badge')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-}
-
 function countdownValues(host: HTMLElement): string[] {
   return Array.from(host.querySelectorAll<HTMLElement>('.hero__segment-value')).map(
     (el) => el.textContent?.trim() ?? '',
@@ -64,7 +60,6 @@ describe('Hero', () => {
       'Registration opens in',
     );
     expect(countdownValues(host)).toEqual(['01', '00', '00', '30']);
-    expect(badge(host)).toContain('Registrations open soon');
   });
 
   it('switches to the problem statement release countdown once registration opens', async () => {
@@ -73,7 +68,6 @@ describe('Hero', () => {
     expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
       'Problem statement release in',
     );
-    expect(badge(host)).toContain('Registrations open');
     expect(host.querySelector('.hero__cta')?.textContent).toContain('Register your team');
   });
 
@@ -83,7 +77,6 @@ describe('Hero', () => {
     expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
       'Submissions close in',
     );
-    expect(badge(host)).toContain('Submissions open');
     expect(host.textContent).not.toContain('Register your team');
     expect(host.querySelector('.hero__cta')?.textContent).toContain('Go to My Submission');
   });
@@ -93,7 +86,6 @@ describe('Hero', () => {
 
     expect(host.querySelector('.hero__countdown')).toBeNull();
     expect(host.querySelector('.hero__results-card')).toBeTruthy();
-    expect(badge(host)).toContain('Preliminary results announced');
     expect(host.querySelector('.hero__results-title')?.textContent).toContain(
       'Preliminary Results & Finalists Announced',
     );
@@ -102,12 +94,17 @@ describe('Hero', () => {
 
   it('reads dates as MYT rather than the local zone', async () => {
     // The configured instant is MYT. An hour before it, in UTC, it has not
-    // opened yet; an hour after, it has.
+    // opened yet; an hour after, it has — the countdown caption is what
+    // flips between the two phases.
     const host = await renderAt(fromRegistrationOpen(-HOUR_MS));
-    expect(badge(host)).toContain('Registrations open soon');
+    expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
+      'Registration opens in',
+    );
 
     const later = await renderAt(fromRegistrationOpen(HOUR_MS));
-    expect(badge(later)).toContain('Registrations open');
+    expect(later.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
+      'Problem statement release in',
+    );
   });
 
   it('takes its tagline from the config', async () => {

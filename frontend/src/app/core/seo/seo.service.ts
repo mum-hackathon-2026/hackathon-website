@@ -12,7 +12,7 @@ const ROUTE_META: Record<string, PageMetadata> = {
   '/': {
     title: 'Monash Hackathon 2026 | Averis Industry Innovation Challenge',
     description:
-      'Monash Hackathon 2026: One industry problem, eight days to solve it. Compete for RM 9,000 in prizes. Open to all university students.',
+      'Monash Hackathon 2026: One industry problem, three days to solve it. Compete for RM 9,000 in prizes. Open to all university students.',
   },
   '/timeline': {
     title: 'Event Schedule & Timeline | Monash Hackathon 2026',
@@ -69,7 +69,7 @@ export class SeoService {
         const url = event.urlAfterRedirects.split('?')[0].split('#')[0] || '/';
         const meta = ROUTE_META[url] ?? {
           title: 'Monash Hackathon 2026',
-          description: 'Monash Hackathon 2026. One industry problem, eight days to solve it.',
+          description: 'Monash Hackathon 2026. One industry problem, three days to solve it.',
         };
 
         this.titleService.setTitle(meta.title);

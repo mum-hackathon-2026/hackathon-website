@@ -124,7 +124,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     organisedBy: 'GDGoC Monash University Malaysia & MUMTEC',
     // The proposal runs eight days, not a weekend, and draws students from
     // several universities — so neither "48 hours" nor "one campus" was true.
-    tagline: 'One industry problem, eight days to solve it.',
+    tagline: 'One industry problem, three days to solve it.',
     contactEmail: 'hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
     teamRegistrationFormUrl:
