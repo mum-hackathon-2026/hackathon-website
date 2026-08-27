@@ -1,9 +1,11 @@
 import {
   Rect,
+  bubbleRect,
   chooseSpot,
   clearanceAt,
   contentBounds,
   distanceToRect,
+  isBubbleClear,
   isComfortable,
 } from './orb-placement';
 
@@ -60,6 +62,64 @@ describe('isComfortable', () => {
 
   it('accepts a point well away from it', () => {
     expect(isComfortable({ x: 400, y: 400 }, RADIUS, [rect(0, 0, 100, 100)])).toBe(true);
+  });
+});
+
+describe('bubbleRect', () => {
+  const at = { x: 500, y: 300 };
+  const orbRadius = 28;
+  const gap = 12;
+  const width = 190;
+  const height = 36;
+
+  it('opens to the left by default', () => {
+    const box = bubbleRect({ at, orbRadius, gap, width, height, onRight: false });
+
+    expect(box.right).toBe(at.x - orbRadius - gap);
+    expect(box.left).toBe(box.right - width);
+  });
+
+  it('opens to the right when flipped', () => {
+    const box = bubbleRect({ at, orbRadius, gap, width, height, onRight: true });
+
+    expect(box.left).toBe(at.x + orbRadius + gap);
+    expect(box.right).toBe(box.left + width);
+  });
+
+  it('centres on the orb vertically either way', () => {
+    const box = bubbleRect({ at, orbRadius, gap, width, height, onRight: false });
+
+    expect(box.top).toBe(at.y - height / 2);
+    expect(box.bottom).toBe(at.y + height / 2);
+  });
+});
+
+describe('isBubbleClear', () => {
+  it('accepts a box with nothing nearby', () => {
+    expect(isBubbleClear(rect(200, 280, 390, 316), [])).toBe(true);
+  });
+
+  it('rejects a box that overlaps an obstacle', () => {
+    const box = rect(200, 280, 390, 316);
+    expect(isBubbleClear(box, [rect(350, 200, 450, 400)])).toBe(false);
+  });
+
+  it('rejects a box within the buffer even when it does not overlap', () => {
+    const box = rect(200, 280, 390, 316);
+    // 5px of daylight between the box and the obstacle.
+    expect(isBubbleClear(box, [rect(395, 200, 450, 400)], 8)).toBe(false);
+  });
+
+  it('accepts a box clear by more than the buffer', () => {
+    const box = rect(200, 280, 390, 316);
+    // 20px of daylight — comfortably past an 8px buffer.
+    expect(isBubbleClear(box, [rect(410, 200, 450, 400)], 8)).toBe(true);
+  });
+
+  // Only the boxes actually in the way should count against it.
+  it('ignores an obstacle nowhere near the box', () => {
+    const box = rect(200, 280, 390, 316);
+    expect(isBubbleClear(box, [rect(0, 0, 50, 50)])).toBe(true);
   });
 });
 

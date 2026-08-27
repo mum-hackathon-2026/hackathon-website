@@ -123,6 +123,52 @@ export function isComfortable(point: Point, radius: number, obstacles: readonly 
   return clearanceAt(point, radius, obstacles) >= COMFORT;
 }
 
+export interface BubbleRequest {
+  /** Where the orb is. */
+  readonly at: Point;
+  /** Half the orb's width — the same radius it was placed with. */
+  readonly orbRadius: number;
+  /** The gap the stylesheet leaves between the orb and whatever hangs beside it. */
+  readonly gap: number;
+  /** The bubble's own footprint, matching its stylesheet exactly. */
+  readonly width: number;
+  readonly height: number;
+  /** Which side of the orb it opens on. */
+  readonly onRight: boolean;
+}
+
+/**
+ * The box something hanging off the orb — a panel, a nudge — would occupy.
+ *
+ * Deliberately not a radius around the orb: a bubble extends a fixed width to
+ * one side and barely at all vertically, so treating it as a circle would
+ * demand clearance in directions it never actually reaches, and refuse spots
+ * that are genuinely fine. This is the same shape `.orb__panel` and
+ * `.orb__nudge` already draw in CSS, just measured instead of painted.
+ */
+export function bubbleRect(request: BubbleRequest): Rect {
+  const { at, orbRadius, gap, width, height, onRight } = request;
+  const top = at.y - height / 2;
+  const bottom = at.y + height / 2;
+  if (onRight) {
+    const left = at.x + orbRadius + gap;
+    return { left, top, right: left + width, bottom };
+  }
+  const right = at.x - orbRadius - gap;
+  return { left: right - width, top, right, bottom };
+}
+
+/** Whether a box this size would land clear of every obstacle, with `buffer` px to spare. */
+export function isBubbleClear(rect: Rect, obstacles: readonly Rect[], buffer = 0): boolean {
+  return obstacles.every(
+    (obstacle) =>
+      rect.right + buffer <= obstacle.left ||
+      rect.left - buffer >= obstacle.right ||
+      rect.bottom + buffer <= obstacle.top ||
+      rect.top - buffer >= obstacle.bottom,
+  );
+}
+
 /**
  * Pick somewhere clear to land.
  *

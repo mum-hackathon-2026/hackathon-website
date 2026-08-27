@@ -15,7 +15,7 @@ import { AuthService } from '../../core/auth/auth';
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { PhaseService } from '../../core/event/phase';
 import { SpringState, idleOffset, scrollPull, stepSpring } from './orb-motion';
-import { Point, Rect, chooseSpot, isComfortable } from './orb-placement';
+import { Point, Rect, bubbleRect, chooseSpot, isBubbleClear, isComfortable } from './orb-placement';
 
 /**
  * The route trees the orb stays out of. Both are dense working surfaces — a
@@ -47,13 +47,18 @@ const MS_PER_MINUTE = 60_000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 
+/** Matches --orb-gap in the stylesheet — the space between the orb and whatever hangs beside it. */
+const ORB_GAP = 12;
+
 /**
- * How wide a nudge bubble can get (see .orb__nudge). Checked as if the orb
- * itself were this much bigger, so a nudge only ever shows where the bubble
- * beside it would also land clear of text — see `fireNudge`.
+ * The nudge bubble's own box (see .orb__nudge), for the text-clearance check
+ * in `fireNudge`. A rectangle to one side of the orb, not a radius around it
+ * — see `bubbleRect`'s own doc for why that distinction matters here.
  */
-const NUDGE_FOOTPRINT = 190;
-const NUDGE_CHECK_RADIUS = ORB_RADIUS + NUDGE_FOOTPRINT + 12;
+const NUDGE_WIDTH = 190;
+const NUDGE_HEIGHT = 36;
+/** A little slack beyond a bare touch, so the bubble never reads as crowding text. */
+const NUDGE_CLEARANCE = 8;
 
 /** How long a nudge stays up before it fades itself back out. */
 const NUDGE_VISIBLE_MS = 5_000;
@@ -110,8 +115,8 @@ function pickNudge(pool: readonly string[], avoid: string | null): string {
  * short line beside it, gone a few seconds later, on a schedule that starts
  * eager for a first-time visitor and calms down once they are registered (see
  * `nextNudgeDelay`). A nudge only ever shows where the bubble itself would
- * also land clear of text — see `NUDGE_CHECK_RADIUS` — and never while the
- * real panel is open or the pointer is on the orb.
+ * also land clear of text — see `bubbleRect` in `orb-placement.ts` — and
+ * never while the real panel is open or the pointer is on the orb.
  */
 @Component({
   selector: 'app-orb',
@@ -339,10 +344,22 @@ export class Orb {
     if (!this.visible() || this.settled() || prefersReducedMotion()) return;
     if (typeof document !== 'undefined' && document.hidden) return;
 
-    // Only where a bubble this size would also land clear of text — the same
-    // standard the orb itself is held to, not just a smaller circle around it.
+    // Only where the bubble itself would also land clear of text — measured
+    // as the actual box it draws to one side of the orb, not a radius around
+    // it. A radius wide enough to cover the bubble's reach demands the same
+    // clearance in every direction, including ones it never occupies, and
+    // rejects spots the orb itself was perfectly happy with.
     const spot = this.spot();
-    if (!spot || !isComfortable(spot, NUDGE_CHECK_RADIUS, this.textRects())) return;
+    if (!spot) return;
+    const rect = bubbleRect({
+      at: spot,
+      orbRadius: ORB_RADIUS,
+      gap: ORB_GAP,
+      width: NUDGE_WIDTH,
+      height: NUDGE_HEIGHT,
+      onRight: this.panelOnRight(),
+    });
+    if (!isBubbleClear(rect, this.textRects(), NUDGE_CLEARANCE)) return;
 
     const pool = this.signedIn() ? SUPPORTIVE_NUDGES : PLAYFUL_NUDGES;
     const message = pickNudge(pool, this.lastNudgeText);
