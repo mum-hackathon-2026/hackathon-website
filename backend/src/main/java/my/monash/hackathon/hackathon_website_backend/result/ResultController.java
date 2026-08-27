@@ -101,6 +101,7 @@ public class ResultController {
             } else if (outcome == null && tr.getRank() != null) {
                 outcome = tr.getRank() <= 10 ? "finalist" : "participant";
             }
+            boolean tied = tr.getRank() != null && rankCounts.getOrDefault(tr.getRank(), 0L) > 1;
 
             dtoList.add(new PublicTeamResultDto(
                     tr.getTeamId(),
