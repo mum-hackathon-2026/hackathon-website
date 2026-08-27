@@ -30,7 +30,7 @@ interface NavLink {
  */
 const NAV_LINKS: readonly NavLink[] = [
   { path: '/', label: 'Home', exact: true },
-  { path: '/timeline', label: 'Timeline' },
+  { path: '/', fragment: 'timeline', label: 'Timeline' },
   { path: '/', fragment: 'criteria', label: 'Criteria', roles: ['public'] },
   { path: '/', fragment: 'faq', label: 'FAQ', roles: ['public'] },
   { path: '/', fragment: 'organizers', label: 'Organisers', roles: ['public'] },
