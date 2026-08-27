@@ -323,4 +323,83 @@ describe('Orb', () => {
       expect(panel()).toBeNull();
     });
   });
+
+  describe('the attention nudge', () => {
+    async function settle(): Promise<void> {
+      // Same as "where it lands": placement is a frame out, so the comfort
+      // check the nudge relies on has a real spot to test.
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      await fixture.whenStable();
+    }
+
+    function nudge(): HTMLElement | null {
+      return host().querySelector<HTMLElement>('.orb__nudge');
+    }
+
+    it('shows nothing before the first interval has passed', async () => {
+      await settle();
+      await vi.advanceTimersByTimeAsync(14_000);
+      await fixture.whenStable();
+
+      expect(nudge()).toBeNull();
+    });
+
+    it('shows a decorative line for a signed-out visitor after 15s', async () => {
+      await settle();
+      await vi.advanceTimersByTimeAsync(15_000);
+      await fixture.whenStable();
+
+      expect(nudge()).toBeTruthy();
+      expect(nudge()!.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('hides itself again 5 seconds later', async () => {
+      await settle();
+      await vi.advanceTimersByTimeAsync(15_000);
+      await fixture.whenStable();
+      expect(nudge()).toBeTruthy();
+
+      await vi.advanceTimersByTimeAsync(5_000);
+      await fixture.whenStable();
+
+      expect(nudge()).toBeNull();
+    });
+
+    // Two things people are looking at, one of them uninvited, is the exact
+    // clutter this feature must not add.
+    it('never shows while the real panel is open', async () => {
+      await settle();
+      await open();
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      await fixture.whenStable();
+
+      expect(nudge()).toBeNull();
+    });
+
+    // Registered visitors get the calm 5-10 minute track, not the eager
+    // anonymous schedule — nothing yet at the anonymous track's first mark.
+    // Math.random is pinned so the random 5-10 minute delay resolves to its
+    // exact 5-minute minimum: advancing time by a wide margin instead would
+    // sail straight past the moment the bubble is up, since it hides itself
+    // again 5 seconds later and fake-timer advances fast-forward through
+    // every timer in between rather than stopping at each one.
+    it('stays quiet at 15s once signed in, and fires exactly on the calmer schedule', async () => {
+      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+
+      auth.signIn('participant');
+      await fixture.whenStable();
+      await settle();
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      await fixture.whenStable();
+      expect(nudge()).toBeNull();
+
+      await vi.advanceTimersByTimeAsync(5 * 60_000 - 15_000);
+      await fixture.whenStable();
+      expect(nudge()).toBeTruthy();
+
+      randomSpy.mockRestore();
+    });
+  });
 });

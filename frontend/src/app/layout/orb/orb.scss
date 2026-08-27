@@ -162,6 +162,49 @@
   }
 }
 
+/* The periodic nudge (Orb.nudgeMessage) — a lighter, non-interactive sibling
+   of .orb__panel. `pointer-events: none` so it can never be what a click
+   actually lands on, and it only ever appears where Orb's own text-clearance
+   check has confirmed a bubble this size fits without covering anything a
+   reader might be in the middle of — see NUDGE_FOOTPRINT. Speech-bubble
+   styling rather than a white card, so it reads as the orb saying something
+   rather than as a second panel. */
+.orb__nudge {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--orb-size) / 2 + var(--orb-gap));
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: 190px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--orb-core);
+  pointer-events: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.45);
+  animation: orb-nudge-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.orb--flip .orb__nudge {
+  right: auto;
+  left: calc(var(--orb-size) / 2 + var(--orb-gap));
+}
+
+@keyframes orb-nudge-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
 .orb__greeting {
   margin: 0;
   font-family: var(--font-serif);
