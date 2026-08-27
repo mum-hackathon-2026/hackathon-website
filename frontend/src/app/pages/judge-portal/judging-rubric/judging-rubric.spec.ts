@@ -15,12 +15,11 @@ describe('JudgingRubric', () => {
     fixture.detectChanges();
   });
 
-  it('should create and render the 7 criteria and scoring bands', () => {
+  it('should create and link out to the judging criteria document', () => {
     expect(component).toBeTruthy();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('System Design & Architecture');
-    expect(compiled.textContent).toContain('Working Core Prototype');
-    expect(compiled.textContent).toContain('Problem Statement Understanding');
-    expect(compiled.textContent).toContain('Performance Scoring Bands');
+    expect(compiled.textContent).toContain('Judging Criteria Document');
+    const link = compiled.querySelector<HTMLAnchorElement>('a');
+    expect(link?.href).toBe(component['rubricDocUrl']);
   });
 });
