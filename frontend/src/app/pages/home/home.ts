@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { ContactSection } from './contact/contact';
+import { EventTrack } from '../../layout/event-track/event-track';
+import { DirectorSection } from './director/director';
 import { FaqSection } from './faq/faq';
 import { HomeFooter } from './footer/footer';
 import { Hero } from './hero/hero';
 import { OrganizersSection } from './organizers/organizers';
 import { PurposeSection } from './purpose/purpose';
-import { ScrollWorldComponent } from './scroll-world/scroll-world';
 import { SponsorsSection } from './sponsors/sponsors';
 import { ThemeSection } from './theme/theme';
 
@@ -13,13 +13,13 @@ import { ThemeSection } from './theme/theme';
   selector: 'app-home',
   imports: [
     Hero,
-    ScrollWorldComponent,
+    EventTrack,
     ThemeSection,
     PurposeSection,
     FaqSection,
     SponsorsSection,
     OrganizersSection,
-    ContactSection,
+    DirectorSection,
     HomeFooter,
   ],
   templateUrl: './home.html',

@@ -1,3 +1,13 @@
+/* Before a card is revealed it sits translateX(±30px) off its resting spot
+   (see Arrival, below) — real box position, not just paint, so a still-hidden
+   card below the fold can push the page's own scrollable width out by the
+   full 30px and hand a phone a horizontal scrollbar it should never have.
+   Clipped here rather than removing the animation: the shifted state is
+   never meant to be seen anyway. */
+.track {
+  overflow-x: hidden;
+}
+
 /* The track sits outside the page column so the spine can run down the middle
    of a wider band than the reading width. */
 .track__stage {

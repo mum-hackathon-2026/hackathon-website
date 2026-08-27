@@ -1,4 +1,4 @@
-<header class="nav">
+<header class="nav" [class.nav--hidden]="navHidden()">
   <div class="nav__inner">
     <a class="nav__brand" routerLink="/" (click)="closeAll()">
       <svg class="nav__logo" viewBox="0 0 20 20" fill="none" aria-hidden="true">

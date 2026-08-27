@@ -150,18 +150,20 @@ html {
 }
 
 /* The title block every routed page opens with, the sign-in panel, and the
-   home page's own sections. `app-scroll-world` is left out by name: it is the
-   sticky one. */
+   home page's own sections. `app-event-track` gets this too — its per-stop
+   reveal-on-scroll animation lives on the `.track__stop` children, so a
+   mount-time fade on the section itself does not conflict with it. */
 app-page-header,
 .sign-in,
 .missing,
 app-home-hero,
+app-event-track,
 app-home-theme,
 app-home-purpose,
 app-home-faq,
 app-home-sponsors,
 app-home-organizers,
-app-home-contact {
+app-home-director {
   animation: page-appear 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -169,6 +171,9 @@ app-home-contact {
    page assembling rather than as one block flashing on. Each section is a
    sibling of the last, so the delays are written once here rather than by a
    script counting them. */
+app-event-track {
+  animation-delay: 0.03s;
+}
 app-home-theme {
   animation-delay: 0.06s;
 }
@@ -184,7 +189,7 @@ app-home-sponsors {
 app-home-organizers {
   animation-delay: 0.3s;
 }
-app-home-contact {
+app-home-director {
   animation-delay: 0.36s;
 }
 
@@ -196,12 +201,13 @@ app-home-contact {
   .sign-in,
   .missing,
   app-home-hero,
+  app-event-track,
   app-home-theme,
   app-home-purpose,
   app-home-faq,
   app-home-sponsors,
   app-home-organizers,
-  app-home-contact {
+  app-home-director {
     animation: none;
   }
 }

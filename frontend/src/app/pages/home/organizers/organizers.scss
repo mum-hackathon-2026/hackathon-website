@@ -1,5 +1,5 @@
 .organizers {
-  padding: clamp(48px, 8vw, 80px) 24px;
+  padding: clamp(28px, 5vw, 52px) 24px;
 }
 
 .organizers__inner {
@@ -109,9 +109,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: clamp(184px, 24vw, 232px);
-  min-height: 104px;
-  padding: 18px 24px;
+  width: clamp(230px, 28vw, 288px);
+  min-height: 132px;
+  padding: 22px 28px;
   border: 1.5px solid rgba(0, 0, 0, 0.07);
   border-radius: 14px;
   background: #ffffff;
@@ -133,13 +133,13 @@
  * Bounded on both axes, because the three lockups are nowhere near the same
  * shape — MUMTEC is 4.3:1 and MD is 1.65:1. Capping width alone would make MD
  * tower over the row; capping height alone would run MUMTEC off the plate.
- * Between them the logos land in a 46-64px band, which reads as one size.
+ * Between them the logos land in a 64-88px band, which reads as one size.
  */
 .organizers__partner-logo {
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 64px;
+  max-height: 88px;
   object-fit: contain;
 }
 
@@ -153,205 +153,4 @@
   letter-spacing: -0.01em;
   text-align: center;
   color: var(--color-ink);
-}
-
-/* Modern Bento Director & Organizer Cards */
-/* Modern Bento Director & Organizer Cards */
-.organizers__grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 24px;
-  width: 100%;
-  max-width: 920px;
-  margin: 36px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.organizers__card {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  flex: 1 1 400px;
-  max-width: 440px;
-  padding: 24px;
-  border: 1px solid var(--color-border);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow:
-    0 4px 20px -2px rgba(0, 0, 0, 0.03),
-    0 1px 3px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(12px);
-  transition:
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.25s ease,
-    border-color 0.25s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow:
-      0 16px 36px -4px rgba(245, 158, 11, 0.18),
-      0 4px 12px rgba(0, 0, 0, 0.03);
-    border-color: rgba(245, 158, 11, 0.5);
-  }
-}
-
-.organizers__avatar,
-.organizers__photo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 92px;
-  height: 92px;
-  border-radius: 22px;
-  object-fit: cover;
-  object-position: center top;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
-}
-
-.organizers__avatar {
-  font-family: var(--font-sans);
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-}
-
-.organizers__card:hover .organizers__avatar,
-.organizers__card:hover .organizers__photo {
-  transform: scale(1.04) rotate(1.5deg);
-  box-shadow: 0 10px 28px rgba(245, 158, 11, 0.3);
-}
-
-.organizers__photo--blue,
-.organizers__avatar--blue {
-  border: 2.5px solid #4285f4;
-  background: linear-gradient(135deg, #4285f4 0%, #1a56c4 100%);
-  color: #ffffff;
-}
-
-.organizers__photo--green,
-.organizers__avatar--green {
-  border: 2.5px solid #34a853;
-  background: linear-gradient(135deg, #34a853 0%, #1e7e34 100%);
-  color: #ffffff;
-}
-
-.organizers__photo--red,
-.organizers__avatar--red {
-  border: 2.5px solid #ea4335;
-  background: linear-gradient(135deg, #ea4335 0%, #c5221f 100%);
-  color: #ffffff;
-}
-
-.organizers__photo--yellow,
-.organizers__avatar--yellow {
-  border: 2.5px solid #f59e0b;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #ffffff;
-}
-
-.organizers__details {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  min-width: 0;
-  flex: 1;
-}
-
-.organizers__header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.organizers__name {
-  margin: 0;
-  font-family: var(--font-serif, serif);
-  font-size: 1.28rem;
-  font-weight: 800;
-  line-height: 1.2;
-  color: var(--color-ink);
-  letter-spacing: -0.015em;
-}
-
-.organizers__role {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: #b45309;
-  background: rgba(245, 158, 11, 0.14);
-  padding: 3px 10px;
-  border-radius: 999px;
-  display: inline-block;
-}
-
-.organizers__info-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 100%;
-  margin-top: 2px;
-}
-
-.organizers__info-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-ink-muted, #4b5563);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-  word-break: break-all;
-  transition: color 0.15s ease;
-
-  &:hover {
-    color: #d97706;
-    text-decoration: underline;
-  }
-}
-
-.organizers__info-icon {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  color: #d97706;
-}
-
-.organizers__actions {
-  margin-top: 6px;
-}
-
-.organizers__linkedin-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #ffffff;
-  background: linear-gradient(135deg, #0077b5 0%, #005582 100%);
-  padding: 6px 14px;
-  border-radius: 10px;
-  text-decoration: none;
-  box-shadow: 0 3px 10px rgba(0, 119, 181, 0.25);
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 119, 181, 0.38);
-    background: linear-gradient(135deg, #0088ce 0%, #00669c 100%);
-  }
-}
-
-.organizers__btn-icon {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
 }

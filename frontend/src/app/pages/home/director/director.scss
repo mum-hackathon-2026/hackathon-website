@@ -1,0 +1,259 @@
+.director {
+  padding: clamp(28px, 5vw, 52px) 24px;
+}
+
+.director__inner {
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Bigger than the shared .section-heading default (a fixed --text-2xl): this
+   is the only text opening the section, so it needs the presence a heading
+   alone has to carry on its own. */
+.director__heading {
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));
+}
+
+.director__grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 920px;
+  margin: 36px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.director__card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex: 1 1 400px;
+  max-width: 440px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 4px 20px -2px rgba(0, 0, 0, 0.03),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(12px);
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 16px 36px -4px rgba(245, 158, 11, 0.18),
+      0 4px 12px rgba(0, 0, 0, 0.03);
+    border-color: rgba(245, 158, 11, 0.5);
+  }
+}
+
+.director__avatar,
+.director__photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 92px;
+  height: 92px;
+  border-radius: 22px;
+  object-fit: cover;
+  object-position: center top;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease;
+}
+
+.director__avatar {
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.director__card:hover .director__avatar,
+.director__card:hover .director__photo {
+  transform: scale(1.04) rotate(1.5deg);
+  box-shadow: 0 10px 28px rgba(245, 158, 11, 0.3);
+}
+
+.director__photo--blue,
+.director__avatar--blue {
+  border: 2.5px solid #4285f4;
+  background: linear-gradient(135deg, #4285f4 0%, #1a56c4 100%);
+  color: #ffffff;
+}
+
+.director__photo--green,
+.director__avatar--green {
+  border: 2.5px solid #34a853;
+  background: linear-gradient(135deg, #34a853 0%, #1e7e34 100%);
+  color: #ffffff;
+}
+
+.director__photo--red,
+.director__avatar--red {
+  border: 2.5px solid #ea4335;
+  background: linear-gradient(135deg, #ea4335 0%, #c5221f 100%);
+  color: #ffffff;
+}
+
+.director__photo--yellow,
+.director__avatar--yellow {
+  border: 2.5px solid #f59e0b;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+}
+
+.director__details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.director__name {
+  margin: 0;
+  font-family: var(--font-serif, serif);
+  font-size: 1.28rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--color-ink);
+  letter-spacing: -0.015em;
+}
+
+.director__info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.director__info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-ink-muted, #4b5563);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: #d97706;
+    text-decoration: underline;
+  }
+}
+
+.director__info-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: #d97706;
+}
+
+.director__actions {
+  margin-top: 6px;
+}
+
+.director__linkedin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0077b5 0%, #005582 100%);
+  padding: 6px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  box-shadow: 0 3px 10px rgba(0, 119, 181, 0.25);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 119, 181, 0.38);
+    background: linear-gradient(135deg, #0088ce 0%, #00669c 100%);
+  }
+}
+
+.director__btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* The catch-all beneath the cards above: not everyone's question is for a
+   named person, so an email and a Discord invite stay alongside them. */
+.director__contact {
+  width: 100%;
+  max-width: 520px;
+  margin: 40px 0 0;
+  padding-top: 32px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.director__contact-blurb {
+  margin: 0 auto 20px;
+  max-width: 440px;
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.director__contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.director__contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-body);
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+
+  &:hover {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+  }
+}
+
+.director__contact-link--discord:hover {
+  border-color: #5865f2;
+  color: #5865f2;
+}
+
+.director__contact-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}

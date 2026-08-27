@@ -24,13 +24,19 @@ interface NavLink {
   readonly isFinalist?: boolean;
 }
 
+/** Scroll movement smaller than this is jitter (trackpads, momentum), not intent. */
+const SCROLL_DELTA_THRESHOLD_PX = 8;
+
+/** Never hide this close to the top — the pill should always greet a fresh page load. */
+const SCROLL_TOP_SAFE_ZONE_PX = 80;
+
 /**
  * Only routes that actually exist belong here. A link to an unregistered path
  * throws NG04002 on click, so each page's PR adds its own entry.
  */
 const NAV_LINKS: readonly NavLink[] = [
   { path: '/', label: 'Home', exact: true },
-  { path: '/timeline', label: 'Timeline' },
+  { path: '/', fragment: 'timeline', label: 'Timeline' },
   { path: '/', fragment: 'criteria', label: 'Criteria', roles: ['public'] },
   { path: '/', fragment: 'faq', label: 'FAQ', roles: ['public'] },
   { path: '/', fragment: 'organizers', label: 'Organisers', roles: ['public'] },
@@ -51,6 +57,7 @@ const NAV_LINKS: readonly NavLink[] = [
   host: {
     '(document:click)': 'onDocumentClick($event)',
     '(document:keydown.escape)': 'closeAll()',
+    '(window:scroll)': 'onScroll()',
   },
 })
 export class NavBar {
@@ -65,6 +72,29 @@ export class NavBar {
 
   protected readonly profileOpen = signal(false);
   protected readonly drawerOpen = signal(false);
+
+  /**
+   * Scrolling down hides the pill, scrolling up brings it straight back — the
+   * page gets its top few percent of vertical space back while reading, and
+   * the nav is never more than one upward flick away.
+   *
+   * False until proven otherwise, same reasoning as EventTrack's `canAnimate`:
+   * a reader who prefers reduced motion gets a nav that never moves at all,
+   * rather than one that slides without a transition.
+   */
+  private readonly autoHideEnabled =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  protected readonly scrolledDown = signal(false);
+  /** Never hidden while a menu is open, even if a scroll event sneaks in mid-close. */
+  protected readonly navHidden = computed(
+    () => this.scrolledDown() && !this.drawerOpen() && !this.profileOpen(),
+  );
+
+  private lastScrollY = 0;
+  private scrollTicking = false;
 
   protected readonly isFinalist = computed(() => {
     const role = this.auth.role();
@@ -129,5 +159,30 @@ export class NavBar {
     if (area && !area.contains(event.target as Node)) {
       this.profileOpen.set(false);
     }
+  }
+
+  /**
+   * rAF-throttled so a run of scroll events collapses into one read of
+   * `scrollY` per frame rather than one signal write per event.
+   */
+  protected onScroll(): void {
+    if (!this.autoHideEnabled || this.scrollTicking) return;
+    this.scrollTicking = true;
+
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      const delta = y - this.lastScrollY;
+
+      if (y <= SCROLL_TOP_SAFE_ZONE_PX) {
+        this.scrolledDown.set(false);
+      } else if (delta > SCROLL_DELTA_THRESHOLD_PX) {
+        this.scrolledDown.set(true);
+      } else if (delta < -SCROLL_DELTA_THRESHOLD_PX) {
+        this.scrolledDown.set(false);
+      }
+
+      this.lastScrollY = y;
+      this.scrollTicking = false;
+    });
   }
 }

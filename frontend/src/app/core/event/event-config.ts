@@ -125,7 +125,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     // The proposal runs eight days, not a weekend, and draws students from
     // several universities — so neither "48 hours" nor "one campus" was true.
     tagline: 'One industry problem, three days to solve it.',
-    contactEmail: 'hackathon@monash.edu',
+    contactEmail: 'mum-sit-averis-hackathon@monash.edu',
     discordUrl: 'https://discord.gg/monashhack',
     teamRegistrationFormUrl:
       'https://docs.google.com/forms/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/viewform',
