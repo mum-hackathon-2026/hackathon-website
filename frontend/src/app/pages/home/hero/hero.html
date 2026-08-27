@@ -1,12 +1,4 @@
 <section class="hero">
-  <p class="hero__badge">
-    <span class="hero__badge-dot" aria-hidden="true"></span>
-    {{ status() }}
-    @if (milestone(); as next) {
-      · {{ next.at | date: 'd MMM y' : myt }}
-    }
-  </p>
-
   <!-- Brand lockup. The canonical event name lives in event-config.ts; this is
        the typographic treatment of it and is deliberately not interpolated. -->
   <h1 class="hero__title">
@@ -78,7 +70,7 @@
     <div class="hero__actions">
       @if (!isRegistrationClosed()) {
         <a
-          class="hero__cta hero__cta--filled"
+          class="hero__cta hero__cta--filled hero__cta--lg"
           href="https://docs.google.com/forms/u/0/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/formResponse"
           target="_blank"
           rel="noopener noreferrer"

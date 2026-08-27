@@ -39,6 +39,12 @@
   --color-surface: #ffffff;
   --color-surface-alt: #fafafa;
 
+  /* The page canvas, per the Averis design guideline's cream. Deliberately its
+     own token rather than a repaint of --color-surface: cards, the nav pill,
+     buttons and inputs all key off --color-surface to stay crisp white on top
+     of this, and would turn cream themselves if it were reused for both. */
+  --color-page-bg: #fbf1e2;
+
   /* Two voices, one hierarchy. Titles are set in the serif; everything a reader
      actually reads through — body copy, labels, controls, data — stays sans.
      Roboto Serif is Roboto's companion face, so the pairing reads as one family
@@ -88,7 +94,7 @@ body {
 
 body {
   font-family: var(--font-sans);
-  background: var(--color-surface);
+  background: var(--color-page-bg);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

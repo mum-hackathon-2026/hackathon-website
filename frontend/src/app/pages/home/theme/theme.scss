@@ -1,5 +1,3 @@
-@use 'sass:list';
-
 .theme {
   padding: clamp(64px, 10vw, 96px) 24px;
   text-align: center;
@@ -11,23 +9,24 @@
   margin: 0 auto 52px;
 }
 
-.theme__eyebrow {
-  margin: 0 0 16px;
-  font-size: var(--text-3xs);
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-blue, #4285f4);
-}
-
 .theme__title {
-  margin: 0 0 20px;
+  margin: 0 0 12px;
   font-family: var(--font-serif, serif);
-  font-size: clamp(var(--text-2xl), 4.5vw, var(--text-4xl));
+  /* Bumped a step past the section-heading norm (--text-2xl/--text-4xl): this
+     is the heading now, where it used to be a subtitle under a bigger eyebrow
+     line, so it needs to read as the largest thing in the intro. */
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.015em;
   color: var(--color-ink);
+}
+
+.theme__subtitle {
+  margin: 0 0 20px;
+  font-size: clamp(var(--text-md), 2vw, var(--text-lg));
+  font-weight: 600;
+  color: var(--color-muted);
 }
 
 /* Glassmorphic Glowing Sealed Mystery Card */
@@ -41,9 +40,9 @@
   padding: 24px 28px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.9);
-  border: 1.5px dashed rgba(66, 133, 244, 0.35);
+  border: 1.5px dashed rgba(231, 136, 35, 0.35);
   box-shadow:
-    0 8px 30px rgba(66, 133, 244, 0.08),
+    0 8px 30px rgba(231, 136, 35, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.02);
   text-align: left;
   backdrop-filter: blur(12px);
@@ -54,9 +53,9 @@
 
   &:hover {
     transform: translateY(-2px);
-    border-color: rgba(66, 133, 244, 0.6);
+    border-color: rgba(231, 136, 35, 0.6);
     box-shadow:
-      0 12px 36px rgba(66, 133, 244, 0.14),
+      0 12px 36px rgba(231, 136, 35, 0.14),
       0 2px 6px rgba(0, 0, 0, 0.03);
   }
 }
@@ -69,12 +68,12 @@
   width: 54px;
   height: 54px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #4285f4 0%, #1a56c4 100%);
+  background: linear-gradient(135deg, #e78823 0%, #96541b 100%);
   color: #ffffff;
   font-family: var(--font-serif, serif);
   font-size: var(--text-2xl);
   font-weight: 800;
-  box-shadow: 0 4px 16px rgba(66, 133, 244, 0.3);
+  box-shadow: 0 4px 16px rgba(231, 136, 35, 0.3);
   animation: mysteryFloat 3.5s ease-in-out infinite alternate;
 }
 
@@ -98,14 +97,14 @@
   align-self: flex-start;
   padding: 3px 12px;
   border-radius: 999px;
-  background: rgba(251, 188, 4, 0.12);
-  color: #b45309;
-  border: 1px solid rgba(251, 188, 4, 0.3);
+  background: rgba(231, 136, 35, 0.12);
+  color: #96541b;
+  border: 1px solid rgba(231, 136, 35, 0.3);
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  box-shadow: 0 0 12px rgba(251, 188, 4, 0.15);
+  box-shadow: 0 0 12px rgba(231, 136, 35, 0.15);
 }
 
 .theme__blurb {
@@ -165,11 +164,11 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #b45309;
-  background: rgba(245, 158, 11, 0.12);
+  color: #96541b;
+  background: rgba(231, 136, 35, 0.12);
   padding: 5px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(245, 158, 11, 0.28);
+  border: 1px solid rgba(231, 136, 35, 0.28);
 }
 
 /* Visualized Criteria List */
@@ -232,7 +231,8 @@
   color: var(--color-ink);
 }
 
-/* The colour chip, tying a row to its segment in the track above. */
+/* A bullet, not a legend: the dot and the segment above share one accent
+   colour now, so position — not hue — is what ties a row to its segment. */
 .theme__pillar-indicator {
   width: 10px;
   height: 10px;
@@ -240,60 +240,21 @@
   flex-shrink: 0;
 }
 
-/* One colour per rank, and rank is position, so the stylesheet can assign it
-   without the component knowing any of these values. The track and the list are
-   rendered from the same sorted array, so `nth-child` lands the same colour on
-   a segment and on the row it belongs to — which is the whole reason the track
-   is readable rather than seven anonymous blocks.
-
-   The four brand colours take the four heaviest criteria, then teal, violet
-   and magenta from Google's wider palette. These were 300-level tints of the
-   first three, which was too pale to read: a 10px dot and an 8px bar have very
-   little area to carry a colour, and a wash of it disappears against white.
-   Full-strength hues that are simply different solve it, and the violet is the
-   one the audit log already uses.
-
-   The fallback matters: a config with more than seven criteria would otherwise
-   leave the extras with no colour at all. */
-.theme__pillar,
-.theme__score-seg {
-  --accent: var(--color-subtle);
-}
-
-$rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #00897b, #7c3aed, #d01884;
-
-@for $i from 1 through list.length($rank-accents) {
-  .theme__pillar:nth-child(#{$i}),
-  .theme__score-seg:nth-child(#{$i}) {
-    --accent: #{list.nth($rank-accents, $i)};
-  }
+/* One Averis orange for every rank, not a colour per one: the row order and
+   bar width already carry the ranking, and the dot is a bullet rather than a
+   legend. A rank-accent rainbow (four brand colours plus teal/violet/magenta)
+   used to fill this role; it read as busier than the guideline's own pages,
+   which stay inside one hue per element. There used to be a second, aggregate
+   bar above this list making the same point in miniature — with every segment
+   now the same colour it had nothing left to show, so it was dropped rather
+   than kept as a plain stripe. */
+.theme__pillar {
+  --accent: #e78823;
 }
 
 .theme__pillar-indicator,
-.theme__pillar-bar,
-.theme__score-seg {
+.theme__pillar-bar {
   background: var(--accent);
-}
-
-/* The whole, above the parts. Segments are sized by flex-grow, so the gaps
-   between them come out of the track rather than pushing it over 100%. */
-.theme__score-track {
-  display: flex;
-  gap: 4px;
-  height: 14px;
-  margin-bottom: 22px;
-}
-
-.theme__score-seg {
-  flex-basis: 0;
-  border-radius: 999px;
-  transform-origin: left center;
-  animation: pillar-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  /* Each segment starts a beat after the one to its left, and the whole track
-     finishes before the first row bar begins, so the eye reads the total and
-     then the breakdown rather than both at once. Indexed from the template,
-     the same way the rows are, rather than seven near-identical rules. */
-  animation-delay: calc(var(--seg-index, 0) * 60ms);
 }
 
 .theme__pillar-bar-wrap {
@@ -313,9 +274,8 @@ $rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #00897b, #7c3aed, #d01884;
   transform-origin: left center;
   animation: pillar-grow 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   /* Each bar starts a beat after the one above, so the chart draws itself down
-     the list rather than snapping in as a block. The offset holds them until
-     the track overhead has finished drawing. */
-  animation-delay: calc(460ms + var(--row-index, 0) * 90ms);
+     the list rather than snapping in as a block. */
+  animation-delay: calc(var(--row-index, 0) * 90ms);
 }
 
 @keyframes pillar-grow {
@@ -332,19 +292,49 @@ $rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #00897b, #7c3aed, #d01884;
   font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.4;
-  color: #b45309;
-  background: rgba(245, 158, 11, 0.12);
+  color: #96541b;
+  background: rgba(231, 136, 35, 0.12);
   padding: 4px 12px;
   border-radius: 999px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
+/* Below this width the three-column grid (dot | name | figure) gets too
+   cramped for a real criterion name plus a nowrap percentage pill, so each
+   row switches to its own small flex layout instead: dot and name share a
+   line, the bar is dropped (it's redundant with the track above anyway), and
+   the figure pill wraps onto a line of its own via flex-basis: 100%, which
+   forces a break in a wrapping flex row without a markup change.
+
+   `.theme__pillar` has to be told `display: flex` explicitly here — its base
+   rule is `display: contents` so the grid above can flatten it away, and that
+   value makes every other property on the element (flex-direction, gap,
+   align-items) inert until something overrides it. That silent no-op is what
+   made this breakpoint do nothing at all before. */
 @media (max-width: 640px) {
-  .theme__pillar {
+  .theme__pillars {
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    gap: 18px;
+  }
+
+  .theme__pillar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 8px;
+  }
+
+  .theme__pillar-indicator {
+    margin: 0;
+  }
+
+  .theme__pillar-name {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .theme__pillar-bar-wrap {
@@ -352,7 +342,9 @@ $rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #00897b, #7c3aed, #d01884;
   }
 
   .theme__pillar-desc {
-    align-self: flex-end;
+    flex-basis: 100%;
+    margin: 0;
+    align-self: flex-start;
   }
 }
 
@@ -375,8 +367,7 @@ $rank-accents: #4285f4, #34a853, #ea4335, #f59e0b, #00897b, #7c3aed, #d01884;
   /* `backwards` holds the bar at zero width through its delay, so shortening
      the duration is not enough: the chart would sit empty until each bar's
      turn. Dropped outright. */
-  .theme__pillar-bar,
-  .theme__score-seg {
+  .theme__pillar-bar {
     animation: none;
   }
 }

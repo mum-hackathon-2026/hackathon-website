@@ -66,7 +66,7 @@ describe('OrganizersSection', () => {
 
   it('marks the people up as a list under one heading', () => {
     expect(host().querySelector('ul.organizers__grid')).toBeTruthy();
-    expect(host().querySelector('h2')!.textContent).toContain('Who runs it.');
+    expect(host().querySelector('h2')!.textContent).toContain('Organizers');
   });
 
   describe('partners', () => {

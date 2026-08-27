@@ -9,6 +9,25 @@
   padding: 0 clamp(20px, 4vw, 40px);
 }
 
+/* Bigger than the shared .section-heading default (a fixed --text-2xl): this
+   is the section's own heading now rather than a subtitle under an eyebrow,
+   so it needs to read as the largest thing in the intro. The 40px bottom
+   margin from the shared class also assumes it is the last thing before the
+   content; here a subtitle sits between the two, so it is pulled in to a gap
+   that suits a heading-then-subheading pair instead. */
+.purpose .section-heading {
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));
+  margin-bottom: 10px;
+}
+
+.purpose__subtitle {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(var(--text-md), 2vw, var(--text-lg));
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
 .purpose__list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

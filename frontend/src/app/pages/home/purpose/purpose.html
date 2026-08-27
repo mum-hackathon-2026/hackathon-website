@@ -1,20 +1,20 @@
 <section class="purpose" #sectionRef>
   <div class="purpose__inner">
-    <p class="section-eyebrow section-eyebrow--center">Why enter</p>
-    <h2 class="section-heading section-heading--center">Why it is worth eight days.</h2>
+    <h2 class="section-heading section-heading--center">Why Enter</h2>
+    <p class="purpose__subtitle">Why it is worth three days.</p>
 
     <ul class="purpose__list">
       @for (reason of purpose; track reason) {
-        <li class="purpose__item">{{ reason }}</li>
+      <li class="purpose__item">{{ reason }}</li>
       }
     </ul>
 
     <dl class="purpose__scale">
       @for (figure of scale; track figure.label) {
-        <div class="purpose__figure">
-          <dt class="purpose__value">{{ figure.value }}</dt>
-          <dd class="purpose__label">{{ figure.label }}</dd>
-        </div>
+      <div class="purpose__figure">
+        <dt class="purpose__value">{{ figure.value }}</dt>
+        <dd class="purpose__label">{{ figure.label }}</dd>
+      </div>
       }
     </dl>
   </div>

@@ -1,7 +1,6 @@
 <section class="sponsors" id="sponsors">
   <div class="sponsors__inner">
-    <p class="section-eyebrow section-eyebrow--center">Our sponsor</p>
-    <h2 class="section-heading section-heading--center">Sponsored by Averis.</h2>
+    <h2 class="section-heading section-heading--center sponsors__heading">Our Sponsor</h2>
 
     <!-- Infinite Auto-Scrolling Marquee Track -->
     <div class="sponsors__marquee" aria-label="Sponsors Showcase">
@@ -9,55 +8,32 @@
         <!-- Main Marquee Group -->
         <div class="sponsors__marquee-group">
           @for (sponsor of marqueeItems; track $index) {
-            <a
-              class="sponsors__card"
-              [href]="sponsor.website || 'https://www.averis.com/'"
-              target="_blank"
-              rel="noopener noreferrer"
-              [attr.aria-label]="sponsor.name + ' website (opens in new tab)'"
-            >
-              @if (hasLogo(sponsor)) {
-                <img
-                  class="sponsors__logo"
-                  [src]="sponsor.logo"
-                  [alt]="sponsor.name"
-                  (error)="onLogoError(sponsor)"
-                />
-              } @else {
-                <span class="sponsors__wordmark">{{ sponsor.name }}</span>
-              }
-            </a>
+          <a class="sponsors__card" [href]="sponsor.website || 'https://www.averis.com/'" target="_blank"
+            rel="noopener noreferrer" [attr.aria-label]="sponsor.name + ' website (opens in new tab)'">
+            @if (hasLogo(sponsor)) {
+            <img class="sponsors__logo" [src]="sponsor.logo" [alt]="sponsor.name" (error)="onLogoError(sponsor)" />
+            } @else {
+            <span class="sponsors__wordmark">{{ sponsor.name }}</span>
+            }
+          </a>
           }
         </div>
 
         <!-- Duplicated Group for Seamless -50% Loop (aria-hidden for screen readers) -->
         <div class="sponsors__marquee-group" aria-hidden="true">
           @for (sponsor of marqueeItems; track $index) {
-            <a
-              class="sponsors__card"
-              [href]="sponsor.website || 'https://www.averis.com/'"
-              target="_blank"
-              rel="noopener noreferrer"
-              tabindex="-1"
-            >
-              @if (hasLogo(sponsor)) {
-                <img
-                  class="sponsors__logo"
-                  [src]="sponsor.logo"
-                  [alt]="sponsor.name"
-                  (error)="onLogoError(sponsor)"
-                />
-              } @else {
-                <span class="sponsors__wordmark">{{ sponsor.name }}</span>
-              }
-            </a>
+          <a class="sponsors__card" [href]="sponsor.website || 'https://www.averis.com/'" target="_blank"
+            rel="noopener noreferrer" tabindex="-1">
+            @if (hasLogo(sponsor)) {
+            <img class="sponsors__logo" [src]="sponsor.logo" [alt]="sponsor.name" (error)="onLogoError(sponsor)" />
+            } @else {
+            <span class="sponsors__wordmark">{{ sponsor.name }}</span>
+            }
+          </a>
           }
         </div>
       </div>
     </div>
 
-    <p class="sponsors__note">
-      Thank you to Averis for backing {{ eventName() }} and the students competing in it.
-    </p>
   </div>
 </section>

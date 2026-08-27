@@ -9,7 +9,7 @@ describe('Backdrop', () => {
   }
 
   function layer(): HTMLElement {
-    return host().querySelector<HTMLElement>('.backdrop')!;
+    return host().querySelector<HTMLElement>('.backdrop-motif')!;
   }
 
   beforeEach(async () => {
@@ -19,9 +19,12 @@ describe('Backdrop', () => {
     await fixture.whenStable();
   });
 
-  it('renders the grid and one well per brand colour', () => {
+  it('renders the hexagon/circuit/wave motif and one accent dot per brand colour', () => {
     expect(layer()).toBeTruthy();
-    expect(host().querySelectorAll('.backdrop__well').length).toBe(4);
+    expect(host().querySelector('.backdrop-motif__honeycomb')).toBeTruthy();
+    expect(host().querySelector('.backdrop-motif__circuit')).toBeTruthy();
+    expect(host().querySelector('.backdrop-motif__wave-contour')).toBeTruthy();
+    expect(host().querySelectorAll('.backdrop-motif__dot').length).toBe(4);
   });
 
   // It covers the whole viewport. If it ever took pointer events it would

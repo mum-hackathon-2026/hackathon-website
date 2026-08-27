@@ -9,6 +9,14 @@
   text-align: center;
 }
 
+/* Bigger than the shared .section-heading default (a fixed --text-2xl): with
+   the "Sponsored by Averis" eyebrow-and-heading pair collapsed to just "Our
+   sponsor", this is the only text opening the section, so it needs the
+   presence a heading alone has to carry on its own. */
+.sponsors__heading {
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));
+}
+
 /* Horizontal Infinite Scrolling Marquee Banner with Subtle Yellowish-Orange Edge Glows */
 .sponsors__marquee {
   position: relative;
