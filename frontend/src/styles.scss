@@ -100,6 +100,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Without this, a reader's selection colour is whatever their OS accent
+   happens to be — on some setups a hard, opaque, near-black orange that reads
+   as a rendering glitch rather than a highlight. A soft tint of the site's
+   own CTA amber over the ink text it already uses keeps a selection legible
+   and on-brand regardless of the reader's system settings. Needs both
+   prefixed and unprefixed rules: Safari does not recognise the bare
+   `::selection` on its own. */
+::selection {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--color-ink);
+}
+
+::-moz-selection {
+  background: rgba(245, 158, 11, 0.28);
+  color: var(--color-ink);
+}
+
 /* Every heading level, so a title is serif wherever it appears without each
    component having to opt in. Titles that are not headings — empty-state
    headings, card names, the wordmark — set --font-serif themselves. */
