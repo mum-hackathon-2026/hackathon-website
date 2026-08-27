@@ -33,6 +33,16 @@
   padding: 0 clamp(12px, 3vw, 24px);
   box-sizing: border-box;
   pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Slides the whole pill (and its drawer/popover, if either were open — the
+   component itself guarantees neither is) up past the top offset, the pill's
+   own height and its shadow's blur radius, so nothing is left peeking in from
+   the edge. Driven by NavBar.navHidden, which is only ever true when
+   `prefers-reduced-motion` is not set — see the property's own comment. */
+.nav--hidden {
+  transform: translateY(-120px);
 }
 
 .nav__inner {
@@ -351,9 +361,22 @@
   }
 }
 
+/* Brand and account are both flex-shrink: 0, so below this width their
+   combined natural size — logo, wordmark, sign-in pill, hamburger — no longer
+   fits the pill and the hamburger overflows off the edge of the screen
+   instead of shrinking with everything else. Dropping the wordmark (the logo
+   alone still says whose site this is) reliably wins back enough room. */
 @media (max-width: 540px) {
   .nav__role-chip {
     display: none;
+  }
+
+  .nav__brand-name {
+    display: none;
+  }
+
+  .nav__brand {
+    margin-right: 4px;
   }
 }
 
