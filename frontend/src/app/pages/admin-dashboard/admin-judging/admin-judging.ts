@@ -49,11 +49,8 @@ export class AdminJudging {
   protected readonly judgingOpen = this.phaseService.judgingOpen;
   protected readonly judgesPerTeam = this.settings.judgesPerTeam;
   protected readonly workloads = this.admin.workloads;
-  protected readonly tracks = computed(() => ['all', ...this.config.site.tracks]);
-
   protected readonly search = signal('');
   protected readonly statusFilter = signal<JudgingStatusFilter>('all');
-  protected readonly trackFilter = signal<string>('all');
 
   protected readonly statusFilters: readonly { id: JudgingStatusFilter; label: string }[] = [
     { id: 'all', label: 'All submissions' },
@@ -141,11 +138,9 @@ export class AdminJudging {
   protected readonly filteredRows = computed<readonly TeamJudgingProgressRow[]>(() => {
     const term = this.search().trim().toLowerCase();
     const status = this.statusFilter();
-    const track = this.trackFilter();
 
     return this.allRows().filter((row) => {
       if (status !== 'all' && row.status !== status) return false;
-      if (track !== 'all' && row.trackLabel !== track) return false;
       if (!term) return true;
 
       const matchesTeam = row.teamName.toLowerCase().includes(term);
@@ -172,13 +167,11 @@ export class AdminJudging {
   });
 
   protected readonly filtersActive = computed(
-    () =>
-      this.search().trim() !== '' || this.statusFilter() !== 'all' || this.trackFilter() !== 'all',
+    () => this.search().trim() !== '' || this.statusFilter() !== 'all',
   );
 
   protected clearFilters(): void {
     this.search.set('');
     this.statusFilter.set('all');
-    this.trackFilter.set('all');
   }
 }

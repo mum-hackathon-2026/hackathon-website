@@ -53,7 +53,6 @@
         <tr>
           <th scope="col">Team</th>
           <th scope="col">Project</th>
-          <th scope="col">Track</th>
           <th scope="col">Status</th>
           <th scope="col">Submitted</th>
           <th scope="col">Links</th>
@@ -71,9 +70,6 @@
               } @else {
                 <span class="grid__none">Not started</span>
               }
-            </td>
-            <td>
-              <span class="pill">{{ row.trackLabel }}</span>
             </td>
             <td>
               @if (row.submissionStatus) {

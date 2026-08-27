@@ -162,23 +162,53 @@
   --person-tint: var(--color-amber-tint);
 }
 
-.people__avatar {
+.people__avatar,
+.people__photo {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  object-fit: cover;
+  object-position: center top;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.people__avatar {
   background: var(--person-tint);
-  font-size: var(--text-md);
+  font-size: 1.5rem;
   font-weight: 800;
   color: var(--person-ink);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.people__card:hover .people__avatar,
+.people__card:hover .people__photo {
+  transform: scale(1.04) rotate(1.5deg);
+  box-shadow: 0 8px 22px rgba(245, 158, 11, 0.25);
+}
+
+.people__photo--blue {
+  border: 2.5px solid #4285f4;
+}
+
+.people__photo--green {
+  border: 2.5px solid #34a853;
+}
+
+.people__photo--red {
+  border: 2.5px solid #ea4335;
+}
+
+.people__photo--yellow {
+  border: 2.5px solid #f59e0b;
 }
 
 .people__body {
   min-width: 0;
+  flex: 1;
 }
 
 .people__heading {
@@ -191,16 +221,17 @@
 
 .people__name {
   margin: 0;
-  font-size: var(--text-md);
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-family: var(--font-serif, serif);
   color: var(--color-ink);
 }
 
 .people__role {
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 999px;
-  background: rgba(245, 158, 11, 0.12);
-  font-size: 0.72rem;
+  background: rgba(245, 158, 11, 0.14);
+  font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -211,36 +242,79 @@
 .people__department {
   margin: 0 0 8px;
   font-size: var(--text-xs);
+  font-weight: 600;
   color: var(--color-subtle);
 }
 
 .people__bio {
-  margin: 0 0 10px;
+  margin: 0 0 14px;
   font-size: var(--text-sm);
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--color-body);
 }
 
-.people__email {
+.people__contacts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.people__contact-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-xs);
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #d97706;
+  padding: 6px 12px;
+  border-radius: 10px;
   text-decoration: none;
-  overflow-wrap: anywhere;
+  transition: all 0.2s ease;
+}
+
+.people__contact-link--email {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
 
   &:hover {
-    text-decoration: underline;
-    color: #b45309;
+    background: #f59e0b;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(245, 158, 11, 0.25);
   }
 }
 
-.people__email-icon {
+.people__contact-link--phone {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+
+  &:hover {
+    background: #10b981;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
+  }
+}
+
+.people__contact-link--linkedin {
+  color: #0077b5;
+  background: rgba(0, 119, 181, 0.08);
+  border: 1px solid rgba(0, 119, 181, 0.2);
+
+  &:hover {
+    background: #0077b5;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 119, 181, 0.25);
+  }
+}
+
+.people__icon {
   flex-shrink: 0;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
 
 /* ── Catch-all contact ─────────────────────────────────────────────────── */

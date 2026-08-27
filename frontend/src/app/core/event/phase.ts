@@ -60,11 +60,11 @@ export class PhaseService {
       case 'before-registration':
         return milestone('Registration opens', registrationOpensAt);
       case 'registration':
-        return milestone('Registration closes', registrationClosesAt);
+        return milestone('Problem statement release', registrationClosesAt);
       case 'submission':
         return milestone('Submissions close', submissionDeadlineAt);
       case 'judging':
-        return milestone('Results announced', resultsPublishedAt);
+        return milestone('Preliminary results', resultsPublishedAt);
       case 'results':
         return null; // Nothing left to count down to.
     }

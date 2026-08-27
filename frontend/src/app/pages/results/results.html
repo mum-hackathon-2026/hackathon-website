@@ -1,134 +1,152 @@
 <div class="page page--narrow">
-  <app-page-header [eyebrow]="eventName()" title="Results" [subtitle]="subtitle()" />
+  <app-page-header [eyebrow]="eventName()" title="Preliminary Results" [subtitle]="subtitle()" />
 
   @if (!published()) {
     <app-state-locked
-      heading="Results are not published yet"
-      reason="Scores are still being compiled and verified. Everyone is notified at the same time."
+      heading="Preliminary results are not published yet"
+      reason="Scores are still being compiled and verified. All squads will be notified simultaneously."
       [deadline]="
         publishedAt()
           ? 'Publishing ' + (publishedAt() | date: 'd MMM y, h:mm a' : myt) + ' MYT'
           : ''
       "
     >
-      <p class="locked-preview">Rankings, awards and judge feedback appear here.</p>
+      <p class="locked-preview">Your team's score breakdown, finalist qualification status, and judges' feedback will appear here.</p>
     </app-state-locked>
   } @else {
-    <nav class="tabs" aria-label="Results views">
-      @for (item of tabs(); track item.id) {
-        <button
-          type="button"
-          class="tabs__tab"
-          [class.tabs__tab--active]="tab() === item.id"
-          [attr.aria-current]="tab() === item.id ? 'page' : null"
-          (click)="select(item.id)"
-        >
-          {{ item.label }}
-        </button>
-      }
-    </nav>
+    @if (myResult(); as mine) {
+      <!-- ── Qualification Status & Actions Banner ────────────────────────────── -->
+      <div class="status-banner" [class.status-banner--finalist]="isFinalist()">
+        <div class="status-banner__content">
+          @if (isFinalist()) {
+            <span class="status-banner__badge status-banner__badge--finalist">Grand Finals Qualifier 🎉</span>
+            <h2 class="status-banner__title">Congratulations! Your squad has qualified for the Grand Finals!</h2>
+            <p class="status-banner__desc">
+              Your team placed in the Top 10 preliminary squads and is advancing to the live finals pitch round.
+            </p>
+            <div class="status-banner__actions">
+              <a routerLink="/finalist" class="btn btn--finalist">
+                <span>Enter Finalist Portal &rarr;</span>
+              </a>
+              <button type="button" class="btn btn--pdf" (click)="downloadPdfReport()">
+                <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Download Report (PDF)</span>
+              </button>
+            </div>
+          } @else {
+            <span class="status-banner__badge status-banner__badge--completed">Preliminary Completed</span>
+            <h2 class="status-banner__title">Preliminary Round Evaluation Completed</h2>
+            <p class="status-banner__desc">
+              Thank you for your squad's dedication and innovation in the preliminary challenge. You can review your detailed scoring breakdown and download the certified report below.
+            </p>
+            <div class="status-banner__actions">
+              <button type="button" class="btn btn--pdf" (click)="downloadPdfReport()">
+                <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Download Evaluation Report (PDF)</span>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
 
-    @switch (tab()) {
-      <!-- ── My result ──────────────────────────────────────────────────── -->
+      <!-- ── Sub-navigation Tabs ──────────────────────────────────────────────── -->
+      <nav class="tabs" aria-label="Results views">
+        @for (item of tabs(); track item.id) {
+          <button
+            type="button"
+            class="tabs__tab"
+            [class.tabs__tab--active]="tab() === item.id"
+            [attr.aria-current]="tab() === item.id ? 'page' : null"
+            (click)="select(item.id)"
+          >
+            {{ item.label }}
+          </button>
+        }
+      </nav>
 
-      @case ('result') {
-        @if (myResult(); as mine) {
+      @switch (tab()) {
+        <!-- ── My Result Breakdown ─────────────────────────────────────────── -->
+        @case ('result') {
           <div class="headline">
-            <div class="headline__rank">
-              <span class="headline__rank-value"> {{ mine.tied ? '=' : '' }}#{{ mine.rank }} </span>
-              <span class="headline__rank-label">of {{ totalTeams() }} teams</span>
-            </div>
             <div class="headline__meta">
-              <h2 class="headline__project">{{ mine.projectTitle }}</h2>
-              <p class="headline__team">{{ mine.teamName }} · {{ mine.trackLabel }}</p>
-              @if (mine.outcome; as outcome) {
-                <span class="headline__outcome">{{ outcomeLabels[outcome] }}</span>
-              }
+              <h2 class="headline__project">{{ mine.projectTitle || 'Preliminary Submission' }}</h2>
+              <p class="headline__team">{{ mine.teamName }}</p>
+              <div class="headline__pills">
+                <span class="headline__outcome" [class.headline__outcome--finalist]="isFinalist()">
+                  {{ isFinalist() ? 'Finalist Qualifier' : 'Participant' }}
+                </span>
+                <span class="headline__judge-count">Evaluated by {{ mine.judgeCount }} judges</span>
+              </div>
             </div>
+
             <div class="headline__score">
               <span class="headline__score-value">{{ mine.finalScore | number: '1.1-1' }}</span>
-              <span class="headline__score-label">final score</span>
+              <span class="headline__score-label">overall score / 100</span>
             </div>
           </div>
 
-          <h3 class="section-title">Score breakdown</h3>
-          <ul class="criteria">
-            @for (criterion of criteria(); track criterion.title) {
-              <li class="criteria__row">
-                <div class="criteria__head">
-                  <span class="criteria__name">{{ criterion.title }}</span>
-                  <span class="criteria__weight">{{ criterion.weight }}% weight</span>
-                  <span class="criteria__score">
-                    {{ criterion.score | number: '1.1-1' }} / {{ criterion.maxScore }}
-                  </span>
-                </div>
-                <div class="criteria__bar">
-                  <span
-                    class="criteria__fill"
-                    [style.width.%]="percent(criterion.score, criterion.maxScore)"
-                  ></span>
-                </div>
-              </li>
-            }
-          </ul>
+          <div class="section-card">
+            <div class="section-card__header">
+              <h3 class="section-title">Rubric Criteria Breakdown</h3>
+              <button type="button" class="btn-text" (click)="downloadPdfReport()">
+                <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Export PDF</span>
+              </button>
+            </div>
+
+            <ul class="criteria">
+              @for (criterion of criteria(); track criterion.title) {
+                <li class="criteria__row">
+                  <div class="criteria__head">
+                    <span class="criteria__name">{{ criterion.title }}</span>
+                    <span class="criteria__weight">{{ criterion.weight }}% weight</span>
+                    <span class="criteria__score">
+                      {{ criterion.score | number: '1.1-1' }} / {{ criterion.maxScore }}
+                    </span>
+                  </div>
+                  <div class="criteria__bar">
+                    <span
+                      class="criteria__fill"
+                      [style.width.%]="percent(criterion.score, criterion.maxScore)"
+                    ></span>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
 
           <p class="note">
-            Averaged across {{ mine.judgeCount }} judges. Each criterion's weight and maximum are
-            fixed at scoring time, so a published result does not change afterwards.
+            Each criterion's score represents the mean evaluation across the assigned panel of industry and faculty judges.
+          </p>
+        }
+
+        <!-- ── Judge feedback ─────────────────────────────────────────────── -->
+        @case ('feedback') {
+          <app-judge-reviews [reviews]="reviews()" />
+
+          <p class="note">
+            Judges remain anonymous for impartiality. Feedback is recorded privately for your team's constructive development.
           </p>
         }
       }
-
-      <!-- ── Rankings ───────────────────────────────────────────────────── -->
-
-      @case ('rankings') {
-        <app-rankings-table [rows]="rankings()" />
-
-        <p class="note">Teams on the same score share a rank, shown with an equals sign.</p>
-      }
-
-      <!-- ── Awards ─────────────────────────────────────────────────────── -->
-
-      @case ('awards') {
-        <h3 class="section-title">Prize winners</h3>
-        <ul class="awards">
-          @for (award of overallAwards(); track award.id) {
-            <li class="awards__card" [class.awards__card--mine]="award.isMine">
-              <div class="awards__heading">
-                <h4 class="awards__title">{{ award.title }}</h4>
-                @if (award.isMine) {
-                  <span class="awards__you">Your team</span>
-                }
-              </div>
-              <p class="awards__team">{{ award.teamName }} · {{ award.projectTitle }}</p>
-              <p class="awards__description">{{ award.description }}</p>
-            </li>
-          }
-        </ul>
-
-        <p class="note">
-          The top three teams take a cash prize: RM 5,000 for 1st place, RM 3,000 for 2nd, RM 1,000
-          for 3rd.
+    } @else {
+      <div class="empty-state">
+        <p class="note note--standalone">
+          No preliminary evaluation record is registered for your account. If this is unexpected, ensure you are signed into your registered squad account on <a routerLink="/participant/team">My Team</a>.
         </p>
-      }
-
-      <!-- ── Judge feedback ─────────────────────────────────────────────── -->
-
-      @case ('feedback') {
-        <app-judge-reviews [reviews]="reviews()" />
-
-        <p class="note">
-          Judges are shown anonymously. Feedback is written for your team only and is not published
-          alongside the rankings.
-        </p>
-      }
-    }
-
-    @if (!myResult()) {
-      <p class="note note--standalone">
-        Your team has no published result. If that looks wrong, check
-        <a routerLink="/participant/team">your team</a> is the one you expect.
-      </p>
+      </div>
     }
   }
 </div>

@@ -14,13 +14,18 @@
       @for (link of links(); track link.label) {
         <a
           class="nav__link"
+          [class.nav__link--finalist]="link.isFinalist"
           [routerLink]="link.path"
           [fragment]="link.fragment"
           [routerLinkActive]="link.fragment ? '' : 'nav__link--active'"
           [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
           (click)="handleLinkClick(link)"
-          >{{ link.label }}</a
         >
+          <span>{{ link.label }}</span>
+          @if (link.isFinalist) {
+            <span class="nav__finalist-icon" aria-hidden="true">🎉</span>
+          }
+        </a>
       }
     </nav>
 
@@ -119,13 +124,18 @@
         @for (link of links(); track link.label) {
           <a
             class="nav__drawer-link"
+            [class.nav__drawer-link--finalist]="link.isFinalist"
             [routerLink]="link.path"
             [fragment]="link.fragment"
             [routerLinkActive]="link.fragment ? '' : 'nav__drawer-link--active'"
             [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
             (click)="handleLinkClick(link)"
-            >{{ link.label }}</a
           >
+            <span>{{ link.label }}</span>
+            @if (link.isFinalist) {
+              <span class="nav__finalist-icon" aria-hidden="true">🎉</span>
+            }
+          </a>
         }
       </nav>
 

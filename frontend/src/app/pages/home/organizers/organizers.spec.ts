@@ -24,11 +24,6 @@ describe('OrganizersSection', () => {
     await fixture.whenStable();
   });
 
-  /*
-   * The homepage grid and the organisers page read one list, so the two cannot
-   * name different people. Asserted against ORGANIZERS rather than a copy of
-   * it, so adding a person here is a one-line change and not a two-file one.
-   */
   it('shows every organiser the shared list names', () => {
     expect(cards().length).toBe(ORGANIZERS.length);
     expect(cards().map((card) => textOf(card, '.organizers__name'))).toEqual(
@@ -42,34 +37,30 @@ describe('OrganizersSection', () => {
     );
   });
 
-  // The grid is the short view: names and roles only. Emails, departments and
-  // bios belong to the organisers page, where someone has gone looking for them.
-  it('withholds the contact detail the organisers page carries', () => {
+  it('displays real contact details and LinkedIn profile buttons', () => {
     for (const organizer of ORGANIZERS) {
-      expect(host().textContent).not.toContain(organizer.email);
-      expect(host().textContent).not.toContain(organizer.bio);
+      if (organizer.email) {
+        expect(host().textContent).toContain(organizer.email);
+      }
+      if (organizer.phone) {
+        expect(host().textContent).toContain(organizer.phone);
+      }
     }
+    const linkedinBtns = host().querySelectorAll('.btn-linkedin');
+    expect(linkedinBtns.length).toBe(ORGANIZERS.length);
   });
 
-  it('accents each avatar from the person’s entry', () => {
+  it('renders photos or initials avatars with proper accessibility attributes', () => {
     cards().forEach((card, i) => {
-      const avatar = card.querySelector('.organizers__avatar')!;
-      expect(avatar.classList.contains(`organizers__avatar--${ORGANIZERS[i].accent}`)).toBe(true);
-    });
-  });
-
-  // The initials stand in for a photo, and the name is right beside them —
-  // announcing both would read every organiser's name twice.
-  it('hides the initials from assistive technology', () => {
-    for (const card of cards()) {
-      const avatar = card.querySelector('.organizers__avatar')!;
-      expect(avatar.getAttribute('aria-hidden')).toBe('true');
-    }
-  });
-
-  it('shows the initials the entry carries', () => {
-    cards().forEach((card, i) => {
-      expect(textOf(card, '.organizers__avatar')).toBe(ORGANIZERS[i].initials);
+      const img = card.querySelector<HTMLImageElement>('.organizers__photo');
+      const avatar = card.querySelector('.organizers__avatar');
+      if (ORGANIZERS[i].avatarUrl) {
+        expect(img).toBeTruthy();
+        expect(img?.getAttribute('alt')).toBe(`${ORGANIZERS[i].name} portrait`);
+      } else {
+        expect(avatar).toBeTruthy();
+        expect(avatar?.getAttribute('aria-hidden')).toBe('true');
+      }
     });
   });
 
@@ -78,8 +69,6 @@ describe('OrganizersSection', () => {
     expect(host().querySelector('h2')!.textContent).toContain('Who runs it.');
   });
 
-  // Walks PARTNERS rather than naming the three bodies, so the proposal's
-  // collaboration table changing shows up here rather than going unnoticed.
   describe('partners', () => {
     function partnerCards(): HTMLElement[] {
       return Array.from(
@@ -89,28 +78,18 @@ describe('OrganizersSection', () => {
       );
     }
 
-    /*
-     * The card is the lockup and nothing else, so `alt` is the only thing that
-     * names the partner — a missing or wrong one leaves the marquee unlabelled
-     * to a screen reader with nothing on screen to give the game away.
-     */
     it('names every partner through its logo alone', () => {
       const primaryCards = partnerCards().slice(0, PARTNERS.length);
 
       primaryCards.forEach((card, i) => {
         const img = card.querySelector<HTMLImageElement>('.organizers__partner-logo');
         expect(img?.getAttribute('alt')).toBe(`${PARTNERS[i].name} logo`);
-        // No role pill, no name, and `responsibility` is deliberately absent
-        // too — the section says who runs it, not who does what.
         expect(card.textContent!.trim()).toBe('');
         expect(card.querySelector('.organizers__partner-role')).toBeNull();
         expect(card.querySelector('.organizers__partner-name')).toBeNull();
       });
     });
 
-    // The track repeats the list to fill the loop, so the count has to stay a
-    // whole multiple of it — adding a partner without adjusting the repeats
-    // would otherwise show a partial pass at the seam.
     it('repeats the whole list rather than part of it', () => {
       expect(partnerCards().length).toBeGreaterThanOrEqual(PARTNERS.length);
       expect(partnerCards().length % PARTNERS.length).toBe(0);

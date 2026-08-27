@@ -239,7 +239,7 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     end: new Date('2026-09-26T17:30:00+08:00'),
     venue: 'Plenary Theatre',
     summary:
-      'Ten finalist teams pitch across two rounds to a panel of Averis judges. Winners are announced the same afternoon.',
+      'Top 10 finalist squads deliver in-person 5-minute pitches with 3-minute Q&A, judged live on paper score sheets for the RM 9,000 prize pool.',
   },
 ];
 
@@ -315,13 +315,16 @@ export interface Organizer {
   readonly accent: 'blue' | 'green' | 'red' | 'yellow';
   readonly department: string;
   readonly email: string;
+  readonly phone?: string;
+  readonly linkedin?: string;
+  readonly avatarUrl?: string;
   /** One line on what this person actually handles, so readers pick the right inbox. */
   readonly bio: string;
 }
 
 /**
- * The homepage grid shows name, role and initials; the organisers page adds the
- * rest. One list either way, so the two pages cannot name different people.
+ * The homepage grid shows name, role, photo/initials, and contact links;
+ * the organisers page adds full bio, phone, and direct LinkedIn profile links.
  */
 export const ORGANIZERS: readonly Organizer[] = [
   {
@@ -330,16 +333,22 @@ export const ORGANIZERS: readonly Organizer[] = [
     initials: 'AL',
     accent: 'blue',
     department: site.organisedBy,
-    email: 'ang.ling@monash.edu',
-    bio: 'Runs the hackathon programme, and is the person to contact about planning, partners or anything to do with the event itself.',
+    email: 'lang0020@student.monash.edu',
+    phone: '+60124312699',
+    linkedin: 'https://www.linkedin.com/in/lingang307/',
+    avatarUrl: '/organizers/ang-ling.png',
+    bio: 'Runs the hackathon programme, and is the person to contact about planning, partners, sponsorships, or anything to do with the event itself.',
   },
   {
-    name: 'Ming Dong',
+    name: 'Ming Dong Teh',
     role: 'Hackathon Director',
-    initials: 'MD',
+    initials: 'MT',
     accent: 'green',
     department: site.organisedBy,
-    email: 'ming.dong@monash.edu',
-    bio: 'Co-directs the hackathon, and looks after the technical challenge, the judging process and how the event runs for participants.',
+    email: 'mteh0004@student.monash.edu',
+    phone: '+60123688837',
+    linkedin: 'https://www.linkedin.com/in/ming-dong-teh-07ab27188/',
+    avatarUrl: '/organizers/ming-dong-teh.png',
+    bio: 'Co-directs the hackathon, and looks after the technical challenge, the judging process, platform infrastructure, and how the event runs for participants.',
   },
 ];

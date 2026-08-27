@@ -110,7 +110,6 @@ describe('MySubmission', () => {
 
     expect(host().querySelector('.submission-showcase')).toBeTruthy();
     expect(text()).toContain('EduPath');
-    expect(text()).toContain(DEFAULT_EVENT_CONFIG.site.tracks[0]);
     expect(
       host().querySelector<HTMLAnchorElement>('.deliverable-card__link')?.getAttribute('href'),
     ).toBe('https://github.com/example/edupath');

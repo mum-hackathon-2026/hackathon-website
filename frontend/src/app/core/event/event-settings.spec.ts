@@ -175,7 +175,7 @@ describe('EventSettingsService', () => {
       const settings = serviceWith();
       const phase = TestBed.inject(PhaseService);
 
-      expect(phase.nextMilestone()?.label).toBe('Registration closes');
+      expect(phase.nextMilestone()?.label).toBe('Problem statement release');
 
       settings.update({ registrationClosesAt: CLOSES_BEFORE_NOW });
 

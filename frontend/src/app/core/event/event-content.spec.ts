@@ -144,7 +144,7 @@ describe('event content', () => {
 
       expect(new Set(emails).size).toBe(emails.length);
       for (const email of emails) {
-        expect(email).toMatch(/^[^@\s]+@monash\.edu$/);
+        expect(email).toMatch(/^[^@\s]+@(?:student\.)?monash\.edu$/);
       }
     });
 

@@ -1492,10 +1492,14 @@ export class AdminService {
       if (!trimmed) return { ok: false, error: 'A team needs a name.' };
       if (trimmed.length > 120) return { ok: false, error: 'Team names cap at 120 characters.' };
 
-      const clash = this.rows().some(
+      const clash = (this.liveTeams() ?? this.rows()).some(
         (row) => row.teamId !== teamId && row.teamName.toLowerCase() === trimmed.toLowerCase(),
       );
       if (clash) return { ok: false, error: `Another team is already called ${trimmed}.` };
+
+      const before =
+        this.teams().find((row) => row.teamId === teamId)?.teamName ??
+        this.rows().find((row) => row.teamId === teamId)?.teamName;
 
       const token = this.auth.token();
       if (this.http && token && this.auth.user()?.role === 'admin') {
@@ -1508,12 +1512,14 @@ export class AdminService {
             ),
           );
           void this.refreshAll();
-        } catch {
-          // Keep local state
+          this.log('team', 'Team renamed', before ? `${before} → ${trimmed}` : trimmed);
+          return { ok: true };
+        } catch (err: any) {
+          const msg = err?.error?.message ?? err?.message ?? 'Failed to rename team on server.';
+          return { ok: false, error: msg };
         }
       }
 
-      const before = this.rows().find((row) => row.teamId === teamId)?.teamName;
       this.patch(teamId, () => ({ teamName: trimmed }));
       this.log('team', 'Team renamed', before ? `${before} → ${trimmed}` : trimmed);
       return { ok: true };
@@ -1522,7 +1528,9 @@ export class AdminService {
 
   setTeamStatus(teamId: number, status: TeamStatus): Promise<AdminActionResult> {
     return this.run(async () => {
-      const team = this.rows().find((row) => row.teamId === teamId);
+      const team =
+        this.teams().find((row) => row.teamId === teamId) ??
+        this.rows().find((row) => row.teamId === teamId);
       if (!team) return { ok: false, error: 'That team no longer exists.' };
       if (team.status === status) return { ok: true };
 
@@ -1537,8 +1545,11 @@ export class AdminService {
             ),
           );
           void this.refreshAll();
-        } catch {
-          // Keep local state
+          this.log('team', 'Team status changed', `${team.teamName} → ${status}`);
+          return { ok: true };
+        } catch (err: any) {
+          const msg = err?.error?.message ?? err?.message ?? 'Failed to update team status on server.';
+          return { ok: false, error: msg };
         }
       }
 
@@ -1612,7 +1623,10 @@ export class AdminService {
         }
       }
 
-      const teamName = this.rows().find((team) => team.teamId === row.teamId)?.teamName;
+      const teamName =
+        this.teams().find((team) => team.teamId === row.teamId)?.teamName ??
+        this.results().find((r) => r.teamId === row.teamId)?.teamName ??
+        this.rows().find((team) => team.teamId === row.teamId)?.teamName;
       this.assignmentRows.update((all) => all.filter((a) => a.id !== assignmentId));
       this.log(
         'judge',
@@ -1803,7 +1817,10 @@ export class AdminService {
 
   setShortlisted(teamId: number, shortlisted: boolean): Promise<AdminActionResult> {
     return this.run(async () => {
-      const team = this.rows().find((row) => row.teamId === teamId);
+      const team =
+        this.teams().find((row) => row.teamId === teamId) ??
+        this.results().find((row) => row.teamId === teamId) ??
+        this.rows().find((row) => row.teamId === teamId);
       if (!team) return { ok: false, error: 'That team no longer exists.' };
       if (team.shortlisted === shortlisted) return { ok: true };
 

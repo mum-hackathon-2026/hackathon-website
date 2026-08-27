@@ -7,7 +7,6 @@
     <thead>
       <tr>
         <th scope="col">Team</th>
-        <th scope="col">Track</th>
         <th scope="col">Status</th>
         <th scope="col">Progress</th>
         <th scope="col"><span class="visually-hidden">Actions</span></th>
@@ -20,7 +19,6 @@
             <span class="assignments__team">{{ row.teamName }}</span>
             <span class="assignments__project">{{ row.projectTitle }}</span>
           </td>
-          <td class="assignments__track">{{ row.trackLabel }}</td>
           <td><app-status-pill [status]="row.status" /></td>
           <td class="assignments__progress">
             @if (row.status === 'declined') {

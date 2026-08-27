@@ -67,32 +67,37 @@ describe('Hero', () => {
     expect(badge(host)).toContain('Registrations open soon');
   });
 
-  it('switches to the registration deadline once registration opens', async () => {
+  it('switches to the problem statement release countdown once registration opens', async () => {
     const host = await renderAt(DURING_REGISTRATION);
 
     expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
-      'Registration closes in',
+      'Problem statement release in',
     );
     expect(badge(host)).toContain('Registrations open');
+    expect(host.querySelector('.hero__cta')?.textContent).toContain('Register your team');
   });
 
-  it('switches to the submission deadline once registration closes', async () => {
+  it('switches to the submission deadline and removes register CTA once registration closes', async () => {
     const host = await renderAt(DURING_SUBMISSION);
 
     expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
       'Submissions close in',
     );
     expect(badge(host)).toContain('Submissions open');
+    expect(host.textContent).not.toContain('Register your team');
+    expect(host.querySelector('.hero__cta')?.textContent).toContain('Go to My Submission');
   });
 
-  it('drops the countdown entirely once results are out', async () => {
+  it('renders celebratory preliminary results card and removes register button once results are out', async () => {
     const host = await renderAt(AFTER_RESULTS);
 
     expect(host.querySelector('.hero__countdown')).toBeNull();
-    expect(badge(host)).toContain('Results are out');
-    // The call to action stays; only the countdown goes.
-    expect(host.querySelectorAll('.hero__cta').length).toBe(1);
-    expect(host.querySelector('.hero__cta')?.getAttribute('href')).toContain('google.com/forms');
+    expect(host.querySelector('.hero__results-card')).toBeTruthy();
+    expect(badge(host)).toContain('Preliminary results announced');
+    expect(host.querySelector('.hero__results-title')?.textContent).toContain(
+      'Preliminary Results & Finalists Announced',
+    );
+    expect(host.textContent).not.toContain('Register your team');
   });
 
   it('reads dates as MYT rather than the local zone', async () => {

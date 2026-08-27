@@ -22,7 +22,7 @@ describe('AdminResults', () => {
   }
 
   function publishButton(): HTMLButtonElement | undefined {
-    return Array.from(host().querySelectorAll<HTMLButtonElement>('.publish button'))[0];
+    return host().querySelector<HTMLButtonElement>('.publish .button--primary, .publish .button--danger') ?? undefined;
   }
 
   async function setUp() {
@@ -54,7 +54,7 @@ describe('AdminResults', () => {
   async function pressPublish() {
     publishButton()!.click();
     await fixture.whenStable();
-    host().querySelector<HTMLButtonElement>('dialog .button--primary')!.click();
+    host().querySelector<HTMLButtonElement>('dialog .button--primary, dialog .button--danger')!.click();
     await fixture.whenStable();
   }
 
@@ -93,8 +93,8 @@ describe('AdminResults', () => {
     await setUp();
 
     expect(admin.resultsPublished()).toBe(false);
-    expect(text()).toContain('Not published');
-    expect(publishButton()!.textContent).toContain('Publish results');
+    expect(text()).toContain('Not Published');
+    expect(publishButton()!.textContent).toContain('Publish Results');
   });
 
   it('confirms before publishing rather than publishing immediately', async () => {
@@ -112,7 +112,7 @@ describe('AdminResults', () => {
     await pressPublish();
 
     expect(admin.resultsPublished()).toBe(true);
-    expect(text()).toContain('Published');
+    expect(text()).toContain('Results Published');
     expect(publishButton()!.textContent).toContain('Unpublish');
     expect(host().querySelectorAll('.result__live').length).toBe(admin.results().length);
   });
@@ -133,12 +133,12 @@ describe('AdminResults', () => {
 
     const button = rows()
       .find((row) => row.textContent?.includes(target.teamName))!
-      .querySelector<HTMLButtonElement>('.link-button')!;
+      .querySelector<HTMLButtonElement>('.finalist-btn')!;
     button.click();
     await fixture.whenStable();
 
     expect(admin.results().filter((row) => row.shortlisted).length).toBe(before + 1);
-    expect(text()).toContain(`${target.teamName} is on the shortlist.`);
+    expect(text()).toContain(`${target.teamName} is marked as a Grand Finalist!`);
   });
 
   it('narrows to the shortlist', async () => {
@@ -170,10 +170,9 @@ describe('AdminResults', () => {
     expect(host().querySelector('.empty')).toBeTruthy();
   });
 
-  it('says publishing does not open the participant page', async () => {
+  it('explains the publication effects', async () => {
     await setUp();
 
-    // The caveat is the honest part of this screen; it must not be dropped.
-    expect(text()).toContain('opens the participant results page');
+    expect(text()).toContain('Publishing marks all preliminary evaluation scores live');
   });
 });

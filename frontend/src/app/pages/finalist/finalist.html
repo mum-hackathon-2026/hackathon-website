@@ -1,0 +1,105 @@
+<div class="finalist-page">
+  <!-- Confetti Canvas Particle Overlay -->
+  <canvas #confettiCanvas class="confetti-canvas" aria-hidden="true"></canvas>
+
+  <div class="page page--narrow finalist-content">
+    <!-- Top Sparkle Eyebrow -->
+    <div class="finalist-celebration">
+      <span class="celebration-pill">
+        <span class="celebration-spark" aria-hidden="true">✨</span>
+        Grand Finals Qualifier
+        <span class="celebration-spark" aria-hidden="true">✨</span>
+      </span>
+
+      <h1 class="celebration-title">
+        Congratulations,<br />
+        <span class="celebration-team-name">{{ teamName() }}</span>!
+      </h1>
+
+      <p class="celebration-subtitle">
+        Your squad has distinguished itself among all preliminary competitors and earned a coveted spot in the <strong>Top 10 Grand Finals</strong> of Monash Hackathon 2026.
+      </p>
+    </div>
+
+    <!-- ── Finalist Action Card (Google Form) ────────────────────────────────── -->
+    <section class="finalist-card finalist-card--action" aria-labelledby="action-heading">
+      <div class="action-card__icon-wrap" aria-hidden="true">
+        <span class="action-card__icon">📋</span>
+      </div>
+      <div class="action-card__body">
+        <div class="action-card__header">
+          <span class="action-card__tag">Mandatory Next Step</span>
+          <h2 class="action-card__title" id="action-heading">Finalist Squad Confirmation Form</h2>
+        </div>
+        <p class="action-card__desc">
+          To prepare your squad for the final pitch stage, equipment logistics, and stage scheduling, please complete the official Finalist Confirmation Form.
+        </p>
+        <div class="action-card__callout">
+          <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span><strong>One submission per squad:</strong> This form must be filled out by <em>one person only</em> (your team leader or designated representative).</span>
+        </div>
+        <div class="action-card__cta">
+          <a
+            [href]="finalistFormUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-finalist-form"
+          >
+            <span>Open Finalist Confirmation Form</span>
+            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <line x1="7" y1="17" x2="17" y2="7" />
+              <polyline points="7 7 17 7 17 17" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Grand Finals Instructions & Format ───────────────────────────────── -->
+    <section class="finalist-card finalist-card--info" aria-labelledby="format-heading">
+      <h2 class="info-title" id="format-heading">Grand Finals Judging & Stage Format</h2>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-item__icon" aria-hidden="true">📝</div>
+          <div class="info-item__text">
+            <h3>Paper-Based Evaluation</h3>
+            <p>For the Grand Finals, the judging panel will evaluate your live pitch and demonstration on paper score sheets rather than through this portal.</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-item__icon" aria-hidden="true">⏱️</div>
+          <div class="info-item__text">
+            <h3>Live Pitch &amp; Q&amp;A</h3>
+            <p>Each finalist squad will have a strict 5-minute presentation followed by 3 minutes of direct Q&amp;A with the industry executive panel.</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-item__icon" aria-hidden="true">🏆</div>
+          <div class="info-item__text">
+            <h3>RM 9,000 Prize Pool</h3>
+            <p>1st Place (RM 5,000), 2nd Place (RM 3,000), and 3rd Place (RM 1,000) cash prizes and official trophies will be awarded during the closing ceremony.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Quick Squad Snapshot ─────────────────────────────────────────────── -->
+    <div class="squad-snapshot">
+      <h3 class="snapshot-heading">Your Finalist Squad Snapshot</h3>
+      <div class="snapshot-details">
+        <p><strong>Project:</strong> {{ projectTitle() }}</p>
+        <p><strong>Preliminary Score:</strong> {{ scoreText() }} / 100</p>
+      </div>
+      <div class="snapshot-footer">
+        <a routerLink="/results" class="link-report">&larr; Back to Preliminary Evaluation Breakdown &amp; PDF Report</a>
+      </div>
+    </div>
+  </div>
+</div>

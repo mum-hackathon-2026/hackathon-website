@@ -129,8 +129,8 @@ describe('ResultsService', () => {
       setUp();
       const byRank = new Map(results.rankings().map((r) => [r.rank, r.outcome]));
 
-      expect(byRank.get(1)).toBe<ResultOutcome>('winner');
-      expect(byRank.get(2)).toBe<ResultOutcome>('runner_up');
+      expect(byRank.get(1)).toBe<ResultOutcome>('finalist');
+      expect(byRank.get(2)).toBe<ResultOutcome>('finalist');
       expect(byRank.get(3)).toBe<ResultOutcome>('finalist');
       expect(byRank.get(10)).toBe<ResultOutcome>('finalist');
       expect(byRank.get(11)).toBe<ResultOutcome>('participant');

@@ -89,7 +89,7 @@ describe('AssignmentTable', () => {
     await render([]);
 
     expect(bodyRows().length).toBe(0);
-    expect(host().querySelectorAll('thead th').length).toBe(5);
+    expect(host().querySelectorAll('thead th').length).toBe(4);
   });
 
   it('shows each row’s status as a pill', async () => {

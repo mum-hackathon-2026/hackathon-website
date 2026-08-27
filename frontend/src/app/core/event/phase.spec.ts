@@ -61,7 +61,7 @@ describe('PhaseService', () => {
   it('is in registration between open and close', () => {
     const phase = serviceAt('2026-09-23T12:00:00+08:00');
     expect(phase.phase()).toBe('registration');
-    expect(phase.nextMilestone()?.label).toBe('Registration closes');
+    expect(phase.nextMilestone()?.label).toBe('Problem statement release');
   });
 
   it('moves to submission once registration closes', () => {
@@ -73,7 +73,7 @@ describe('PhaseService', () => {
   it('moves to judging once the submission deadline passes', () => {
     const phase = serviceAt('2026-10-12T12:00:00+08:00');
     expect(phase.phase()).toBe('judging');
-    expect(phase.nextMilestone()?.label).toBe('Results announced');
+    expect(phase.nextMilestone()?.label).toBe('Preliminary results');
   });
 
   it('moves to results once they are published', () => {

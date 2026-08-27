@@ -94,7 +94,7 @@
 .nav__links {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   flex: 1;
   justify-content: flex-start;
 }
@@ -102,16 +102,21 @@
 .nav__link {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  justify-content: center;
+  height: 32px;
+  padding: 0 12px;
   border-radius: 999px;
+  border: 1px solid transparent;
   font-size: 0.86rem;
   font-weight: 500;
   color: var(--color-muted);
   text-decoration: none;
   white-space: nowrap;
+  box-sizing: border-box;
   transition:
     color 0.18s ease,
     background 0.18s ease,
+    border-color 0.18s ease,
     transform 0.18s ease;
 
   &:hover {
@@ -124,12 +129,50 @@
   font-weight: 700;
   color: #b45309;
   background: rgba(245, 158, 11, 0.12);
+  border-color: transparent;
   box-shadow: none;
 
   &:hover {
     background: rgba(245, 158, 11, 0.18);
     color: #b45309;
   }
+}
+
+.nav__link--finalist {
+  font-weight: 700;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  padding: 0 12px;
+
+  &:hover {
+    background: rgba(16, 185, 129, 0.16);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #065f46;
+  }
+
+  &.nav__link--active {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(245, 158, 11, 0.14) 100%);
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #065f46;
+  }
+}
+
+.nav__finalist-icon {
+  margin-left: 4px;
+  font-size: 0.9em;
+  line-height: 1;
+  display: inline-block;
+}
+
+.nav__drawer-link--finalist {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .nav__account {

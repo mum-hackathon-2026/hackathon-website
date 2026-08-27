@@ -1,25 +1,53 @@
 @use '../admin-table';
 
-// Comments are `//` so Sass strips them: this file shares the 4 kB
-// per-component budget with the table partial it pulls in.
-
 // ── Publication panel ───────────────────────────────────────────────────────
 
 .panel {
   margin-bottom: 16px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-surface);
 }
 
+.panel__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
 .panel__title {
-  margin: 0 0 12px;
-  font-size: var(--text-3xs);
+  margin: 0;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-subtle);
+}
+
+.panel__badge-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  font-size: var(--text-2xs);
+  color: #b45309;
+
+  strong {
+    font-weight: 800;
+  }
+}
+
+.panel__badge-count--ready {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #047857;
 }
 
 .publish {
@@ -58,9 +86,23 @@
   line-height: 1.6;
   color: var(--color-muted);
 
-  strong {
-    color: var(--color-amber-ink);
+  .text-warning {
+    display: block;
+    color: #d97706;
+    font-weight: 600;
   }
+  .text-success {
+    display: block;
+    color: #059669;
+    font-weight: 600;
+  }
+}
+
+.publish__btn-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .publish__caveat {
@@ -70,16 +112,57 @@
   font-size: var(--text-xs);
   line-height: 1.6;
   color: var(--color-subtle);
+}
 
-  code {
-    padding: 1px 4px;
-    border-radius: 3px;
-    background: var(--color-hairline);
-    font-size: var(--text-2xs);
+// ── Table extras & Finalist Button ──────────────────────────────────────────
+
+.grid__row--finalist {
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.finalist-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: var(--color-muted);
+  transition: all 0.18s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #10b981;
+    color: #047857;
+    background: rgba(16, 185, 129, 0.08);
   }
 }
 
-// ── Table extras ────────────────────────────────────────────────────────────
+.finalist-btn--active {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+
+  &:hover:not(:disabled) {
+    background: #059669;
+    color: #ffffff;
+  }
+}
+
+.pill--success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+  font-weight: 700;
+}
+
+.font-bold {
+  font-weight: 700;
+}
 
 .rank__tied {
   margin-left: 5px;

@@ -108,6 +108,27 @@ export class AdminResults {
     () => this.admin.results().filter((row) => row.issues.length > 0).length,
   );
 
+  protected readonly finalistCount = computed(
+    () => this.admin.results().filter((row) => row.shortlisted).length,
+  );
+
+  protected async selectTop10Finalists(): Promise<void> {
+    const all = [...this.admin.results()].sort((a, b) => (b.finalScore ?? 0) - (a.finalScore ?? 0));
+    const top10 = all.filter((r) => r.finalScore !== null).slice(0, 10);
+    const top10Ids = new Set(top10.map((t) => t.teamId));
+
+    let updatedCount = 0;
+    for (const row of all) {
+      const shouldBeFinalist = top10Ids.has(row.teamId);
+      if (row.shortlisted !== shouldBeFinalist) {
+        await this.admin.setShortlisted(row.teamId, shouldBeFinalist);
+        updatedCount++;
+      }
+    }
+
+    this.notice.set(`Successfully marked Top 10 preliminary squads as Grand Finalists.`);
+  }
+
   protected clearFilters(): void {
     this.search.set('');
     this.filter.set('all');
@@ -118,8 +139,8 @@ export class AdminResults {
     this.report(
       result,
       row.shortlisted
-        ? `${row.teamName} is off the shortlist.`
-        : `${row.teamName} is on the shortlist.`,
+        ? `${row.teamName} is removed from Finalists.`
+        : `${row.teamName} is marked as a Grand Finalist!`,
     );
   }
 
@@ -130,7 +151,7 @@ export class AdminResults {
 
     if (action === 'publish') {
       const count = this.publishable();
-      this.report(await this.admin.publishResults(), `Results published for ${count} teams.`);
+      this.report(await this.admin.publishResults(), `Preliminary results published for ${count} teams with finalist standings.`);
     } else {
       this.report(await this.admin.unpublishResults(), 'Results are no longer published.');
     }

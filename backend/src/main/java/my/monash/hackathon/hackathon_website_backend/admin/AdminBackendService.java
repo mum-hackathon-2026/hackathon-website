@@ -245,6 +245,13 @@ public class AdminBackendService {
         if (request.shortlisted() != null && request.shortlisted() != team.isShortlisted()) {
             team.setShortlisted(request.shortlisted());
             logAudit(actor, request.shortlisted() ? "Team shortlisted" : "Team removed from shortlist", "team", team.getId(), null);
+
+            var trOpt = teamResultRepository.findById(team.getId());
+            if (trOpt.isPresent()) {
+                TeamResult tr = trOpt.get();
+                tr.setOutcome(request.shortlisted() ? "finalist" : "participant");
+                teamResultRepository.save(tr);
+            }
         }
 
         teamRepository.save(team);
@@ -747,11 +754,10 @@ public class AdminBackendService {
             String outcome = null;
             if ("disqualified".equalsIgnoreCase(st.team.getStatus())) {
                 outcome = "disqualified";
+            } else if (st.team.isShortlisted()) {
+                outcome = "finalist";
             } else if (rank != null) {
-                if (rank == 1) outcome = "winner";
-                else if (rank == 2) outcome = "runner_up";
-                else if (rank <= 5) outcome = "finalist";
-                else outcome = "participant";
+                outcome = (rank <= 10) ? "finalist" : "participant";
             }
 
             List<String> issues = new ArrayList<>();
