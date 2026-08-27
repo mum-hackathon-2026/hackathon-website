@@ -1,5 +1,5 @@
 .organizers {
-  padding: clamp(48px, 8vw, 80px) 24px;
+  padding: clamp(28px, 5vw, 52px) 24px;
 }
 
 .organizers__inner {
@@ -109,9 +109,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: clamp(184px, 24vw, 232px);
-  min-height: 104px;
-  padding: 18px 24px;
+  width: clamp(230px, 28vw, 288px);
+  min-height: 132px;
+  padding: 22px 28px;
   border: 1.5px solid rgba(0, 0, 0, 0.07);
   border-radius: 14px;
   background: #ffffff;
@@ -133,13 +133,13 @@
  * Bounded on both axes, because the three lockups are nowhere near the same
  * shape — MUMTEC is 4.3:1 and MD is 1.65:1. Capping width alone would make MD
  * tower over the row; capping height alone would run MUMTEC off the plate.
- * Between them the logos land in a 46-64px band, which reads as one size.
+ * Between them the logos land in a 64-88px band, which reads as one size.
  */
 .organizers__partner-logo {
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 64px;
+  max-height: 88px;
   object-fit: contain;
 }
 
