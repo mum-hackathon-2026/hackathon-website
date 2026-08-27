@@ -143,10 +143,14 @@
   color: var(--color-faint);
 }
 
-/* Reached stages get a filled node; the live one also gets a halo. */
+/* Reached stages get a filled node; the live one also gets a halo. A done
+   node is always green regardless of the stage's own accent: that accent is
+   for telling stages apart while a step is current, and a red or amber
+   checkmark reads as a warning on a step that already succeeded. */
 .stages__step[data-state='done'] .stages__node {
-  border-color: var(--stage-accent);
-  background: var(--stage-tint);
+  border-color: var(--color-green);
+  background: var(--color-green-tint);
+  color: var(--color-green-ink);
 }
 
 .stages__step[data-state='current'] .stages__node {
