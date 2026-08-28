@@ -12,7 +12,6 @@
       <tr>
         <th scope="col" class="rankings__rank-col">Rank</th>
         <th scope="col">Team</th>
-        <th scope="col">Track</th>
         <th scope="col" class="rankings__score-col">Score</th>
       </tr>
     </thead>
@@ -32,7 +31,6 @@
             </div>
             <span class="rankings__project">{{ row.projectTitle }}</span>
           </td>
-          <td class="rankings__track">{{ row.trackLabel || 'Open Innovation' }}</td>
           <td class="rankings__score">{{ row.finalScore | number: '1.1-1' }}</td>
         </tr>
       }

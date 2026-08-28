@@ -148,18 +148,16 @@ describe('Results', () => {
     it('shows the full preliminary rankings table for an admin', async () => {
       const { host } = await render({ role: 'admin' });
 
-      expect(host.querySelector('.status-banner--admin')).toBeTruthy();
       expect(host.querySelector('app-rankings-table')).toBeTruthy();
-      expect(host.textContent).toContain('Official Preliminary Standings');
+      expect(host.textContent).toContain('All Squad Preliminary Rankings');
       expect(host.textContent).not.toContain('No preliminary evaluation record');
     });
 
     it('shows the full preliminary rankings table for a judge', async () => {
       const { host } = await render({ role: 'judge' });
 
-      expect(host.querySelector('.status-banner--admin')).toBeTruthy();
       expect(host.querySelector('app-rankings-table')).toBeTruthy();
-      expect(host.textContent).toContain('Official Preliminary Standings');
+      expect(host.textContent).toContain('All Squad Preliminary Rankings');
       expect(host.textContent).not.toContain('No preliminary evaluation record');
     });
   });

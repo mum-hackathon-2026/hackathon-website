@@ -1,18 +1,28 @@
 /* ── Rankings table ────────────────────────────────────────────────────── */
 
-/* The table must scroll inside itself rather than widening the page. */
+/* The table must scroll inside itself both horizontally and vertically */
 .table-scroll {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: clamp(380px, 60vh, 600px);
+  border-radius: 8px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rankings {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--text-sm);
 }
 
 .rankings th {
-  padding: 8px 10px;
+  position: sticky;
+  top: 0;
+  background: var(--color-surface, #ffffff);
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--color-border);
+  padding: 10px;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--text-3xs);
   font-weight: 700;
