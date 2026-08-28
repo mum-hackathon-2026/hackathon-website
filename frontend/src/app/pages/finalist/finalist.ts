@@ -43,6 +43,10 @@ export class Finalist implements AfterViewInit, OnDestroy {
   protected readonly finalistFormUrl =
     'https://docs.google.com/forms/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/viewform';
 
+  /** Official Grand Finals Judging Criteria Google Sheets */
+  protected readonly finalistCriteriaSheetUrl =
+    'https://docs.google.com/spreadsheets/d/1HpQ3cT3EH__FDCCu574_-LS2jsOMaoXJYVPie1W5YEA/edit?usp=sharing';
+
   protected readonly myTeam = this.teams.myTeam;
   protected readonly myResult = this.results.myResult;
 

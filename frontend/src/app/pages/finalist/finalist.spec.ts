@@ -50,6 +50,10 @@ describe('Finalist', () => {
     const formLink = host.querySelector<HTMLAnchorElement>('.btn-form');
     expect(formLink).toBeTruthy();
     expect(formLink?.href).toContain('docs.google.com/forms');
+
+    const rubricLink = host.querySelector<HTMLAnchorElement>('.btn-rubric');
+    expect(rubricLink).toBeTruthy();
+    expect(rubricLink?.href).toContain('1HpQ3cT3EH__FDCCu574_-LS2jsOMaoXJYVPie1W5YEA');
   });
 
   it('renders celebratory winner podium and leaderboard when final results are published', async () => {
