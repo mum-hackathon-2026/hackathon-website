@@ -43,7 +43,25 @@ export class EventSettingsService {
     inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080'
   ).replace(/\/api$/, '');
 
-  private readonly current = signal<EventSettings>(this.config.settings);
+  private readonly FINAL_PITCH_DATE_KEY = 'monash_hackathon_final_pitch_date';
+
+  private loadInitialSettings(): EventSettings {
+    const seed = this.config.settings;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem(this.FINAL_PITCH_DATE_KEY);
+      if (stored) {
+        try {
+          const parsed = new Date(stored);
+          if (!Number.isNaN(parsed.getTime())) {
+            return { ...seed, finalPitchDateAt: parsed };
+          }
+        } catch {}
+      }
+    }
+    return seed;
+  }
+
+  private readonly current = signal<EventSettings>(this.loadInitialSettings());
 
   constructor() {
     void this.fetchLiveSettings();
@@ -87,15 +105,30 @@ export class EventSettingsService {
   applyBackendSettings(data: any): void {
     if (!data) return;
     const current = this.current();
+
+    let finalPitchDate = data.finalPitchDateAt ? new Date(data.finalPitchDateAt) : null;
+    if (!finalPitchDate && typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem(this.FINAL_PITCH_DATE_KEY);
+      if (stored) {
+        try {
+          const parsed = new Date(stored);
+          if (!Number.isNaN(parsed.getTime())) {
+            finalPitchDate = parsed;
+          }
+        } catch {}
+      }
+    }
+    if (!finalPitchDate) {
+      finalPitchDate = current.finalPitchDateAt ?? this.config.settings.finalPitchDateAt ?? null;
+    }
+
     this.current.set({
       eventName: data.eventName || current.eventName,
       registrationOpensAt: data.registrationOpensAt ? new Date(data.registrationOpensAt) : null,
       registrationClosesAt: data.registrationClosesAt ? new Date(data.registrationClosesAt) : null,
       submissionDeadlineAt: data.submissionDeadlineAt ? new Date(data.submissionDeadlineAt) : null,
       resultsPublishedAt: data.resultsPublishedAt ? new Date(data.resultsPublishedAt) : null,
-      finalPitchDateAt: data.finalPitchDateAt
-        ? new Date(data.finalPitchDateAt)
-        : (current.finalPitchDateAt ?? null),
+      finalPitchDateAt: finalPitchDate,
       judgingOpen: data.judgingOpen ?? current.judgingOpen,
       minTeamSize: Number(data.minTeamSize) || current.minTeamSize,
       maxTeamSize: Number(data.maxTeamSize) || current.maxTeamSize,
@@ -141,6 +174,14 @@ export class EventSettingsService {
       next.registrationClosesAt.getTime() <= next.registrationOpensAt.getTime()
     ) {
       return { ok: false, error: 'Registration has to close after it opens.' };
+    }
+
+    if (patch.finalPitchDateAt !== undefined && typeof window !== 'undefined' && window.localStorage) {
+      if (patch.finalPitchDateAt) {
+        localStorage.setItem(this.FINAL_PITCH_DATE_KEY, patch.finalPitchDateAt.toISOString());
+      } else {
+        localStorage.removeItem(this.FINAL_PITCH_DATE_KEY);
+      }
     }
 
     this.current.set({ ...next, eventName: name });

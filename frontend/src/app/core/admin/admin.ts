@@ -2062,6 +2062,7 @@ export class AdminService {
           registrationClosesAt: patch.registrationClosesAt ? patch.registrationClosesAt.toISOString() : null,
           submissionDeadlineAt: patch.submissionDeadlineAt ? patch.submissionDeadlineAt.toISOString() : null,
           resultsPublishedAt: patch.resultsPublishedAt ? patch.resultsPublishedAt.toISOString() : null,
+          finalPitchDateAt: patch.finalPitchDateAt ? patch.finalPitchDateAt.toISOString() : null,
           judgingOpen: patch.judgingOpen,
           minTeamSize: patch.minTeamSize,
           maxTeamSize: patch.maxTeamSize,
@@ -2073,6 +2074,7 @@ export class AdminService {
           const res = await firstValueFrom(
             this.http.patch<any>(`${this.apiBaseUrl}/api/admin/settings`, body, { headers }),
           );
+          await this.eventSettings.update(patch);
           if (res) {
             this.eventSettings.applyBackendSettings(res);
           }
