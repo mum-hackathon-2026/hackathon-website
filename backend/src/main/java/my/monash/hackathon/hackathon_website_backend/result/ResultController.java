@@ -194,7 +194,9 @@ public class ResultController {
 
             String projectTitle = st.submission != null && st.submission.getProjectTitle() != null ? st.submission.getProjectTitle() : "";
             String trackLabel = st.submission != null && st.submission.getTrackLabel() != null ? st.submission.getTrackLabel() : "Open Innovation";
-            String outcome = (st.savedResult != null && st.savedResult.getOutcome() != null) ? st.savedResult.getOutcome() : (rank != null && rank <= 10 ? "finalist" : "participant");
+            boolean isShortlisted = (st.savedResult != null && st.savedResult.getTeam() != null && st.savedResult.getTeam().isShortlisted()) ||
+                    (st.submission != null && st.submission.getTeam() != null && st.submission.getTeam().isShortlisted());
+            String outcome = isShortlisted ? "finalist" : ((st.savedResult != null && st.savedResult.getOutcome() != null) ? st.savedResult.getOutcome() : "participant");
 
             dtoList.add(new PublicTeamResultDto(
                     st.teamId,

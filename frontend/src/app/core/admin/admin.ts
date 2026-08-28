@@ -1398,7 +1398,7 @@ export class AdminService {
           trackLabel: row.trackLabel,
           finalScore: row.finalScore,
           rank: row.rank,
-          outcome: row.outcome,
+          outcome: (team?.shortlisted ? 'finalist' : 'participant') as ResultOutcome,
           judgeCount: row.judgeCount,
           tied: row.tied,
           shortlisted: team?.shortlisted ?? false,

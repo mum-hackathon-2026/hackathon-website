@@ -755,13 +755,13 @@ public class AdminBackendService {
                 tied = true;
             }
 
-            String outcome = null;
+            String outcome = "participant";
             if ("disqualified".equalsIgnoreCase(st.team.getStatus())) {
                 outcome = "disqualified";
             } else if (st.team.isShortlisted()) {
                 outcome = "finalist";
-            } else if (rank != null) {
-                outcome = (rank <= 10) ? "finalist" : "participant";
+            } else if (st.savedResult != null && st.savedResult.getOutcome() != null) {
+                outcome = st.savedResult.getOutcome();
             }
 
             List<String> issues = new ArrayList<>();
