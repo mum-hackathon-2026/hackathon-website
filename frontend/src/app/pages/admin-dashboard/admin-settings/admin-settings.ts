@@ -20,6 +20,7 @@ interface SettingsDraft {
   registrationClosesAt: string;
   submissionDeadlineAt: string;
   resultsPublishedAt: string;
+  finalPitchDateAt: string;
   judgingOpen: boolean;
   minTeamSize: number;
   maxTeamSize: number;
@@ -153,6 +154,7 @@ export class AdminSettings {
       registrationClosesAt: fromInput(draft.registrationClosesAt),
       submissionDeadlineAt: fromInput(draft.submissionDeadlineAt),
       resultsPublishedAt: fromInput(draft.resultsPublishedAt),
+      finalPitchDateAt: fromInput(draft.finalPitchDateAt),
       judgingOpen: draft.judgingOpen,
       minTeamSize: draft.minTeamSize,
       maxTeamSize: draft.maxTeamSize,
@@ -190,6 +192,7 @@ function toDraft(settings: EventSettings): SettingsDraft {
     registrationClosesAt: toInput(settings.registrationClosesAt),
     submissionDeadlineAt: toInput(settings.submissionDeadlineAt),
     resultsPublishedAt: toInput(settings.resultsPublishedAt),
+    finalPitchDateAt: toInput(settings.finalPitchDateAt),
     judgingOpen: settings.judgingOpen,
     minTeamSize: settings.minTeamSize,
     maxTeamSize: settings.maxTeamSize,
@@ -204,7 +207,7 @@ function toDraft(settings: EventSettings): SettingsDraft {
  * Built by shifting the epoch and slicing the ISO string rather than using the
  * local getters, so the result does not depend on where the reader is.
  */
-export function toInput(at: Date | null): string {
+export function toInput(at: Date | null | undefined): string {
   if (!at) return '';
   return new Date(at.getTime() + MYT_MINUTES * 60_000).toISOString().slice(0, 16);
 }

@@ -23,6 +23,7 @@ export interface EventSettings {
   /** V1 models judging as a boolean an admin flips, not a date window. */
   readonly judgingOpen: boolean;
   readonly resultsPublishedAt: Date | null;
+  readonly finalPitchDateAt?: Date | null;
   readonly minTeamSize: number;
   readonly maxTeamSize: number;
   readonly screeningEnabled: boolean;
@@ -105,6 +106,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     // Pitch Day (26 September) decides the winners, but the site has no column
     // for that instant — `resultsPublishedAt` is what gates the results page.
     resultsPublishedAt: new Date('2026-09-25T12:00:00+08:00'),
+    finalPitchDateAt: new Date('2026-10-10T09:00:00+08:00'),
     // Mirrors `event_settings` as V6 leaves it: teams are 2–5 and solo entries
     // are not accepted. V1 seeds 1/4 and V6 corrects the row, so 2/5 is the
     // migrated state this seed has to match — not V1's literal.

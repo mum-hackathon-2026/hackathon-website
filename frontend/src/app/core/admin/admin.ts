@@ -298,6 +298,7 @@ const SETTING_LABELS = (key: keyof EventSettingsPatch): string =>
     registrationClosesAt: 'registration closes',
     submissionDeadlineAt: 'submission deadline',
     resultsPublishedAt: 'results published',
+    finalPitchDateAt: 'grand finals pitch date',
     judgingOpen: 'judging open',
     minTeamSize: 'minimum team size',
     maxTeamSize: 'maximum team size',

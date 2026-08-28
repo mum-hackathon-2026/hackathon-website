@@ -9,6 +9,7 @@ import {
   effect,
   inject,
 } from '@angular/core';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { ResultsService } from '../../core/results/results';
 import { TeamService } from '../../core/team/team';
 
@@ -36,6 +37,7 @@ export class Finalist implements AfterViewInit, OnDestroy {
 
   private readonly results = inject(ResultsService);
   private readonly teams = inject(TeamService);
+  private readonly settings = inject(EventSettingsService);
 
   /** Configured Google Form URL for finalist squad onboarding */
   protected readonly finalistFormUrl =
@@ -43,6 +45,28 @@ export class Finalist implements AfterViewInit, OnDestroy {
 
   protected readonly myTeam = this.teams.myTeam;
   protected readonly myResult = this.results.myResult;
+
+  /** Grand Finals pitch date and time string formatted dynamically */
+  protected readonly finalPitchDateText = computed(() => {
+    const at = this.settings.finalPitchDateAt();
+    if (!at) return 'Saturday, October 10 · 09:00 AM MYT';
+
+    try {
+      const options: Intl.DateTimeFormatOptions = {
+        timeZone: 'Asia/Kuala_Lumpur',
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      };
+      const formatted = new Intl.DateTimeFormat('en-MY', options).format(at);
+      return `${formatted} MYT`;
+    } catch {
+      return 'Saturday, October 10 · 09:00 AM MYT';
+    }
+  });
 
   /** Whether the Grand Finals results & awards are officially published */
   protected readonly isResultsPublished = this.results.finalResultsPublished;

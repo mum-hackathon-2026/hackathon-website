@@ -53,6 +53,7 @@ describe('EVENT_CONFIG', () => {
         settings.registrationClosesAt,
         settings.submissionDeadlineAt,
         settings.resultsPublishedAt,
+        settings.finalPitchDateAt,
       ]) {
         expect(Number.isNaN(date!.getTime())).toBe(false);
       }

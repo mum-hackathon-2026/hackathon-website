@@ -62,6 +62,7 @@ export class EventSettingsService {
   readonly registrationClosesAt = computed(() => this.current().registrationClosesAt);
   readonly submissionDeadlineAt = computed(() => this.current().submissionDeadlineAt);
   readonly resultsPublishedAt = computed(() => this.current().resultsPublishedAt);
+  readonly finalPitchDateAt = computed(() => this.current().finalPitchDateAt);
   /** V1 models judging as a boolean an admin flips, not a date window. */
   readonly judgingOpen = computed(() => this.current().judgingOpen);
   readonly minTeamSize = computed(() => this.current().minTeamSize);
@@ -92,6 +93,9 @@ export class EventSettingsService {
       registrationClosesAt: data.registrationClosesAt ? new Date(data.registrationClosesAt) : null,
       submissionDeadlineAt: data.submissionDeadlineAt ? new Date(data.submissionDeadlineAt) : null,
       resultsPublishedAt: data.resultsPublishedAt ? new Date(data.resultsPublishedAt) : null,
+      finalPitchDateAt: data.finalPitchDateAt
+        ? new Date(data.finalPitchDateAt)
+        : (current.finalPitchDateAt ?? null),
       judgingOpen: data.judgingOpen ?? current.judgingOpen,
       minTeamSize: Number(data.minTeamSize) || current.minTeamSize,
       maxTeamSize: Number(data.maxTeamSize) || current.maxTeamSize,
