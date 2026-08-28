@@ -239,7 +239,7 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     end: new Date('2026-09-26T17:30:00+08:00'),
     venue: 'Plenary Theatre',
     summary:
-      'Top 10 finalist squads deliver in-person 5-minute pitches with 3-minute Q&A, judged live on paper score sheets for the RM 9,000 prize pool.',
+      'Top 10 finalist squads deliver in-person 10-minute pitches with 5-minute Q&A, judged live on paper score sheets for the RM 9,000 prize pool.',
   },
 ];
 
