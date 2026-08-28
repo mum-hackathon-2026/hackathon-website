@@ -188,12 +188,10 @@ describe('CriterionCard', () => {
 
   describe('read-only', () => {
     it('swaps the inputs for the recorded mark', async () => {
-      await render({ score: 8, comment: 'Well argued.' }, { readOnly: true });
+      await render({ score: 8 }, { readOnly: true });
 
       expect(input()).toBeNull();
-      expect(textarea()).toBeNull();
       expect(text('.criterion__mark')).toBe('8.0/ 10');
-      expect(text('.criterion__note')).toBe('Well argued.');
     });
 
     it('says so plainly when a criterion was never scored', async () => {
@@ -201,62 +199,18 @@ describe('CriterionCard', () => {
 
       expect(text('.criterion__unscored')).toBe('Not scored');
     });
-
-    // The note is optional, so an empty one must leave nothing behind rather
-    // than an empty paragraph in the card.
-    it('omits the note when there is none', async () => {
-      await render({ score: 8, comment: '' }, { readOnly: true });
-
-      expect(host().querySelector('.criterion__note')).toBeNull();
-    });
   });
 
-  describe('the private note', () => {
-    it('shows the note already written', async () => {
-      await render({ comment: 'Needs a pilot study.' });
-
-      expect(textarea()!.value).toBe('Needs a pilot study.');
-    });
-
-    it('emits what the judge writes', async () => {
-      await render();
-      const emitted: string[] = [];
-      fixture.componentInstance.commentChange.subscribe((v) => emitted.push(v));
-
-      const box = textarea()!;
-      box.value = 'Strong demo.';
-      box.dispatchEvent(new Event('input'));
-      await fixture.whenStable();
-
-      expect(emitted).toEqual(['Strong demo.']);
-    });
-
-    it('says the note is not shared with the team', async () => {
-      await render();
-
-      expect(textarea()!.getAttribute('placeholder')).toBe('Not shared with the team');
-    });
-  });
-
-  // Disabled while a save is in flight — distinct from read-only, which is what
-  // a submitted review is for good.
-  it('disables both fields while busy, without hiding them', async () => {
+  it('disables input field while busy, without hiding it', async () => {
     await render({}, { disabled: true });
 
     expect(input()!.disabled).toBe(true);
-    expect(textarea()!.disabled).toBe(true);
   });
 
-  /*
-   * Two cards sit on the same page, one per criterion. Ids built from the
-   * criterion id are what stops the second card's label pointing at the first
-   * card's box.
-   */
   it('namespaces its field ids by criterion so two cards cannot collide', async () => {
     await render();
 
     expect(input()!.id).toBe('score-7');
-    expect(textarea()!.id).toBe('comment-7');
     for (const label of host().querySelectorAll('label')) {
       const target = label.getAttribute('for')!;
       expect(host().querySelector(`#${target}`)).toBeTruthy();

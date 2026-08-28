@@ -108,7 +108,6 @@
               [readOnly]="!judgingOpen()"
               [disabled]="busy()"
               (scoreChange)="updateScore(criterion.criteriaId, $event)"
-              (commentChange)="updateComment(criterion.criteriaId, $event)"
             />
           </li>
         }
@@ -117,7 +116,7 @@
       <!-- ── Overall feedback ─────────────────────────────────────────── -->
 
       <section class="feedback" aria-labelledby="feedback-heading">
-        <h2 class="section-title" id="feedback-heading">Overall feedback</h2>
+        <h2 class="section-title" id="feedback-heading">Overall Feedback</h2>
 
         @if (!judgingOpen()) {
           @if (review.overallFeedback) {
@@ -127,14 +126,14 @@
           }
         } @else {
           <label class="field-label" for="overall-feedback">
-            Notes for the organising team <span class="feedback__optional">optional</span>
+            Feedback for the squad <span class="feedback__optional">shared with the team</span>
           </label>
           <textarea
             id="overall-feedback"
             class="input feedback__input"
             name="overallFeedback"
             rows="4"
-            placeholder="Not shared with the team"
+            placeholder="Constructive feedback, highlights, and strengths shared with the squad..."
             [disabled]="busy()"
             [ngModel]="form().overallFeedback"
             (ngModelChange)="updateFeedback($event)"

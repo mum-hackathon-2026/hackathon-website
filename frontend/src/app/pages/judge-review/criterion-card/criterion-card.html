@@ -77,27 +77,5 @@
         of {{ c.weight }} points.
       }
     </p>
-
-    @if (readOnly()) {
-      @if (c.comment) {
-        <p class="criterion__note criterion__note--read">{{ c.comment }}</p>
-      }
-    } @else {
-      <div class="criterion__field">
-        <label class="field-label" [attr.for]="'comment-' + c.criteriaId">
-          Private note <span class="criterion__optional">optional</span>
-        </label>
-        <textarea
-          class="input criterion__textarea"
-          [id]="'comment-' + c.criteriaId"
-          [name]="'comment-' + c.criteriaId"
-          rows="2"
-          placeholder="Not shared with the team"
-          [disabled]="disabled()"
-          [ngModel]="c.comment"
-          (ngModelChange)="commentChange.emit($event)"
-        ></textarea>
-      </div>
-    }
   </div>
 }
