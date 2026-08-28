@@ -11,7 +11,7 @@
     <thead>
       <tr>
         <th scope="col" class="rankings__rank-col">Rank</th>
-        <th scope="col">Team</th>
+        <th scope="col" class="rankings__team-col">Team</th>
         <th scope="col" class="rankings__score-col">Score</th>
       </tr>
     </thead>
@@ -19,7 +19,7 @@
       @for (row of rows(); track row.teamId) {
         <tr [class.rankings__row--mine]="row.isMine" [class.rankings__row--finalist]="row.outcome === 'finalist' || (row.rank !== null && row.rank <= 10)">
           <td class="rankings__rank">{{ row.tied ? '=' : '' }}{{ row.rank }}</td>
-          <td>
+          <td class="rankings__team-cell">
             <div class="rankings__team-wrap">
               <span class="rankings__team">{{ row.teamName }}</span>
               @if (row.isMine) {

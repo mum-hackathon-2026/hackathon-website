@@ -22,43 +22,65 @@
   background: var(--color-surface, #ffffff);
   z-index: 2;
   box-shadow: 0 1px 0 var(--color-border);
-  padding: 10px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  text-align: left;
   color: var(--color-subtle);
   white-space: nowrap;
 }
 
 .rankings td {
-  padding: 10px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-hairline);
   vertical-align: top;
 }
 
-.rankings__rank-col,
-.rankings__score-col {
-  text-align: right;
+/* Rank column - strictly left aligned */
+th.rankings__rank-col,
+.rankings__rank-col {
+  text-align: left;
+  width: 90px;
 }
 
-.rankings__rank,
-.rankings__score {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
+td.rankings__rank,
 .rankings__rank {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--color-ink);
+  white-space: nowrap;
+  width: 90px;
 }
 
+/* Team column - left aligned, fluid */
+th.rankings__team-col,
+.rankings__team-col {
+  text-align: left;
+}
+
+td.rankings__team-cell,
+.rankings__team-cell {
+  text-align: left;
+}
+
+/* Score column - strictly right aligned */
+th.rankings__score-col,
+.rankings__score-col {
+  text-align: right;
+  width: 100px;
+}
+
+td.rankings__score,
 .rankings__score {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--color-body);
+  white-space: nowrap;
+  width: 100px;
 }
 
 .rankings__team-wrap {
