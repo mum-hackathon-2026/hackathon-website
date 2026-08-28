@@ -58,6 +58,17 @@ export interface Award {
   readonly isMine: boolean;
 }
 
+export interface FinalistStanding {
+  readonly teamId: number;
+  readonly teamName: string;
+  readonly projectTitle: string;
+  finalRank: number | null;
+  finalScore: number | null;
+  awardTitle: string;
+  prize: string;
+  notes?: string;
+}
+
 interface BackendPublicResultDto {
   readonly teamId: number;
   readonly teamName: string;
@@ -241,6 +252,92 @@ export class ResultsService {
       return { ...seedMine, outcome: 'finalist' };
     }
     return seedMine;
+  });
+
+  /**
+   * Whether Grand Finals rankings and awards have been published by organizers.
+   */
+  readonly finalResultsPublished = computed<boolean>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return (
+        localStorage.getItem('monash_hackathon_final_results_published') === 'true'
+      );
+    }
+    return false;
+  });
+
+  /**
+   * Standings of all Top 10 Grand Finalist teams.
+   */
+  readonly finalistStandings = computed<readonly FinalistStanding[]>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem('monash_hackathon_finalist_standings');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
+          }
+        } catch {}
+      }
+    }
+
+    // Default top 10 from rankings
+    const top = this.rankings().slice(0, 10);
+    return top.map((t, idx) => {
+      const rank = idx + 1;
+      let awardTitle = 'Finalist Honoree';
+      let prize = 'Top 10 Finalist Plaque';
+      if (rank === 1) {
+        awardTitle = 'Grand Champion (1st Place)';
+        prize = 'RM 5,000 + Champion Trophy';
+      } else if (rank === 2) {
+        awardTitle = '1st Runner-Up (2nd Place)';
+        prize = 'RM 2,500 + 2nd Place Trophy';
+      } else if (rank === 3) {
+        awardTitle = '2nd Runner-Up (3rd Place)';
+        prize = 'RM 1,500 + 3rd Place Trophy';
+      }
+      return {
+        teamId: t.teamId,
+        teamName: t.teamName,
+        projectTitle: t.projectTitle,
+        finalRank: rank,
+        finalScore: t.finalScore,
+        awardTitle,
+        prize,
+      };
+    });
+  });
+
+  /**
+   * Current participant squad's final placement in the Grand Finals.
+   */
+  readonly myFinalistPlacement = computed<FinalistStanding | null>(() => {
+    const team = this.teams.myTeam();
+    const result = this.myResult();
+    const list = this.finalistStandings();
+
+    if (team) {
+      const match = list.find(
+        (s) =>
+          s.teamId === team.id ||
+          s.teamName.toLowerCase() === team.name.toLowerCase(),
+      );
+      if (match) return match;
+    }
+
+    if (result) {
+      const match = list.find(
+        (s) =>
+          s.teamId === result.teamId ||
+          s.teamName.toLowerCase() === result.teamName.toLowerCase(),
+      );
+      if (match) return match;
+    }
+
+    // Default first finalist for preview/testing
+    return list[0] ?? null;
   });
 
   /** Per-criterion scores for this team, averaged across its judges. */

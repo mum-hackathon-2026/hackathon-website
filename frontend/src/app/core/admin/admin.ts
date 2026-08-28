@@ -286,6 +286,7 @@ export type SectionId =
   | 'assignments'
   | 'judging'
   | 'results'
+  | 'finalists'
   | 'settings'
   | 'audit';
 
@@ -342,9 +343,21 @@ export const SECTIONS: readonly { readonly id: SectionId; readonly label: string
   { id: 'assignments', label: 'Assignments' },
   { id: 'judging', label: 'Judging Progress' },
   { id: 'results', label: 'Results & Publication' },
+  { id: 'finalists', label: 'Grand Finalists' },
   { id: 'settings', label: 'Event Settings' },
   { id: 'audit', label: 'Audit Log' },
 ];
+
+export interface FinalistStanding {
+  readonly teamId: number;
+  readonly teamName: string;
+  readonly projectTitle: string;
+  finalRank: number | null;
+  finalScore: number | null;
+  awardTitle: string;
+  prize: string;
+  notes?: string;
+}
 
 export function isSectionId(value: string | null | undefined): value is SectionId {
   return SECTIONS.some((section) => section.id === value);
@@ -1945,6 +1958,159 @@ export class AdminService {
       // Closes the participant page again, for the same reason publishing opens it.
       void this.eventSettings.update({ resultsPublishedAt: null });
       this.log('result', 'Results unpublished', `${count} teams`);
+      return { ok: true };
+    });
+  }
+
+  // ── Grand Finalists Paper-Judging & Results Workflow ─────────────────────
+  private readonly FINALIST_STANDINGS_KEY = 'monash_hackathon_finalist_standings';
+  private readonly FINALIST_PUBLISHED_KEY = 'monash_hackathon_final_results_published';
+
+  private loadFinalistStandings(): FinalistStanding[] {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem(this.FINALIST_STANDINGS_KEY);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {}
+      }
+    }
+    return [];
+  }
+
+  private loadFinalResultsPublished(): boolean {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem(this.FINALIST_PUBLISHED_KEY) === 'true';
+    }
+    return false;
+  }
+
+  readonly finalResultsPublished = signal<boolean>(this.loadFinalResultsPublished());
+  readonly finalistStandingsSignal = signal<FinalistStanding[]>(this.loadFinalistStandings());
+
+  /**
+   * Finalist teams as the base for Grand Finals standings.
+   * If custom standings exist in storage, they are merged; otherwise initialized from shortlisted teams.
+   */
+  readonly finalistStandings = computed<readonly FinalistStanding[]>(() => {
+    const custom = this.finalistStandingsSignal();
+    const shortlistedTeams = this.results().filter((r) => r.shortlisted);
+
+    // Fallback if no teams are shortlisted yet, pick top 10 from preliminary results
+    const candidateTeams =
+      shortlistedTeams.length > 0 ? shortlistedTeams : this.results().slice(0, 10);
+
+    const merged: FinalistStanding[] = candidateTeams.map((team, idx) => {
+      const existing = custom.find((c) => c.teamId === team.teamId);
+      if (existing) return existing;
+
+      const rank = idx + 1;
+      let awardTitle = 'Finalist Honoree';
+      let prize = 'Top 10 Finalist Plaque';
+      if (rank === 1) {
+        awardTitle = 'Grand Champion (1st Place)';
+        prize = 'RM 5,000 + Champion Trophy';
+      } else if (rank === 2) {
+        awardTitle = '1st Runner-Up (2nd Place)';
+        prize = 'RM 2,500 + 2nd Place Trophy';
+      } else if (rank === 3) {
+        awardTitle = '2nd Runner-Up (3rd Place)';
+        prize = 'RM 1,500 + 3rd Place Trophy';
+      }
+
+      return {
+        teamId: team.teamId,
+        teamName: team.teamName,
+        projectTitle: team.projectTitle,
+        finalRank: rank,
+        finalScore: team.finalScore,
+        awardTitle,
+        prize,
+      };
+    });
+
+    return merged.sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
+  });
+
+  updateFinalistStanding(
+    teamId: number,
+    patch: Partial<FinalistStanding>,
+  ): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const current = [...this.finalistStandings()];
+      const index = current.findIndex((s) => s.teamId === teamId);
+      if (index === -1) return { ok: false, error: 'Finalist squad not found.' };
+
+      current[index] = { ...current[index], ...patch };
+      this.finalistStandingsSignal.set(current);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(this.FINALIST_STANDINGS_KEY, JSON.stringify(current));
+      }
+      this.log('result', 'Finalist score/rank updated', current[index].teamName);
+      return { ok: true };
+    });
+  }
+
+  saveAllFinalistStandings(standings: FinalistStanding[]): Promise<AdminActionResult> {
+    return this.run(async () => {
+      this.finalistStandingsSignal.set(standings);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(this.FINALIST_STANDINGS_KEY, JSON.stringify(standings));
+      }
+      this.log('result', 'Grand Finalist rankings saved', `${standings.length} teams`);
+      return { ok: true };
+    });
+  }
+
+  autoRankFinalistsByScore(): void {
+    const current = [...this.finalistStandings()];
+    current.sort((a, b) => (b.finalScore ?? 0) - (a.finalScore ?? 0));
+    const ranked = current.map((item, idx) => {
+      const rank = idx + 1;
+      let awardTitle = 'Finalist Honoree';
+      let prize = 'Top 10 Finalist Plaque';
+      if (rank === 1) {
+        awardTitle = 'Grand Champion (1st Place)';
+        prize = 'RM 5,000 + Champion Trophy';
+      } else if (rank === 2) {
+        awardTitle = '1st Runner-Up (2nd Place)';
+        prize = 'RM 2,500 + 2nd Place Trophy';
+      } else if (rank === 3) {
+        awardTitle = '2nd Runner-Up (3rd Place)';
+        prize = 'RM 1,500 + 3rd Place Trophy';
+      }
+      return {
+        ...item,
+        finalRank: rank,
+        awardTitle:
+          item.awardTitle && item.awardTitle !== 'Finalist Honoree' && rank > 3
+            ? item.awardTitle
+            : awardTitle,
+        prize:
+          item.prize && item.prize !== 'Top 10 Finalist Plaque' && rank > 3
+            ? item.prize
+            : prize,
+      };
+    });
+    this.finalistStandingsSignal.set(ranked);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(this.FINALIST_STANDINGS_KEY, JSON.stringify(ranked));
+    }
+  }
+
+  publishFinalResults(publish: boolean): Promise<AdminActionResult> {
+    return this.run(async () => {
+      this.finalResultsPublished.set(publish);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(this.FINALIST_PUBLISHED_KEY, publish ? 'true' : 'false');
+      }
+      this.log(
+        'result',
+        publish
+          ? 'Grand Finals results published'
+          : 'Grand Finals results reverted to draft',
+        'Finalist Portal',
+      );
       return { ok: true };
     });
   }

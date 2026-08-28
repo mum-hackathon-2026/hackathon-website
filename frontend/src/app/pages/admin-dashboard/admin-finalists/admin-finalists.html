@@ -1,0 +1,248 @@
+<div class="admin-finalists">
+  <!-- ── Header Banner & Status Strip ────────────────────────────────── -->
+  <header class="admin-finalists__header">
+    <div class="admin-finalists__headline">
+      <div class="admin-finalists__title-row">
+        <h2 class="admin-finalists__title">Grand Finalist Standings</h2>
+        @if (published()) {
+          <span class="admin-finalists__status-badge admin-finalists__status-badge--published">
+            <span class="admin-finalists__pulse-dot" aria-hidden="true"></span>
+            Results Published Live
+          </span>
+        } @else {
+          <span class="admin-finalists__status-badge admin-finalists__status-badge--draft">
+            Draft · Unpublished
+          </span>
+        }
+      </div>
+      <p class="admin-finalists__desc">
+        Manually record live paper-judging scores and rankings for the Top 10 Grand Finalist squads on Pitch Day.
+        When published, the participant <strong>Finalist Portal</strong> will celebrate winners and reveal the final standings.
+      </p>
+    </div>
+
+    <!-- KPI Summary Pills -->
+    <div class="admin-finalists__kpis">
+      <div class="admin-finalists__kpi-card">
+        <span class="admin-finalists__kpi-label">Finalist Squads</span>
+        <strong class="admin-finalists__kpi-val">{{ totalFinalists() }}</strong>
+      </div>
+      <div class="admin-finalists__kpi-card">
+        <span class="admin-finalists__kpi-label">Scores Entered</span>
+        <strong class="admin-finalists__kpi-val">{{ scoredCount() }} / {{ totalFinalists() }}</strong>
+      </div>
+      <div class="admin-finalists__kpi-card">
+        <span class="admin-finalists__kpi-label">Portal State</span>
+        <strong class="admin-finalists__kpi-val" [class.admin-finalists__kpi-val--live]="published()">
+          {{ published() ? 'Published' : 'Draft Mode' }}
+        </strong>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Status & Feedback Messages ────────────────────────────────────── -->
+  @if (saveMessage()) {
+    <div class="admin-finalists__alert admin-finalists__alert--success" role="status">
+      {{ saveMessage() }}
+    </div>
+  }
+  @if (saveError()) {
+    <div class="admin-finalists__alert admin-finalists__alert--error" role="alert">
+      {{ saveError() }}
+    </div>
+  }
+
+  <!-- ── Action Controls Bar ─────────────────────────────────────────── -->
+  <div class="admin-finalists__toolbar">
+    <div class="admin-finalists__toolbar-left">
+      <button
+        type="button"
+        class="admin-finalists__btn admin-finalists__btn--secondary"
+        (click)="autoRank()"
+        [disabled]="pending()"
+        title="Sort finalists by final score descending and assign 1st–10th ranks automatically"
+      >
+        <svg class="admin-finalists__btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M3 4h18M3 8h12M3 12h8M3 16h14M3 20h18" />
+        </svg>
+        <span>Auto-Rank by Score</span>
+      </button>
+      <button
+        type="button"
+        class="admin-finalists__btn admin-finalists__btn--secondary"
+        (click)="resetToCurrent()"
+        [disabled]="pending()"
+      >
+        <span>Reset Changes</span>
+      </button>
+    </div>
+
+    <div class="admin-finalists__toolbar-right">
+      <button
+        type="button"
+        class="admin-finalists__btn admin-finalists__btn--save"
+        (click)="saveStandings()"
+        [disabled]="pending()"
+      >
+        <svg class="admin-finalists__btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+        <span>Save Standings</span>
+      </button>
+
+      @if (!published()) {
+        <button
+          type="button"
+          class="admin-finalists__btn admin-finalists__btn--publish"
+          (click)="confirmPublish()"
+          [disabled]="pending()"
+        >
+          <svg class="admin-finalists__btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+          <span>Publish Final Results</span>
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="admin-finalists__btn admin-finalists__btn--unpublish"
+          (click)="confirmUnpublish()"
+          [disabled]="pending()"
+        >
+          <span>Revert to Draft</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- ── Finalists Editable Table ────────────────────────────────────── -->
+  <div class="admin-finalists__table-wrap">
+    <table class="admin-finalists__table">
+      <thead>
+        <tr>
+          <th scope="col" style="width: 90px">Final Rank</th>
+          <th scope="col" style="min-width: 180px">Team / Squad</th>
+          <th scope="col" style="min-width: 180px">Project Title</th>
+          <th scope="col" style="width: 130px">Final Score</th>
+          <th scope="col" style="min-width: 220px">Award Placement</th>
+          <th scope="col" style="min-width: 220px">Prize Package</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of editableRows(); track item.teamId; let idx = $index) {
+          <tr
+            class="admin-finalists__row"
+            [class.admin-finalists__row--champion]="item.finalRank === 1"
+            [class.admin-finalists__row--podium]="item.finalRank === 2 || item.finalRank === 3"
+          >
+            <!-- Rank Input -->
+            <td class="admin-finalists__cell-rank">
+              <div class="admin-finalists__rank-badge" [class.admin-finalists__rank-badge--gold]="item.finalRank === 1" [class.admin-finalists__rank-badge--silver]="item.finalRank === 2" [class.admin-finalists__rank-badge--bronze]="item.finalRank === 3">
+                @if (item.finalRank === 1) { 🥇 }
+                @else if (item.finalRank === 2) { 🥈 }
+                @else if (item.finalRank === 3) { 🥉 }
+                <input
+                  type="number"
+                  class="admin-finalists__input admin-finalists__input--rank"
+                  min="1"
+                  max="10"
+                  [(ngModel)]="item.finalRank"
+                  (ngModelChange)="onRankChange(item, $event)"
+                  [attr.aria-label]="'Rank for ' + item.teamName"
+                />
+              </div>
+            </td>
+
+            <!-- Team Name -->
+            <td class="admin-finalists__cell-team">
+              <div class="admin-finalists__team-info">
+                <span class="admin-finalists__team-name">{{ item.teamName }}</span>
+                <span class="admin-finalists__team-id">ID: #{{ item.teamId }}</span>
+              </div>
+            </td>
+
+            <!-- Project Title -->
+            <td class="admin-finalists__cell-project">
+              <input
+                type="text"
+                class="admin-finalists__input admin-finalists__input--text"
+                [(ngModel)]="item.projectTitle"
+                [attr.aria-label]="'Project title for ' + item.teamName"
+              />
+            </td>
+
+            <!-- Final Score -->
+            <td class="admin-finalists__cell-score">
+              <div class="admin-finalists__score-wrap">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  class="admin-finalists__input admin-finalists__input--score"
+                  [(ngModel)]="item.finalScore"
+                  (ngModelChange)="onScoreChange(item, $event)"
+                  placeholder="0.0"
+                  [attr.aria-label]="'Score for ' + item.teamName"
+                />
+                <span class="admin-finalists__score-unit">/100</span>
+              </div>
+            </td>
+
+            <!-- Award Title -->
+            <td class="admin-finalists__cell-award">
+              <input
+                type="text"
+                class="admin-finalists__input admin-finalists__input--text"
+                [(ngModel)]="item.awardTitle"
+                placeholder="e.g. Grand Champion (1st Place)"
+                [attr.aria-label]="'Award title for ' + item.teamName"
+              />
+            </td>
+
+            <!-- Prize -->
+            <td class="admin-finalists__cell-prize">
+              <input
+                type="text"
+                class="admin-finalists__input admin-finalists__input--text"
+                [(ngModel)]="item.prize"
+                placeholder="e.g. RM 5,000 + Champion Trophy"
+                [attr.aria-label]="'Prize for ' + item.teamName"
+              />
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="admin-finalists__empty">
+              No finalist squads found. Go to the <strong>Results &amp; Publication</strong> tab to select the Top 10 shortlisted squads.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Publication Confirmation Dialog ──────────────────────────────── -->
+  <app-confirm-dialog
+    [open]="pendingPublish() !== null"
+    [heading]="pendingPublish() === 'publish' ? 'Publish Grand Finals Results?' : 'Revert Results to Draft?'"
+    [confirmLabel]="pendingPublish() === 'publish' ? 'Yes, Publish Live' : 'Revert to Draft'"
+    [danger]="pendingPublish() === 'unpublish'"
+    (confirmed)="executePublish()"
+    (cancelled)="cancelPublish()"
+  >
+    @if (pendingPublish() === 'publish') {
+      <p>
+        Publishing will immediately update the <strong>Finalist Portal</strong> for all participants.
+        Teams placing 1st, 2nd, and 3rd will see victory celebrations and party popper animations.
+        The full 10-team final leaderboard and awards will become public to all finalists.
+      </p>
+    } @else {
+      <p>
+        Reverting to draft will hide the final leaderboard and winner celebrations from the participant Finalist Portal until you republish.
+      </p>
+    }
+  </app-confirm-dialog>
+</div>

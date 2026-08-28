@@ -8,6 +8,7 @@ import { EventSettingsService } from '../../core/event/event-settings';
 import { PhaseService } from '../../core/event/phase';
 import { AdminAssignments } from './admin-assignments/admin-assignments';
 import { AdminAudit } from './admin-audit/admin-audit';
+import { AdminFinalists } from './admin-finalists/admin-finalists';
 import { AdminJudges } from './admin-judges/admin-judges';
 import { AdminJudging } from './admin-judging/admin-judging';
 import { AdminOverview } from './admin-overview/admin-overview';
@@ -35,6 +36,7 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
   imports: [
     AdminAssignments,
     AdminAudit,
+    AdminFinalists,
     AdminJudges,
     AdminJudging,
     AdminOverview,

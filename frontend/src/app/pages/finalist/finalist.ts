@@ -8,7 +8,6 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { ResultsService } from '../../core/results/results';
 import { TeamService } from '../../core/team/team';
 
@@ -27,7 +26,6 @@ interface Particle {
 
 @Component({
   selector: 'app-finalist',
-  imports: [RouterLink],
   templateUrl: './finalist.html',
   styleUrl: './finalist.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,17 +43,54 @@ export class Finalist implements AfterViewInit, OnDestroy {
   protected readonly myTeam = this.teams.myTeam;
   protected readonly myResult = this.results.myResult;
 
+  /** Whether the Grand Finals results & awards are officially published */
+  protected readonly isResultsPublished = this.results.finalResultsPublished;
+
+  /** All 10 Grand Finalist standings in order of rank */
+  protected readonly allStandings = this.results.finalistStandings;
+
+  /** This squad's final placement record */
+  protected readonly myPlacement = this.results.myFinalistPlacement;
+
   protected readonly teamName = computed(() => {
-    return this.myResult()?.teamName ?? this.myTeam()?.name ?? 'Finalist Squad';
+    return (
+      this.myPlacement()?.teamName ??
+      this.myResult()?.teamName ??
+      this.myTeam()?.name ??
+      'Finalist Squad'
+    );
   });
 
   protected readonly projectTitle = computed(() => {
-    return this.myResult()?.projectTitle ?? 'Preliminary Submission';
+    return (
+      this.myPlacement()?.projectTitle ??
+      this.myResult()?.projectTitle ??
+      'Grand Finals Project'
+    );
   });
 
   protected readonly scoreText = computed(() => {
-    const score = this.myResult()?.finalScore;
-    return score !== null && score !== undefined ? score.toFixed(1) : '--';
+    const score = this.isResultsPublished()
+      ? this.myPlacement()?.finalScore
+      : this.myResult()?.finalScore;
+    return score !== null && score !== undefined ? Number(score).toFixed(1) : '--';
+  });
+
+  /** Rank number in Grand Finals (1 to 10) */
+  protected readonly finalRank = computed(() => {
+    return this.myPlacement()?.finalRank ?? 1;
+  });
+
+  /** True if this squad placed 1st, 2nd, or 3rd (Podium Winner) */
+  protected readonly isPodiumWinner = computed(() => {
+    const rank = this.finalRank();
+    return rank >= 1 && rank <= 3;
+  });
+
+  /** Top 3 podium teams for the awards highlight section */
+  protected readonly topThreeStandings = computed(() => {
+    const list = this.allStandings();
+    return list.filter((s) => s.finalRank !== null && s.finalRank >= 1 && s.finalRank <= 3);
   });
 
   private animFrameId: number | null = null;
@@ -63,7 +98,10 @@ export class Finalist implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     if (typeof window !== 'undefined') {
-      this.initConfetti();
+      // Show confetti if pre-published OR if published and team won 1st, 2nd, or 3rd place!
+      if (!this.isResultsPublished() || this.isPodiumWinner()) {
+        this.initConfetti();
+      }
     }
   }
 
@@ -103,7 +141,7 @@ export class Finalist implements AfterViewInit, OnDestroy {
       const originY = height * 0.45;
       const angle = isLeft
         ? (Math.random() * 0.5 - 0.25) * Math.PI - 0.2
-        : (Math.PI - (Math.random() * 0.5 - 0.25) * Math.PI) + 0.2;
+        : Math.PI - (Math.random() * 0.5 - 0.25) * Math.PI + 0.2;
       const speed = 7 + Math.random() * 14;
 
       this.particles.push({

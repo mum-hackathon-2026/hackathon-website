@@ -134,6 +134,14 @@ describe('AdminDashboard', () => {
       expect(host().textContent).not.toContain("isn't built yet");
     });
 
+    it('renders the finalists section rather than a placeholder', async () => {
+      await render({ section: 'finalists' });
+
+      expect(title()).toBe('Grand Finalists');
+      expect(host().querySelector('app-admin-finalists')).toBeTruthy();
+      expect(host().textContent).not.toContain("isn't built yet");
+    });
+
     it('reports the phase and whether judging is open', async () => {
       await render({ judgingOpen: true });
 
