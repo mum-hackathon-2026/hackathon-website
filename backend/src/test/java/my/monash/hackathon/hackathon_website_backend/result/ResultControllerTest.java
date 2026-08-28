@@ -99,10 +99,10 @@ class ResultControllerTest {
         ReflectionTestUtils.setField(sub, "teamId", 101L);
         sub.setTrackLabel("Open Innovation");
 
-        when(teamResultRepository.findAllByOrderByRankAsc()).thenReturn(List.of(tr));
-        when(submissionRepository.findAllById(List.of(101L))).thenReturn(List.of(sub));
+        when(teamResultRepository.findAll()).thenReturn(List.of(tr));
+        when(submissionRepository.findAll()).thenReturn(List.of(sub));
 
-        ResponseEntity<List<PublicTeamResultDto>> response = controller.getPublicResults();
+        ResponseEntity<List<PublicTeamResultDto>> response = controller.getPublicResults(null);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
         PublicTeamResultDto item = response.getBody().get(0);

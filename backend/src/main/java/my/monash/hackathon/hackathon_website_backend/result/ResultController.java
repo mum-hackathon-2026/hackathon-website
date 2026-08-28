@@ -66,52 +66,145 @@ public class ResultController {
 
     @GetMapping
     @Transactional(readOnly = true)
-    public ResponseEntity<List<PublicTeamResultDto>> getPublicResults() {
+    public ResponseEntity<List<PublicTeamResultDto>> getPublicResults(@AuthenticationPrincipal User currentUser) {
         EventSettings settings = eventSettingsRepository.findSingleton().orElse(null);
-        if (settings == null || settings.getResultsPublishedAt() == null) {
+        boolean isPrivileged = currentUser != null && ("admin".equalsIgnoreCase(currentUser.getRole()) || "judge".equalsIgnoreCase(currentUser.getRole()));
+
+        if (!isPrivileged && (settings == null || settings.getResultsPublishedAt() == null)) {
             return ResponseEntity.ok(List.of());
         }
 
-        List<TeamResult> allResults = teamResultRepository.findAllByOrderByRankAsc();
-        List<TeamResult> publishedResults = allResults.stream()
-                .filter(r -> r.getPublishedAt() != null && r.getFinalScore() != null)
+        var allSubmissions = submissionRepository.findAll().stream()
+                .collect(Collectors.toMap(s -> s.getTeam().getId(), s -> s));
+        var allAssignments = assignmentRepository.findAll();
+        var completedAssignments = allAssignments.stream()
+                .filter(a -> "completed".equalsIgnoreCase(a.getStatus()))
                 .toList();
 
-        if (publishedResults.isEmpty()) {
-            return ResponseEntity.ok(List.of());
+        List<Long> completedIds = completedAssignments.stream().map(Assignment::getId).toList();
+        Map<Long, List<Score>> scoresByAssignment = completedIds.isEmpty() ? Map.of() :
+                scoreRepository.findByAssignmentIdIn(completedIds).stream()
+                        .collect(Collectors.groupingBy(s -> s.getAssignment().getId()));
+
+        Map<Long, List<Assignment>> completedByTeam = completedAssignments.stream()
+                .collect(Collectors.groupingBy(a -> a.getTeam().getId()));
+
+        List<TeamResult> allSavedResults = teamResultRepository.findAll();
+        Map<Long, TeamResult> savedResults = allSavedResults.stream()
+                .collect(Collectors.toMap(TeamResult::getTeamId, r -> r));
+
+        Map<Long, String> teamNames = new HashMap<>();
+        for (TeamResult tr : allSavedResults) {
+            if (tr.getTeam() != null) teamNames.put(tr.getTeamId(), tr.getTeam().getName());
+        }
+        for (Submission sub : allSubmissions.values()) {
+            if (sub.getTeam() != null) teamNames.put(sub.getTeam().getId(), sub.getTeam().getName());
+        }
+        for (Assignment a : allAssignments) {
+            if (a.getTeam() != null) teamNames.put(a.getTeam().getId(), a.getTeam().getName());
         }
 
-        List<Long> teamIds = publishedResults.stream().map(TeamResult::getTeamId).toList();
-        Map<Long, Submission> submissionMap = submissionRepository.findAllById(teamIds).stream()
-                .collect(Collectors.toMap(Submission::getTeamId, s -> s));
+        class TeamScoreRow {
+            final Long teamId;
+            final String teamName;
+            final Submission submission;
+            final BigDecimal finalScore;
+            final int judgeCount;
+            final TeamResult savedResult;
 
-        Map<Integer, Long> rankCounts = publishedResults.stream()
-                .filter(r -> r.getRank() != null)
-                .collect(Collectors.groupingBy(TeamResult::getRank, Collectors.counting()));
+            TeamScoreRow(Long teamId, String teamName, Submission submission, BigDecimal finalScore, int judgeCount, TeamResult savedResult) {
+                this.teamId = teamId;
+                this.teamName = teamName;
+                this.submission = submission;
+                this.finalScore = finalScore;
+                this.judgeCount = judgeCount;
+                this.savedResult = savedResult;
+            }
+        }
+
+        List<TeamScoreRow> rows = new ArrayList<>();
+        for (Map.Entry<Long, String> entry : teamNames.entrySet()) {
+            Long teamId = entry.getKey();
+            String teamName = entry.getValue();
+            Submission submission = allSubmissions.get(teamId);
+            TeamResult saved = savedResults.get(teamId);
+            List<Assignment> teamCompleted = completedByTeam.getOrDefault(teamId, List.of());
+
+            BigDecimal computedScore = null;
+            if (!teamCompleted.isEmpty()) {
+                BigDecimal sumOfJudges = BigDecimal.ZERO;
+                int validJudgeCount = 0;
+                for (Assignment a : teamCompleted) {
+                    List<Score> aScores = scoresByAssignment.getOrDefault(a.getId(), List.of());
+                    if (!aScores.isEmpty()) {
+                        BigDecimal aTotal = aScores.stream()
+                                .map(s -> {
+                                    if (s.getScore() == null || s.getCriteriaMaxScoreSnapshot() == null || s.getCriteriaWeightSnapshot() == null) return BigDecimal.ZERO;
+                                    if (s.getCriteriaMaxScoreSnapshot().compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
+                                    return s.getScore().divide(s.getCriteriaMaxScoreSnapshot(), 4, RoundingMode.HALF_UP).multiply(s.getCriteriaWeightSnapshot());
+                                })
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                        sumOfJudges = sumOfJudges.add(aTotal);
+                        validJudgeCount++;
+                    }
+                }
+                if (validJudgeCount > 0) {
+                    computedScore = sumOfJudges.divide(BigDecimal.valueOf(validJudgeCount), 2, RoundingMode.HALF_UP);
+                }
+            }
+
+            BigDecimal finalScoreToUse = computedScore != null ? computedScore : (saved != null ? saved.getFinalScore() : null);
+            int judgeCountToUse = !teamCompleted.isEmpty() ? teamCompleted.size() : (saved != null ? saved.getJudgeCount() : 0);
+
+            if (finalScoreToUse != null || isPrivileged) {
+                rows.add(new TeamScoreRow(teamId, teamName, submission, finalScoreToUse, judgeCountToUse, saved));
+            }
+        }
+
+        rows.sort((a, b) -> {
+            if (a.finalScore == null && b.finalScore == null) return Long.compare(a.teamId, b.teamId);
+            if (a.finalScore == null) return 1;
+            if (b.finalScore == null) return -1;
+            int cmp = b.finalScore.compareTo(a.finalScore);
+            if (cmp != 0) return cmp;
+            return Long.compare(a.teamId, b.teamId);
+        });
 
         List<PublicTeamResultDto> dtoList = new ArrayList<>();
-        for (TeamResult tr : publishedResults) {
-            Submission sub = submissionMap.get(tr.getTeamId());
-            String teamName = tr.getTeam() != null ? tr.getTeam().getName() : "Team " + tr.getTeamId();
-            String projectTitle = sub != null && sub.getProjectTitle() != null ? sub.getProjectTitle() : "";
-            String trackLabel = sub != null && sub.getTrackLabel() != null ? sub.getTrackLabel() : "Open Innovation";
-            String outcome = tr.getOutcome();
-            if (tr.getTeam() != null && tr.getTeam().isShortlisted()) {
-                outcome = "finalist";
-            } else if (outcome == null && tr.getRank() != null) {
-                outcome = tr.getRank() <= 10 ? "finalist" : "participant";
+        for (int i = 0; i < rows.size(); i++) {
+            TeamScoreRow st = rows.get(i);
+            Integer rank = null;
+            boolean tied = false;
+
+            if (st.finalScore != null) {
+                if (i > 0 && rows.get(i - 1).finalScore != null &&
+                        st.finalScore.compareTo(rows.get(i - 1).finalScore) == 0) {
+                    rank = dtoList.get(i - 1).rank();
+                    tied = true;
+                } else {
+                    rank = i + 1;
+                }
             }
-            boolean tied = tr.getRank() != null && rankCounts.getOrDefault(tr.getRank(), 0L) > 1;
+
+            if (st.finalScore != null && i + 1 < rows.size() &&
+                    rows.get(i + 1).finalScore != null &&
+                    st.finalScore.compareTo(rows.get(i + 1).finalScore) == 0) {
+                tied = true;
+            }
+
+            String projectTitle = st.submission != null && st.submission.getProjectTitle() != null ? st.submission.getProjectTitle() : "";
+            String trackLabel = st.submission != null && st.submission.getTrackLabel() != null ? st.submission.getTrackLabel() : "Open Innovation";
+            String outcome = (st.savedResult != null && st.savedResult.getOutcome() != null) ? st.savedResult.getOutcome() : (rank != null && rank <= 10 ? "finalist" : "participant");
 
             dtoList.add(new PublicTeamResultDto(
-                    tr.getTeamId(),
-                    teamName,
+                    st.teamId,
+                    st.teamName,
                     projectTitle,
                     trackLabel,
-                    tr.getFinalScore(),
-                    tr.getRank(),
+                    st.finalScore,
+                    rank,
                     outcome,
-                    tr.getJudgeCount(),
+                    st.judgeCount,
                     tied
             ));
         }
@@ -137,48 +230,60 @@ public class ResultController {
         }
 
         Team team = memberOpt.get().getTeam();
-        var teamResultOpt = teamResultRepository.findById(team.getId());
-        if (teamResultOpt.isEmpty() || teamResultOpt.get().getPublishedAt() == null) {
-            return ResponseEntity.noContent().build();
-        }
-
-        TeamResult tr = teamResultOpt.get();
-        Submission sub = submissionRepository.findByTeamId(team.getId()).orElse(null);
-        String projectTitle = sub != null && sub.getProjectTitle() != null ? sub.getProjectTitle() : "";
-        String trackLabel = sub != null && sub.getTrackLabel() != null ? sub.getTrackLabel() : "Open Innovation";
-
-        List<TeamResult> allResults = teamResultRepository.findAllByOrderByRankAsc();
-        boolean tied = tr.getRank() != null && allResults.stream()
-                .filter(r -> r.getPublishedAt() != null && tr.getRank().equals(r.getRank()))
-                .count() > 1;
-
-        String outcome = tr.getOutcome();
-        if (team.isShortlisted()) {
-            outcome = "finalist";
-        } else if (outcome == null && tr.getRank() != null) {
-            outcome = tr.getRank() <= 10 ? "finalist" : "participant";
-        }
-
-        PublicTeamResultDto resultDto = new PublicTeamResultDto(
-                tr.getTeamId(),
-                team.getName(),
-                projectTitle,
-                trackLabel,
-                tr.getFinalScore(),
-                tr.getRank(),
-                outcome,
-                tr.getJudgeCount(),
-                tied
-        );
-
         List<Assignment> completedAssignments = assignmentRepository.findByTeamId(team.getId()).stream()
                 .filter(a -> "completed".equalsIgnoreCase(a.getStatus()))
                 .toList();
 
         List<Long> assignmentIds = completedAssignments.stream().map(Assignment::getId).toList();
-        List<Score> allScores = scoreRepository.findByAssignmentIdIn(assignmentIds);
+        List<Score> allScores = assignmentIds.isEmpty() ? List.of() : scoreRepository.findByAssignmentIdIn(assignmentIds);
         Map<Long, List<Score>> scoresByAssignment = allScores.stream()
                 .collect(Collectors.groupingBy(s -> s.getAssignment().getId()));
+
+        BigDecimal computedScore = null;
+        if (!completedAssignments.isEmpty()) {
+            BigDecimal sumOfJudges = BigDecimal.ZERO;
+            int validJudgeCount = 0;
+            for (Assignment a : completedAssignments) {
+                List<Score> aScores = scoresByAssignment.getOrDefault(a.getId(), List.of());
+                if (!aScores.isEmpty()) {
+                    BigDecimal aTotal = aScores.stream()
+                            .map(s -> {
+                                if (s.getScore() == null || s.getCriteriaMaxScoreSnapshot() == null || s.getCriteriaWeightSnapshot() == null) return BigDecimal.ZERO;
+                                if (s.getCriteriaMaxScoreSnapshot().compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
+                                return s.getScore().divide(s.getCriteriaMaxScoreSnapshot(), 4, RoundingMode.HALF_UP).multiply(s.getCriteriaWeightSnapshot());
+                            })
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    sumOfJudges = sumOfJudges.add(aTotal);
+                    validJudgeCount++;
+                }
+            }
+            if (validJudgeCount > 0) {
+                computedScore = sumOfJudges.divide(BigDecimal.valueOf(validJudgeCount), 2, RoundingMode.HALF_UP);
+            }
+        }
+
+        var teamResultOpt = teamResultRepository.findById(team.getId());
+        TeamResult tr = teamResultOpt.orElse(null);
+        BigDecimal finalScore = computedScore != null ? computedScore : (tr != null ? tr.getFinalScore() : null);
+
+        Submission sub = submissionRepository.findByTeamId(team.getId()).orElse(null);
+        String projectTitle = sub != null && sub.getProjectTitle() != null ? sub.getProjectTitle() : "";
+        String trackLabel = sub != null && sub.getTrackLabel() != null ? sub.getTrackLabel() : "Open Innovation";
+
+        Integer rank = tr != null ? tr.getRank() : null;
+        String outcome = tr != null ? tr.getOutcome() : (team.isShortlisted() ? "finalist" : "participant");
+
+        PublicTeamResultDto resultDto = new PublicTeamResultDto(
+                team.getId(),
+                team.getName(),
+                projectTitle,
+                trackLabel,
+                finalScore,
+                rank,
+                outcome,
+                completedAssignments.size(),
+                false
+        );
 
         List<JudgeReviewDto> reviewDtos = new ArrayList<>();
         for (int i = 0; i < completedAssignments.size(); i++) {
