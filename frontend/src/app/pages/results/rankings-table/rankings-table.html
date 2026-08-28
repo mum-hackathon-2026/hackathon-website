@@ -18,16 +18,21 @@
     </thead>
     <tbody>
       @for (row of rows(); track row.teamId) {
-        <tr [class.rankings__row--mine]="row.isMine">
+        <tr [class.rankings__row--mine]="row.isMine" [class.rankings__row--finalist]="row.outcome === 'finalist' || (row.rank !== null && row.rank <= 10)">
           <td class="rankings__rank">{{ row.tied ? '=' : '' }}{{ row.rank }}</td>
           <td>
-            <span class="rankings__team">{{ row.teamName }}</span>
-            @if (row.isMine) {
-              <span class="rankings__you">You</span>
-            }
+            <div class="rankings__team-wrap">
+              <span class="rankings__team">{{ row.teamName }}</span>
+              @if (row.isMine) {
+                <span class="rankings__you">You</span>
+              }
+              @if (row.outcome === 'finalist' || (row.rank !== null && row.rank <= 10)) {
+                <span class="rankings__badge rankings__badge--finalist">Finalist</span>
+              }
+            </div>
             <span class="rankings__project">{{ row.projectTitle }}</span>
           </td>
-          <td class="rankings__track">{{ row.trackLabel }}</td>
+          <td class="rankings__track">{{ row.trackLabel || 'Open Innovation' }}</td>
           <td class="rankings__score">{{ row.finalScore | number: '1.1-1' }}</td>
         </tr>
       }

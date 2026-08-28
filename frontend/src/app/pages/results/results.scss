@@ -26,6 +26,12 @@
   box-shadow: 0 12px 32px -4px rgba(16, 185, 129, 0.15);
 }
 
+.status-banner--admin {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(238, 242, 255, 0.8) 0%, rgba(255, 255, 255, 0.95) 100%);
+  box-shadow: 0 8px 28px -4px rgba(99, 102, 241, 0.12);
+}
+
 .status-banner__badge {
   display: inline-block;
   margin-bottom: 12px;
@@ -41,6 +47,17 @@
   background: #10b981;
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+.status-banner__badge--admin {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+:host-context([data-theme='dark']) .status-banner--admin {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border-color: rgba(99, 102, 241, 0.4);
 }
 
 .status-banner__badge--completed {
