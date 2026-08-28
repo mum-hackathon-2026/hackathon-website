@@ -760,8 +760,6 @@ public class AdminBackendService {
                 outcome = "disqualified";
             } else if (st.team.isShortlisted()) {
                 outcome = "finalist";
-            } else if (st.savedResult != null && st.savedResult.getOutcome() != null) {
-                outcome = st.savedResult.getOutcome();
             }
 
             List<String> issues = new ArrayList<>();

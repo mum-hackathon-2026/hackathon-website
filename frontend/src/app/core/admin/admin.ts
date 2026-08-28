@@ -1167,6 +1167,7 @@ export class AdminService {
         this.liveResults.set(
           results.map((r: any) => ({
             ...r,
+            outcome: (r.shortlisted ? 'finalist' : 'participant') as ResultOutcome,
             publishedAt: r.publishedAt ? new Date(r.publishedAt) : null,
           })),
         );
