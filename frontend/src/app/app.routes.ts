@@ -8,34 +8,34 @@ import { Home } from './pages/home/home';
 // this matters here specifically.
 
 export const routes: Routes = [
-  { path: '', component: Home, title: 'Monash Hackathon 2026' },
+  { path: '', component: Home, title: 'Averis X Monash Hackathon 2026' },
   {
     path: 'timeline',
     loadComponent: () => import('./pages/timeline/timeline').then((m) => m.Timeline),
-    title: 'Timeline · Monash Hackathon 2026',
+    title: 'Timeline · Averis X Monash Hackathon 2026',
   },
   {
     path: 'organizers',
     loadComponent: () => import('./pages/organizers/organizers').then((m) => m.Organizers),
-    title: 'Organisers · Monash Hackathon 2026',
+    title: 'Organisers · Averis X Monash Hackathon 2026',
   },
   {
     path: 'participant/team',
     loadComponent: () => import('./pages/my-team/my-team').then((m) => m.MyTeam),
     canActivate: [participantGuard],
-    title: 'My team · Monash Hackathon 2026',
+    title: 'My team · Averis X Monash Hackathon 2026',
   },
   {
     path: 'participant/submission',
     loadComponent: () => import('./pages/my-submission/my-submission').then((m) => m.MySubmission),
     canActivate: [participantGuard],
-    title: 'My submission · Monash Hackathon 2026',
+    title: 'My submission · Averis X Monash Hackathon 2026',
   },
   {
     path: 'participant/progress',
     loadComponent: () => import('./pages/progress/progress').then((m) => m.Progress),
     canActivate: [participantGuard],
-    title: 'Progress · Monash Hackathon 2026',
+    title: 'Progress · Averis X Monash Hackathon 2026',
   },
   {
     path: 'participant/progress/team',
@@ -55,13 +55,13 @@ export const routes: Routes = [
     path: 'judge/portal',
     loadComponent: () => import('./pages/judge-portal/judge-portal').then((m) => m.JudgePortal),
     canActivate: [judgeGuard],
-    title: 'Judge portal · Monash Hackathon 2026',
+    title: 'Judge portal · Averis X Monash Hackathon 2026',
   },
   {
     path: 'judge/reviews/:assignmentId',
     loadComponent: () => import('./pages/judge-review/judge-review').then((m) => m.JudgeReview),
     canActivate: [judgeGuard],
-    title: 'Review · Monash Hackathon 2026',
+    title: 'Review · Averis X Monash Hackathon 2026',
   },
   // Lazy for the same reason, and first to be so: eagerly importing this page
   // took the initial bundle past its 500 kB budget, and organisers are the
@@ -78,30 +78,30 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/admin-dashboard/admin-dashboard').then((m) => m.AdminDashboard),
     canActivate: [adminGuard],
-    title: 'Dashboard · Monash Hackathon 2026',
+    title: 'Dashboard · Averis X Monash Hackathon 2026',
   },
   // Every signed-in role sees results, so this is gated on sign-in, not a role.
   {
     path: 'results',
     loadComponent: () => import('./pages/results/results').then((m) => m.Results),
     canActivate: [signedInGuard],
-    title: 'Results · Monash Hackathon 2026',
+    title: 'Results · Averis X Monash Hackathon 2026',
   },
   {
     path: 'finalist',
     loadComponent: () => import('./pages/finalist/finalist').then((m) => m.Finalist),
     canActivate: [signedInGuard],
-    title: 'Finalist Portal · Monash Hackathon 2026',
+    title: 'Finalist Portal · Averis X Monash Hackathon 2026',
   },
   {
     path: 'sign-in',
     loadComponent: () => import('./pages/sign-in/sign-in').then((m) => m.SignIn),
-    title: 'Sign in · Monash Hackathon 2026',
+    title: 'Sign in · Averis X Monash Hackathon 2026',
   },
   // Must stay last: the wildcard matches anything the routes above did not.
   {
     path: '**',
     loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound),
-    title: 'Page not found · Monash Hackathon 2026',
+    title: 'Page not found · Averis X Monash Hackathon 2026',
   },
 ];

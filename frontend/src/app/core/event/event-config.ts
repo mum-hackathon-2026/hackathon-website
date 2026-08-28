@@ -90,7 +90,7 @@ export interface EventConfig {
  */
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   settings: {
-    eventName: 'Monash Hackathon 2026',
+    eventName: 'Averis X Monash Hackathon 2026',
     // Not in the proposal. The close is pinned to the opening ceremony, since
     // that is when the problem statement drops and the build period starts —
     // and it has to precede the submission deadline or the `submission` phase
