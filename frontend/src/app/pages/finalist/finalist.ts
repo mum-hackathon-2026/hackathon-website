@@ -6,6 +6,7 @@ import {
   OnDestroy,
   ViewChild,
   computed,
+  effect,
   inject,
 } from '@angular/core';
 import { ResultsService } from '../../core/results/results';
@@ -96,9 +97,20 @@ export class Finalist implements AfterViewInit, OnDestroy {
   private animFrameId: number | null = null;
   private particles: Particle[] = [];
 
+  constructor() {
+    effect(() => {
+      const published = this.isResultsPublished();
+      const isPodium = this.isPodiumWinner();
+      if (typeof window !== 'undefined') {
+        if (!published || isPodium) {
+          setTimeout(() => this.initConfetti(), 50);
+        }
+      }
+    });
+  }
+
   ngAfterViewInit(): void {
     if (typeof window !== 'undefined') {
-      // Show confetti if pre-published OR if published and team won 1st, 2nd, or 3rd place!
       if (!this.isResultsPublished() || this.isPodiumWinner()) {
         this.initConfetti();
       }

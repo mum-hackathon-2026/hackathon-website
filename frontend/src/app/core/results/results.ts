@@ -254,24 +254,13 @@ export class ResultsService {
     return seedMine;
   });
 
-  /**
-   * Whether Grand Finals rankings and awards have been published by organizers.
-   */
-  readonly finalResultsPublished = computed<boolean>(() => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return (
-        localStorage.getItem('monash_hackathon_final_results_published') === 'true'
-      );
-    }
-    return false;
-  });
+  // ── Grand Finals Standings & Publication ──────────────────────────────────
+  private readonly FINALIST_STANDINGS_KEY = 'monash_hackathon_finalist_standings';
+  private readonly FINALIST_PUBLISHED_KEY = 'monash_hackathon_final_results_published';
 
-  /**
-   * Standings of all Top 10 Grand Finalist teams.
-   */
-  readonly finalistStandings = computed<readonly FinalistStanding[]>(() => {
+  private loadFinalistStandingsFromStorage(): FinalistStanding[] | null {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = localStorage.getItem('monash_hackathon_finalist_standings');
+      const stored = localStorage.getItem(this.FINALIST_STANDINGS_KEY);
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
@@ -280,6 +269,35 @@ export class ResultsService {
           }
         } catch {}
       }
+    }
+    return null;
+  }
+
+  private loadFinalResultsPublishedFromStorage(): boolean {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem(this.FINALIST_PUBLISHED_KEY) === 'true';
+    }
+    return false;
+  }
+
+  /**
+   * Live reactive signal for Grand Finals published state.
+   */
+  readonly finalResultsPublished = signal<boolean>(
+    this.loadFinalResultsPublishedFromStorage(),
+  );
+
+  readonly customFinalistStandings = signal<FinalistStanding[] | null>(
+    this.loadFinalistStandingsFromStorage(),
+  );
+
+  /**
+   * Standings of all Top 10 Grand Finalist teams.
+   */
+  readonly finalistStandings = computed<readonly FinalistStanding[]>(() => {
+    const custom = this.customFinalistStandings();
+    if (custom && custom.length > 0) {
+      return custom;
     }
 
     // Default top 10 from rankings
@@ -309,6 +327,21 @@ export class ResultsService {
       };
     });
   });
+
+  setFinalResultsPublished(published: boolean): void {
+    this.finalResultsPublished.set(published);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(this.FINALIST_PUBLISHED_KEY, published ? 'true' : 'false');
+    }
+  }
+
+  setFinalistStandings(standings: FinalistStanding[]): void {
+    const sorted = [...standings].sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
+    this.customFinalistStandings.set(sorted);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(this.FINALIST_STANDINGS_KEY, JSON.stringify(sorted));
+    }
+  }
 
   /**
    * Current participant squad's final placement in the Grand Finals.
