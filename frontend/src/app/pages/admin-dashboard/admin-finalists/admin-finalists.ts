@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminActionResult, AdminService, FinalistStanding } from '../../../core/admin/admin';
 import { ConfirmDialog } from '../../../layout/confirm-dialog/confirm-dialog';
@@ -30,8 +30,27 @@ export class AdminFinalists {
   );
 
   constructor() {
-    // Synchronize initial rows
-    this.editableRows.set(this.cloneStandings(this.standings()));
+    effect(() => {
+      const list = this.standings();
+      untracked(() => {
+        const currentEditable = this.editableRows();
+        const editableMap = new Map(currentEditable.map((e) => [e.teamId, e]));
+        const synced = list.map((s) => {
+          const existing = editableMap.get(s.teamId);
+          if (existing) {
+            return {
+              ...s,
+              finalScore: existing.finalScore,
+              finalRank: existing.finalRank,
+              awardTitle: existing.awardTitle,
+              prize: existing.prize,
+            };
+          }
+          return { ...s };
+        });
+        this.editableRows.set(synced);
+      });
+    });
   }
 
   private cloneStandings(list: readonly FinalistStanding[]): FinalistStanding[] {

@@ -1966,7 +1966,47 @@ export class AdminService {
 
   // ── Grand Finalists Paper-Judging & Results Workflow ─────────────────────
   readonly finalResultsPublished = this.resultsService.finalResultsPublished;
-  readonly finalistStandings = this.resultsService.finalistStandings;
+  readonly finalistStandings = computed<readonly FinalistStanding[]>(() => {
+    const finalistRows = this.results().filter(
+      (row) => row.shortlisted === true || row.outcome === 'finalist',
+    );
+    const customMap = new Map(
+      (this.resultsService.customFinalistStandings() ?? []).map((s) => [s.teamId, s]),
+    );
+
+    return finalistRows
+      .map((t, idx) => {
+        const custom = customMap.get(t.teamId);
+        const defaultRank = idx + 1;
+        const rank = custom?.finalRank ?? defaultRank;
+        let awardTitle = custom?.awardTitle ?? 'Finalist Honoree';
+        let prize = custom?.prize ?? 'Top 10 Finalist Plaque';
+
+        if (!custom) {
+          if (rank === 1) {
+            awardTitle = 'Grand Champion (1st Place)';
+            prize = 'RM 5,000 + Champion Trophy';
+          } else if (rank === 2) {
+            awardTitle = '1st Runner-Up (2nd Place)';
+            prize = 'RM 2,500 + 2nd Place Trophy';
+          } else if (rank === 3) {
+            awardTitle = '2nd Runner-Up (3rd Place)';
+            prize = 'RM 1,500 + 3rd Place Trophy';
+          }
+        }
+
+        return {
+          teamId: t.teamId,
+          teamName: t.teamName,
+          projectTitle: custom?.projectTitle ?? t.projectTitle,
+          finalRank: rank,
+          finalScore: custom?.finalScore !== undefined ? custom.finalScore : null,
+          awardTitle,
+          prize,
+        };
+      })
+      .sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
+  });
 
   updateFinalistStanding(
     teamId: number,

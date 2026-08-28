@@ -296,36 +296,46 @@ export class ResultsService {
    */
   readonly finalistStandings = computed<readonly FinalistStanding[]>(() => {
     const custom = this.customFinalistStandings();
-    if (custom && custom.length > 0) {
-      return custom;
+    const finalistRows = this.rankings().filter(
+      (t) => t.outcome === 'finalist',
+    );
+
+    if (finalistRows.length === 0 && (!custom || custom.length === 0)) {
+      return [];
     }
 
-    // Default top 10 from rankings
-    const top = this.rankings().slice(0, 10);
-    return top.map((t, idx) => {
-      const rank = idx + 1;
-      let awardTitle = 'Finalist Honoree';
-      let prize = 'Top 10 Finalist Plaque';
-      if (rank === 1) {
-        awardTitle = 'Grand Champion (1st Place)';
-        prize = 'RM 5,000 + Champion Trophy';
-      } else if (rank === 2) {
-        awardTitle = '1st Runner-Up (2nd Place)';
-        prize = 'RM 2,500 + 2nd Place Trophy';
-      } else if (rank === 3) {
-        awardTitle = '2nd Runner-Up (3rd Place)';
-        prize = 'RM 1,500 + 3rd Place Trophy';
-      }
-      return {
-        teamId: t.teamId,
-        teamName: t.teamName,
-        projectTitle: t.projectTitle,
-        finalRank: rank,
-        finalScore: t.finalScore,
-        awardTitle,
-        prize,
-      };
-    });
+    const customMap = new Map((custom ?? []).map((s) => [s.teamId, s]));
+    const listToUse = finalistRows.length > 0 ? finalistRows : (custom ?? []);
+
+    return listToUse
+      .map((t: any, idx: number) => {
+        const customItem = customMap.get(t.teamId);
+        const rank = customItem?.finalRank ?? idx + 1;
+        let awardTitle = customItem?.awardTitle ?? 'Finalist Honoree';
+        let prize = customItem?.prize ?? 'Top 10 Finalist Plaque';
+        if (!customItem) {
+          if (rank === 1) {
+            awardTitle = 'Grand Champion (1st Place)';
+            prize = 'RM 5,000 + Champion Trophy';
+          } else if (rank === 2) {
+            awardTitle = '1st Runner-Up (2nd Place)';
+            prize = 'RM 2,500 + 2nd Place Trophy';
+          } else if (rank === 3) {
+            awardTitle = '2nd Runner-Up (3rd Place)';
+            prize = 'RM 1,500 + 3rd Place Trophy';
+          }
+        }
+        return {
+          teamId: t.teamId,
+          teamName: t.teamName,
+          projectTitle: customItem?.projectTitle ?? t.projectTitle,
+          finalRank: rank,
+          finalScore: customItem?.finalScore !== undefined ? customItem.finalScore : null,
+          awardTitle,
+          prize,
+        };
+      })
+      .sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
   });
 
   setFinalResultsPublished(published: boolean): void {
