@@ -218,7 +218,7 @@ describe('JudgePortal', () => {
       const labels = Array.from(host().querySelectorAll('.assignments__open')).map((a) =>
         a.textContent?.trim(),
       );
-      expect(labels).toEqual(['View', 'Continue', 'Start review', 'Start review']);
+      expect(labels).toEqual(['Edit review', 'Continue', 'Start review', 'Start review']);
     });
   });
 

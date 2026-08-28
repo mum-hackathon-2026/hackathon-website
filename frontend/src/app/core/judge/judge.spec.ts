@@ -201,7 +201,7 @@ describe('JudgeService', () => {
   });
 
   describe('submitting a review', () => {
-    it('locks the assignment and records when', async () => {
+    it('marks the assignment completed and records when', async () => {
       const service = setUp();
 
       const result = await service.completeReview(PENDING, draftAt(service, 0.9));
@@ -209,7 +209,6 @@ describe('JudgeService', () => {
       expect(result.ok).toBe(true);
       const view = service.viewFor(PENDING)!;
       expect(view.status).toBe('completed');
-      expect(view.locked).toBe(true);
       expect(view.completedAt).toBeInstanceOf(Date);
     });
 
@@ -230,18 +229,15 @@ describe('JudgeService', () => {
       expect(service.viewFor(PENDING)?.completedAt).toBeNull();
     });
 
-    it('cannot be edited afterwards', async () => {
+    it('can be edited and re-submitted while judging is open', async () => {
       const service = setUp();
       await service.completeReview(PENDING, draftAt(service, 0.9));
       const before = service.viewFor(PENDING)!.weightedTotal;
 
-      const result = await service.saveDraft(PENDING, draftAt(service, 0.1));
+      const result = await service.completeReview(PENDING, draftAt(service, 0.5));
 
-      expect(result).toEqual({
-        ok: false,
-        error: 'This review has been submitted and can no longer be changed.',
-      });
-      expect(service.viewFor(PENDING)!.weightedTotal).toBe(before);
+      expect(result.ok).toBe(true);
+      expect(service.viewFor(PENDING)!.weightedTotal).not.toBe(before);
     });
   });
 

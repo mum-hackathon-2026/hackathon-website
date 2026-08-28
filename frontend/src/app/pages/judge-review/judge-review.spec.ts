@@ -271,33 +271,28 @@ describe('JudgeReview', () => {
   });
 
   describe('a submitted review', () => {
-    it('is read-only, with the marks shown as values', async () => {
+    it('is editable while judging is open, with previous marks preloaded', async () => {
       const el = await render({ assignmentId: COMPLETED });
+
+      expect(scoreInputs().length).toBeGreaterThan(0);
+      expect(el.querySelector('app-review-actions')).toBeTruthy();
+      expect(el.querySelector('.review__banner--submitted')).toBeTruthy();
+      expect(el.querySelector('.button--primary')?.textContent).toContain('Update review');
+    });
+
+    it('shows the feedback the judge wrote in editable form', async () => {
+      const el = await render({ assignmentId: COMPLETED });
+
+      const textarea = el.querySelector<HTMLTextAreaElement>('#overall-feedback');
+      expect(textarea?.value).toContain('strongest submission');
+    });
+
+    it('locks into read-only after judging closes', async () => {
+      const el = await render({ assignmentId: COMPLETED, judgingOpen: false });
 
       expect(scoreInputs().length).toBe(0);
       expect(el.querySelector('app-review-actions')).toBeNull();
-      expect(el.querySelector('.review__banner--locked')).toBeTruthy();
-      expect(
-        Array.from(el.querySelectorAll('.criterion__mark-value')).map((node) =>
-          node.textContent?.trim(),
-        ),
-      ).toEqual(['13.5', '22.5', '12.8', '13.5', '9.0', '8.5', '9.0']);
-    });
-
-    it('shows the feedback the judge wrote', async () => {
-      const el = await render({ assignmentId: COMPLETED });
-
-      expect(el.querySelector('.feedback__read')?.textContent).toContain('strongest submission');
-    });
-
-    it('stays readable after judging closes', async () => {
-      const el = await render({ assignmentId: COMPLETED, judgingOpen: false });
-
-      expect(el.querySelector('.review__banner--locked')?.textContent).toContain(
-        'Judging has since closed',
-      );
-      expect(el.querySelector('.criterion__mark-value')).toBeTruthy();
-      expect(el.querySelector('app-state-locked')).toBeNull();
+      expect(el.querySelector('app-state-locked')).toBeTruthy();
     });
   });
 

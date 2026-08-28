@@ -76,6 +76,13 @@
   color: var(--color-green-ink);
 }
 
+.review__banner--submitted {
+  border: 1px solid color-mix(in srgb, var(--color-green) 35%, transparent);
+  background: var(--color-green-tint);
+  color: var(--color-green-ink);
+  font-weight: 600;
+}
+
 .review__banner--declined {
   border: 1px solid color-mix(in srgb, var(--color-red-ink) 30%, transparent);
   background: var(--color-red-tint);

@@ -428,7 +428,7 @@ export class JudgeService {
               criteriaCount: criteria.length,
               weightedTotal: Math.round(totalWeighted * 100) / 100,
               allScored,
-              locked: a.status === 'completed',
+              locked: a.status === 'completed' && !this.judgingOpen(),
             };
           }),
         );
@@ -666,9 +666,6 @@ export class JudgeService {
     if (!this.judgingOpen()) {
       return { ok: false, error: 'Judging is closed, so scores cannot be changed.' };
     }
-    if (assignment.status === 'completed') {
-      return { ok: false, error: 'This review has been submitted and can no longer be changed.' };
-    }
     if (assignment.status === 'declined') {
       return { ok: false, error: 'You declined this assignment. An organiser can reassign it.' };
     }
@@ -794,7 +791,7 @@ export class JudgeService {
       criteriaCount: criteria.length,
       weightedTotal: weightedTotal(rows),
       allScored: scoredCount === criteria.length,
-      locked: assignment.status === 'completed',
+      locked: assignment.status === 'completed' && !this.judgingOpen(),
     };
   }
 

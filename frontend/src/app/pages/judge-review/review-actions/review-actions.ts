@@ -16,6 +16,7 @@ export class ReviewActions {
   readonly allScored = input.required<boolean>();
   readonly dirty = input(false);
   readonly busy = input(false);
+  readonly isCompleted = input(false);
   readonly savedAt = input<Date | null>(null);
 
   readonly save = output<void>();

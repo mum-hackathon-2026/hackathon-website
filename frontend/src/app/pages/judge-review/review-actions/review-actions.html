@@ -26,7 +26,7 @@
         [attr.title]="allScored() ? null : 'Score every criterion before submitting'"
         (click)="submitted.emit()"
       >
-        Submit review
+        {{ isCompleted() ? 'Update review' : 'Submit review' }}
       </button>
     </div>
   </div>
