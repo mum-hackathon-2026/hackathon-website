@@ -42,7 +42,7 @@ describe('DirectorSection', () => {
   });
 
   it('names the section', () => {
-    expect(host().querySelector('h2')!.textContent).toContain('Director');
+    expect(host().querySelector('h2')!.textContent).toContain('Contact');
   });
 
   it('shows every director the shared list names', () => {

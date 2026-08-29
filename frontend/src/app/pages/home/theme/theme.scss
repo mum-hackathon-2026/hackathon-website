@@ -302,10 +302,18 @@
 
 /* Below this width the three-column grid (dot | name | figure) gets too
    cramped for a real criterion name plus a nowrap percentage pill, so each
-   row switches to its own small flex layout instead: dot and name share a
-   line, the bar is dropped (it's redundant with the track above anyway), and
-   the figure pill wraps onto a line of its own via flex-basis: 100%, which
-   forces a break in a wrapping flex row without a markup change.
+   row switches to its own small flex layout: dot, name and the percentage
+   badge share a first line (badge pushed to the end via `order`, not
+   `margin-left: auto`, since that only works once the row's own items are
+   already in the order it needs), and the bar is forced onto a second line
+   via `flex-basis: 100%`.
+
+   The bar stays (a mobile-only build of this section used to drop it,
+   leaving seven identically-sized percentage pills that couldn't show which
+   criterion actually weighs more — the opposite of what a "Scoring Rubric
+   Breakdown" is for). Keeping it, shrunk and paired with a small badge
+   instead of a full-width one, is what makes this still read as a chart
+   rather than a list of buttons.
 
    `.theme__pillar` has to be told `display: flex` explicitly here — its base
    rule is `display: contents` so the grid above can flatten it away, and that
@@ -313,38 +321,56 @@
    align-items) inert until something overrides it. That silent no-op is what
    made this breakpoint do nothing at all before. */
 @media (max-width: 640px) {
+  .theme__viz-wrapper {
+    padding: 18px;
+  }
+
   .theme__pillars {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 14px;
   }
 
   .theme__pillar {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    column-gap: 10px;
-    row-gap: 8px;
+    /* flex-start, not center: a longer name (e.g. "Technical Feasibility &
+       Validation") wraps to two lines within its constrained flex-item
+       width, and centering the dot against that full two-line box floats
+       it visibly above the first line instead of sitting beside it. */
+    align-items: flex-start;
+    column-gap: 8px;
+    row-gap: 4px;
   }
 
   .theme__pillar-indicator {
-    margin: 0;
+    order: 1;
+    /* Nudges the dot down to the vertical center of the name's first line
+       specifically, rather than the whole (possibly two-line) box. */
+    margin: 4px 0 0;
   }
 
   .theme__pillar-name {
+    order: 2;
     margin: 0;
     flex: 1 1 auto;
     min-width: 0;
-  }
-
-  .theme__pillar-bar-wrap {
-    display: none;
+    font-size: 0.85rem;
   }
 
   .theme__pillar-desc {
+    order: 3;
+    flex: 0 0 auto;
+    margin: 1px 0 0;
+    font-size: 0.66rem;
+    padding: 2px 8px;
+  }
+
+  .theme__pillar-bar-wrap {
+    order: 4;
     flex-basis: 100%;
+    height: 5px;
     margin: 0;
-    align-self: flex-start;
   }
 }
 

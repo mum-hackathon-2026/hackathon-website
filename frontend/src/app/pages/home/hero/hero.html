@@ -2,14 +2,18 @@
   <!-- Brand lockup. The canonical event name lives in event-config.ts; this is
        the typographic treatment of it and is deliberately not interpolated. -->
   <h1 class="hero__title">
-    Averis X Monash
-    <span class="hero__wordmark"
-      >Hack<span class="hero__letter hero__letter--blue">a</span
-      ><span class="hero__letter hero__letter--red">t</span
-      ><span class="hero__letter hero__letter--yellow">h</span
-      ><span class="hero__letter hero__letter--green">o</span>n</span
-    >
-    2026
+    <span class="visually-hidden">Averis X Monash Hackathon 2026</span>
+    <span aria-hidden="true" class="hero__lockup">
+      <span class="hero__brand">
+        <img class="hero__brand-logo" src="/logos/averis.png" alt="" width="772" height="244" />
+        <span class="hero__brand-x">X</span>
+        <span class="hero__brand-monash">Monash</span>
+      </span>
+      <span class="hero__wordmark">
+        <span class="hero__wordmark-main">/HACK<span class="hero__wordmark-kern">A</span>THON</span>
+        <span class="hero__wordmark-year">2026</span>
+      </span>
+    </span>
   </h1>
 
   <p class="hero__tagline">{{ config.site.tagline }}</p>
