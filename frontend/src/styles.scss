@@ -136,6 +136,19 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Asset Protection: Prevent dragging or ripping of graphics, logos, and canvases */
+img,
+svg,
+canvas,
+.logo,
+.brand-badge {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
 /* Page arrival.
 
    Changing tab rebuilds the routed component, so a plain CSS animation runs
