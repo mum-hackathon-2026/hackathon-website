@@ -1,4 +1,10 @@
-<p class="lede">{{ summary() }}</p>
+﻿<p class="lede">{{ summary() }}</p>
+
+@if (successMessage()) {
+  <div class="alert alert--success" role="status">
+    {{ successMessage() }}
+  </div>
+}
 
 <div class="filters">
   <label class="visually-hidden" for="sub-search">Search submissions</label>
@@ -11,20 +17,6 @@
     [ngModel]="search()"
     (ngModelChange)="search.set($event)"
   />
-
-  <label class="visually-hidden" for="sub-track">Filter by track</label>
-  <select
-    id="sub-track"
-    class="input"
-    name="subTrack"
-    [ngModel]="trackFilter()"
-    (ngModelChange)="trackFilter.set($event)"
-  >
-    <option value="all">All tracks</option>
-    @for (track of tracks; track track) {
-      <option [value]="track">{{ track }}</option>
-    }
-  </select>
 
   <label class="visually-hidden" for="sub-status">Filter by status</label>
   <select
@@ -56,6 +48,7 @@
           <th scope="col">Status</th>
           <th scope="col">Submitted</th>
           <th scope="col">Links</th>
+          <th scope="col" class="grid__action-col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -97,6 +90,16 @@
                 <span class="grid__none">—</span>
               }
             </td>
+            <td class="grid__action-col">
+              <button
+                type="button"
+                class="btn-edit"
+                (click)="openEdit(row)"
+                [attr.aria-label]="'Edit submission for ' + row.teamName"
+              >
+                Edit
+              </button>
+            </td>
           </tr>
         }
       </tbody>
@@ -104,7 +107,173 @@
   </div>
 }
 
-<p class="note">
-  Accepting or rejecting a submission is in the design draft but is not built yet. Nothing would
-  keep the decision, so that has to be settled before the button can do anything.
-</p>
+<!-- Edit Submission Modal -->
+@if (editing(); as detail) {
+  <div class="modal-backdrop" (click)="closeEdit()">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <div>
+          <span class="modal-eyebrow">Edit Submission</span>
+          <h2 id="modal-title" class="modal-title">{{ detail.teamName }}</h2>
+        </div>
+        <button type="button" class="modal-close" (click)="closeEdit()" aria-label="Close dialog">×</button>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="alert alert--danger" role="alert">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <form class="modal-form" (ngSubmit)="saveEdit()">
+        <div class="form-group">
+          <label for="f-title" class="form-label">Project Title <span class="required">*</span></label>
+          <input
+            id="f-title"
+            class="input form-input"
+            type="text"
+            required
+            [ngModel]="formProjectTitle()"
+            (ngModelChange)="formProjectTitle.set($event)"
+            name="projectTitle"
+            placeholder="e.g. AI Financial Auditor"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="f-desc" class="form-label">Project Description</label>
+          <textarea
+            id="f-desc"
+            class="input form-textarea"
+            rows="3"
+            [ngModel]="formDescription()"
+            (ngModelChange)="formDescription.set($event)"
+            name="description"
+            placeholder="Detailed description of the project..."
+          ></textarea>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="f-github" class="form-label">GitHub Repository URL</label>
+            <input
+              id="f-github"
+              class="input form-input"
+              type="url"
+              [ngModel]="formGithubUrl()"
+              (ngModelChange)="formGithubUrl.set($event)"
+              name="githubUrl"
+              placeholder="https://github.com/..."
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="f-deployed" class="form-label">Live Demo / Deployed URL</label>
+            <input
+              id="f-deployed"
+              class="input form-input"
+              type="url"
+              [ngModel]="formDeployedUrl()"
+              (ngModelChange)="formDeployedUrl.set($event)"
+              name="deployedUrl"
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="f-slide" class="form-label">Slide Deck / Presentation URL</label>
+            <input
+              id="f-slide"
+              class="input form-input"
+              type="url"
+              [ngModel]="formSlideDeckUrl()"
+              (ngModelChange)="formSlideDeckUrl.set($event)"
+              name="slideDeckUrl"
+              placeholder="https://docs.google.com/presentation/..."
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="f-video" class="form-label">Video Demo URL</label>
+            <input
+              id="f-video"
+              class="input form-input"
+              type="url"
+              [ngModel]="formVideoDemoUrl()"
+              (ngModelChange)="formVideoDemoUrl.set($event)"
+              name="videoDemoUrl"
+              placeholder="https://youtube.com/..."
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="f-rep-name" class="form-label">Representative Name</label>
+            <input
+              id="f-rep-name"
+              class="input form-input"
+              type="text"
+              [ngModel]="formRepresentativeName()"
+              (ngModelChange)="formRepresentativeName.set($event)"
+              name="representativeName"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="f-rep-phone" class="form-label">Representative Phone</label>
+            <input
+              id="f-rep-phone"
+              class="input form-input"
+              type="text"
+              [ngModel]="formRepresentativePhone()"
+              (ngModelChange)="formRepresentativePhone.set($event)"
+              name="representativePhone"
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="f-rep-email" class="form-label">Representative Email</label>
+            <input
+              id="f-rep-email"
+              class="input form-input"
+              type="email"
+              [ngModel]="formRepresentativeEmail()"
+              (ngModelChange)="formRepresentativeEmail.set($event)"
+              name="representativeEmail"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="f-status" class="form-label">Submission Status</label>
+            <select
+              id="f-status"
+              class="input form-input"
+              [ngModel]="formStatus()"
+              (ngModelChange)="formStatus.set($event)"
+              name="status"
+            >
+              <option value="draft">Draft</option>
+              <option value="submitted">Submitted</option>
+              <option value="withdrawn">Withdrawn</option>
+              <option value="disqualified">Disqualified</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeEdit()" [disabled]="isSaving()">
+            Cancel
+          </button>
+          <button type="submit" class="btn-save" [disabled]="isSaving()">
+            {{ isSaving() ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

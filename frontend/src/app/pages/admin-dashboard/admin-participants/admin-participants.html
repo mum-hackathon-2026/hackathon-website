@@ -1,4 +1,10 @@
-<p class="lede">{{ summary() }}</p>
+﻿<p class="lede">{{ summary() }}</p>
+
+@if (successMessage()) {
+  <div class="alert alert--success" role="status">
+    {{ successMessage() }}
+  </div>
+}
 
 @if (!screeningEnabled()) {
   <p class="banner banner--muted">
@@ -65,7 +71,9 @@
           <th scope="col">Name</th>
           <th scope="col">Email</th>
           <th scope="col">Team</th>
+          <th scope="col">Role</th>
           <th scope="col">Eligibility</th>
+          <th scope="col" class="grid__action-col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -85,8 +93,21 @@
               }
             </td>
             <td>
+              <span class="grid__role">{{ row.role }}</span>
+            </td>
+            <td>
               <span class="dot" [class]="'dot--' + row.eligibility"></span>
               {{ eligibilityLabels[row.eligibility] }}
+            </td>
+            <td class="grid__action-col">
+              <button
+                type="button"
+                class="btn-edit"
+                (click)="openEdit(row)"
+                [attr.aria-label]="'Edit participant ' + row.fullName"
+              >
+                Edit
+              </button>
             </td>
           </tr>
         }
@@ -95,17 +116,132 @@
   </div>
 }
 
-<p class="note">
-  Eligibility is worked out each time from the address and whether it has been confirmed. It is not
-  recorded anywhere.
-  @if (studentDomain) {
-    Anyone on <code>&#64;{{ studentDomain }}</code> who has confirmed their address is eligible.
-  } @else {
-    The event is open to students from any university, so no single domain identifies one. A
-    confirmed address is the only part that checks itself, and whether someone is a student is a
-    manual call.
-  }
-  The design draft also shows a student ID behind a reveal toggle and offers Verify and Flag per
-  person. Neither the ID nor a stored eligibility answer is kept, so both need building before they
-  can mean anything here.
-</p>
+<!-- Edit Participant Modal -->
+@if (editing(); as user) {
+  <div class="modal-backdrop" (click)="closeEdit()">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-p-title">
+      <div class="modal-header">
+        <div>
+          <span class="modal-eyebrow">Edit Registration</span>
+          <h2 id="modal-p-title" class="modal-title">{{ user.fullName || user.email }}</h2>
+        </div>
+        <button type="button" class="modal-close" (click)="closeEdit()" aria-label="Close dialog">×</button>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="alert alert--danger" role="alert">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <form class="modal-form" (ngSubmit)="saveEdit()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="p-name" class="form-label">Full Name <span class="required">*</span></label>
+            <input
+              id="p-name"
+              class="input form-input"
+              type="text"
+              required
+              [ngModel]="formFullName()"
+              (ngModelChange)="formFullName.set($event)"
+              name="fullName"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="p-email" class="form-label">Email Address <span class="required">*</span></label>
+            <input
+              id="p-email"
+              class="input form-input"
+              type="email"
+              required
+              [ngModel]="formEmail()"
+              (ngModelChange)="formEmail.set($event)"
+              name="email"
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="p-phone" class="form-label">Phone Number</label>
+            <input
+              id="p-phone"
+              class="input form-input"
+              type="tel"
+              [ngModel]="formPhone()"
+              (ngModelChange)="formPhone.set($event)"
+              name="phone"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="p-role" class="form-label">Role</label>
+            <select
+              id="p-role"
+              class="input form-input"
+              [ngModel]="formRole()"
+              (ngModelChange)="formRole.set($event)"
+              name="role"
+            >
+              <option value="participant">Participant</option>
+              <option value="judge">Judge</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="p-github" class="form-label">GitHub Profile URL</label>
+            <input
+              id="p-github"
+              class="input form-input"
+              type="url"
+              [ngModel]="formGithubUrl()"
+              (ngModelChange)="formGithubUrl.set($event)"
+              name="githubUrl"
+              placeholder="https://github.com/username"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="p-linkedin" class="form-label">LinkedIn Profile URL</label>
+            <input
+              id="p-linkedin"
+              class="input form-input"
+              type="url"
+              [ngModel]="formLinkedinUrl()"
+              (ngModelChange)="formLinkedinUrl.set($event)"
+              name="linkedinUrl"
+              placeholder="https://linkedin.com/in/username"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="p-resume" class="form-label">Resume / CV (PDF Link)</label>
+          <input
+            id="p-resume"
+            class="input form-input"
+            type="url"
+            [ngModel]="formResumeUrl()"
+            (ngModelChange)="formResumeUrl.set($event)"
+            name="resumeUrl"
+            placeholder="https://drive.google.com/..."
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeEdit()" [disabled]="isSaving()">
+            Cancel
+          </button>
+          <button type="submit" class="btn-save" [disabled]="isSaving()">
+            {{ isSaving() ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

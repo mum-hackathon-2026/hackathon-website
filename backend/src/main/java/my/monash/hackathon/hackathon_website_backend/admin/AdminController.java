@@ -5,11 +5,14 @@ import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminAssignmentDt
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminJudgeDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminOverviewDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminParticipantDto;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminSubmissionDetailDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminTeamDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AuditLogDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.BatchRegisterJudgesRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.CreateAssignmentRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterJudgeRequest;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateParticipantRequest;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateSubmissionRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateTeamRequest;
 import my.monash.hackathon.hackathon_website_backend.user.User;
 import org.springframework.http.ResponseEntity;
@@ -59,9 +62,45 @@ public class AdminController {
         }
     }
 
+    @GetMapping("/submissions/{teamId}")
+    public ResponseEntity<?> getSubmissionDetail(@PathVariable Long teamId) {
+        try {
+            var sub = adminService.getSubmissionDetail(teamId);
+            return ResponseEntity.ok(sub);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/submissions/{teamId}")
+    public ResponseEntity<?> updateSubmission(
+            @PathVariable Long teamId,
+            @RequestBody UpdateSubmissionRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var updated = adminService.updateSubmission(teamId, request, currentUser);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/participants")
     public ResponseEntity<List<AdminParticipantDto>> getParticipants() {
         return ResponseEntity.ok(adminService.getParticipants());
+    }
+
+    @PatchMapping("/participants/{userId}")
+    public ResponseEntity<?> updateParticipant(
+            @PathVariable Long userId,
+            @RequestBody UpdateParticipantRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var updated = adminService.updateParticipant(userId, request, currentUser);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/judges")
