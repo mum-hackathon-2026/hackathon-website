@@ -123,6 +123,27 @@
   }
 }
 
+/* Sign In / Register is the one link in this column that leads to an action
+   rather than a page, so it reads as bold amber rather than the muted list
+   around it — same accent language as the hero's filled CTA. */
+.footer__link--cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: #b45309;
+
+  &:hover {
+    color: #92400e;
+  }
+}
+
+.footer__link-arrow {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
 .footer__link-static {
   color: var(--color-subtle);
   font-size: 0.85rem;
