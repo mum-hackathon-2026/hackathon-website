@@ -106,19 +106,7 @@ final class GoogleSheetsReader {
             if (normalised.isEmpty()) {
                 continue;
             }
-            String existing = headersByNormalisedName.putIfAbsent(normalised, header);
-            if (existing != null && TeamRow.isMappedHeader(normalised)) {
-                if (existing.equals(header)) {
-                    throw new CsvReader.MalformedCsvException(
-                            "two columns have the same name: '" + header + "'. Google Forms "
-                                    + "allows two questions with the same title, but there is no "
-                                    + "way to tell which one to read - the value would be taken "
-                                    + "from whichever column came last. Rename one of them.");
-                }
-                throw new CsvReader.MalformedCsvException(
-                        "two columns mean the same thing once punctuation and case are ignored: "
-                                + "'" + existing + "' and '" + header + "'. Rename one of them.");
-            }
+            headersByNormalisedName.putIfAbsent(normalised, header);
         }
 
         if (headersByNormalisedName.isEmpty()) {
@@ -148,7 +136,9 @@ final class GoogleSheetsReader {
                     String normalised = CsvReader.normalise(header);
                     if (!normalised.isEmpty()) {
                         String cellVal = col < rowValues.size() ? formatCellValue(rowValues.get(col)) : "";
-                        byHeader.put(normalised, cellVal);
+                        if (!cellVal.isEmpty() || !byHeader.containsKey(normalised)) {
+                            byHeader.put(normalised, cellVal);
+                        }
                     }
                 }
             }
