@@ -47,7 +47,12 @@
   display: flex;
   align-items: center;
   gap: 0.35em;
-  font-size: clamp(var(--text-2xl), 4.8vw, var(--text-5xl));
+  width: fit-content;
+  /* Floor lowered to var(--text-lg): the previous var(--text-2xl) floor won
+     out over the vw term on narrow phones (the logo/X/Monash row is wide
+     enough at that floor to force a shift; fit-content plus the lower floor
+     keeps it inside the viewport at every width so it never needs to wrap). */
+  font-size: clamp(var(--text-lg), 4.8vw, var(--text-5xl));
   font-weight: 700;
   color: var(--color-ink);
 }
@@ -58,13 +63,17 @@
   display: block;
   height: 1em;
   width: auto;
+  /* Matches the file's real 772x244 so the browser reserves the right box
+     before the image loads, instead of guessing and reflowing (a common
+     source of a one-frame off-center flash on mobile). */
+  aspect-ratio: 772 / 244;
 }
 
-/* Plain sans at an even bold weight, standing apart from the serif/pixel
-   faces on either side of it — and orange to match the wordmark. */
+/* Plain sans, standing apart from the serif/pixel faces on either side of
+   it — and orange to match the wordmark. */
 .hero__brand-x {
   font-family: var(--font-sans);
-  font-weight: 700;
+  font-weight: 400;
   color: #e78823;
 }
 
@@ -81,6 +90,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  width: fit-content;
   margin-top: 8px;
 }
 
@@ -90,7 +100,17 @@
 .hero__wordmark-main {
   display: block;
   font-family: 'Press Start 2P', var(--font-sans);
-  font-size: clamp(var(--text-5xl), 12.5vw, calc(var(--text-6xl) * 1.7));
+  /* Press Start 2P is ~1em of advance width per character (confirmed against
+     a mobile screenshot: 8 characters filled a ~390px phone at the old
+     12.5vw rate), not the ~0.6em assumed when that rate was picked — so
+     "/HACKATHON" (10 characters) was rendering ~480px wide on a 390px
+     screen and getting clipped by .hero's overflow:hidden. 8vw is
+     calibrated so the word's actual pixel width (~9.9 characters) stays
+     inside the viewport from 320px phones up through the point this hits
+     the max cap below (~1275px), which is the same size the old formula
+     was reaching by ~816px — desktop still ends up this big, just at a
+     wider breakpoint. */
+  font-size: clamp(var(--text-lg), 8vw, calc(var(--text-6xl) * 1.7));
   font-weight: 800;
   line-height: 1.2;
   color: #e78823;
@@ -110,7 +130,7 @@
   margin-top: 4px;
   font-family: 'Chakra Petch', var(--font-sans);
   font-weight: 700;
-  font-size: clamp(var(--text-3xl), 5.2vw, calc(var(--text-6xl) * 0.9));
+  font-size: clamp(var(--text-xl), 5.2vw, calc(var(--text-6xl) * 0.9));
   letter-spacing: 0.04em;
   /* Matches .hero__brand — the two co-brand lines read as one color pair
      bracketing the wordmark. */
