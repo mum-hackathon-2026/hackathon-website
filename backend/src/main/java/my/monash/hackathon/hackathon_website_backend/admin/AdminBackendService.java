@@ -6,6 +6,7 @@ import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminOverviewDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminParticipantDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminResultDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminStatsDto;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminSubmissionDetailDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminTeamDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AuditLogDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.BatchRegisterJudgesRequest;
@@ -13,6 +14,8 @@ import my.monash.hackathon.hackathon_website_backend.admin.dto.CreateAssignmentR
 import my.monash.hackathon.hackathon_website_backend.admin.dto.EventSettingsDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterJudgeRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateEventSettingsRequest;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateParticipantRequest;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateSubmissionRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateTeamRequest;
 import my.monash.hackathon.hackathon_website_backend.audit.AuditLog;
 import my.monash.hackathon.hackathon_website_backend.audit.AuditLogRepository;
@@ -295,6 +298,123 @@ public class AdminBackendService {
         }
 
         return list;
+    }
+
+    public AdminParticipantDto updateParticipant(Long userId, UpdateParticipantRequest request, User actor) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + userId));
+
+        if (request.fullName() != null && !request.fullName().isBlank()) {
+            user.setFullName(request.fullName().trim());
+        }
+        if (request.email() != null && !request.email().isBlank()) {
+            String newEmail = request.email().trim().toLowerCase();
+            if (!newEmail.equals(user.getEmail())) {
+                Optional<User> existing = userRepository.findByEmail(newEmail);
+                if (existing.isPresent() && !existing.get().getId().equals(user.getId())) {
+                    throw new IllegalArgumentException("Another user already exists with email: " + newEmail);
+                }
+                user.setEmail(newEmail);
+            }
+        }
+        if (request.phone() != null) {
+            user.setPhone(request.phone().trim().isEmpty() ? null : request.phone().trim());
+        }
+        if (request.githubUrl() != null) {
+            user.setGithubUrl(request.githubUrl().trim().isEmpty() ? null : request.githubUrl().trim());
+        }
+        if (request.linkedinUrl() != null) {
+            user.setLinkedinUrl(request.linkedinUrl().trim().isEmpty() ? null : request.linkedinUrl().trim());
+        }
+        if (request.resumeUrl() != null) {
+            user.setResumeUrl(request.resumeUrl().trim().isEmpty() ? null : request.resumeUrl().trim());
+        }
+        if (request.role() != null && !request.role().isBlank()) {
+            user.setRole(request.role().trim().toLowerCase());
+        }
+
+        userRepository.save(user);
+        logAudit(actor, "Admin updated participant", "user", user.getId(), "{\"email\":\"" + user.getEmail() + "\"}");
+
+        return getParticipants().stream().filter(p -> p.userId() == userId).findFirst().orElseThrow();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminSubmissionDetailDto getSubmissionDetail(Long teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found with id: " + teamId));
+        Submission sub = submissionRepository.findById(teamId).orElse(null);
+
+        return new AdminSubmissionDetailDto(
+                team.getId(),
+                team.getName(),
+                sub != null ? sub.getProjectTitle() : "",
+                sub != null ? sub.getDescription() : "",
+                sub != null ? sub.getGithubUrl() : "",
+                sub != null ? sub.getDeployedUrl() : "",
+                sub != null ? sub.getSlideDeckUrl() : "",
+                sub != null ? sub.getVideoDemoUrl() : "",
+                sub != null ? sub.getRepresentativeName() : "",
+                sub != null ? sub.getRepresentativePhone() : "",
+                sub != null ? sub.getRepresentativeEmail() : "",
+                sub != null ? sub.getStatus() : "none",
+                sub != null ? sub.getSubmittedAt() : null
+        );
+    }
+
+    public AdminSubmissionDetailDto updateSubmission(Long teamId, UpdateSubmissionRequest request, User actor) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found with id: " + teamId));
+
+        Submission sub = submissionRepository.findById(teamId).orElse(null);
+        boolean isNew = false;
+        if (sub == null) {
+            String title = (request.projectTitle() != null && !request.projectTitle().isBlank())
+                    ? request.projectTitle().trim() : team.getName() + " Project";
+            sub = new Submission(team, title);
+            isNew = true;
+        }
+
+        if (request.projectTitle() != null && !request.projectTitle().isBlank()) {
+            sub.setProjectTitle(request.projectTitle().trim());
+        }
+        if (request.description() != null) {
+            sub.setDescription(request.description().trim());
+        }
+        if (request.githubUrl() != null) {
+            sub.setGithubUrl(request.githubUrl().trim().isEmpty() ? null : request.githubUrl().trim());
+        }
+        if (request.deployedUrl() != null) {
+            sub.setDeployedUrl(request.deployedUrl().trim().isEmpty() ? null : request.deployedUrl().trim());
+        }
+        if (request.slideDeckUrl() != null) {
+            sub.setSlideDeckUrl(request.slideDeckUrl().trim().isEmpty() ? null : request.slideDeckUrl().trim());
+        }
+        if (request.videoDemoUrl() != null) {
+            sub.setVideoDemoUrl(request.videoDemoUrl().trim().isEmpty() ? null : request.videoDemoUrl().trim());
+        }
+        if (request.representativeName() != null) {
+            sub.setRepresentativeName(request.representativeName().trim());
+        }
+        if (request.representativePhone() != null) {
+            sub.setRepresentativePhone(request.representativePhone().trim());
+        }
+        if (request.representativeEmail() != null) {
+            sub.setRepresentativeEmail(request.representativeEmail().trim().toLowerCase());
+        }
+        if (request.status() != null && !request.status().isBlank()) {
+            String status = request.status().trim().toLowerCase();
+            sub.setStatus(status);
+            if ("submitted".equals(status) && sub.getSubmittedAt() == null) {
+                sub.setSubmittedAt(OffsetDateTime.now());
+            }
+        }
+
+        submissionRepository.save(sub);
+        logAudit(actor, isNew ? "Admin created submission" : "Admin updated submission", "submission", team.getId(),
+                "{\"team\":\"" + team.getName() + "\",\"title\":\"" + sub.getProjectTitle() + "\"}");
+
+        return getSubmissionDetail(teamId);
     }
 
     @Transactional(readOnly = true)

@@ -69,6 +69,45 @@ export interface AdminTeamRow {
   readonly submittedAt: Date | null;
 }
 
+export interface AdminSubmissionDetail {
+  readonly teamId: number;
+  readonly teamName: string;
+  readonly projectTitle: string;
+  readonly description: string;
+  readonly githubUrl: string;
+  readonly deployedUrl: string;
+  readonly slideDeckUrl: string;
+  readonly videoDemoUrl: string;
+  readonly representativeName: string;
+  readonly representativePhone: string;
+  readonly representativeEmail: string;
+  readonly status: string;
+  readonly submittedAt: string | null;
+}
+
+export interface UpdateSubmissionPayload {
+  readonly projectTitle?: string;
+  readonly description?: string;
+  readonly githubUrl?: string;
+  readonly deployedUrl?: string;
+  readonly slideDeckUrl?: string;
+  readonly videoDemoUrl?: string;
+  readonly representativeName?: string;
+  readonly representativePhone?: string;
+  readonly representativeEmail?: string;
+  readonly status?: string;
+}
+
+export interface UpdateParticipantPayload {
+  readonly fullName?: string;
+  readonly email?: string;
+  readonly phone?: string;
+  readonly githubUrl?: string;
+  readonly linkedinUrl?: string;
+  readonly resumeUrl?: string;
+  readonly role?: string;
+}
+
 export interface AdminStats {
   readonly teams: number;
   readonly participants: number;
@@ -123,6 +162,11 @@ export interface AdminParticipantRow {
   /** `users.email_verified`. */
   readonly emailVerified: boolean;
   readonly eligibility: EligibilityState;
+  readonly role?: string;
+  readonly phone?: string;
+  readonly githubUrl?: string;
+  readonly linkedinUrl?: string;
+  readonly resumeUrl?: string;
 }
 
 /**
@@ -2141,6 +2185,92 @@ export class AdminService {
     } finally {
       this.inFlight.update((n) => n - 1);
     }
+  }
+
+  async getSubmission(teamId: number): Promise<AdminSubmissionDetail | null> {
+    const token = this.auth.token();
+    if (this.http && token && this.auth.user()?.role === 'admin') {
+      try {
+        return await firstValueFrom(
+          this.http.get<AdminSubmissionDetail>(`${this.apiBaseUrl}/api/admin/submissions/${teamId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        );
+      } catch {
+        return null;
+      }
+    }
+    const team = this.teams().find((t) => t.teamId === teamId);
+    if (!team) return null;
+    return {
+      teamId: team.teamId,
+      teamName: team.teamName,
+      projectTitle: team.projectTitle,
+      description: '',
+      githubUrl: team.githubUrl,
+      deployedUrl: team.deployedUrl,
+      slideDeckUrl: '',
+      videoDemoUrl: '',
+      representativeName: '',
+      representativePhone: '',
+      representativeEmail: '',
+      status: team.submissionStatus ?? 'draft',
+      submittedAt: team.submittedAt ? team.submittedAt.toISOString() : null,
+    };
+  }
+
+  updateSubmission(teamId: number, payload: UpdateSubmissionPayload): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.patch(
+              `${this.apiBaseUrl}/api/admin/submissions/${teamId}`,
+              payload,
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          await this.refreshAll();
+          this.log('submission', 'Admin updated submission', `Team #${teamId}`);
+          return { ok: true };
+        } catch (err: any) {
+          return { ok: false, error: err?.error?.error || 'Failed to update submission.' };
+        }
+      }
+
+      this.patch(teamId, (team) => ({
+        projectTitle: payload.projectTitle ?? team.projectTitle,
+        submissionStatus: (payload.status as SubmissionStatus) ?? team.submissionStatus,
+      }));
+      this.log('submission', 'Admin updated submission', `Team #${teamId}`);
+      return { ok: true };
+    });
+  }
+
+  updateParticipant(userId: number, payload: UpdateParticipantPayload): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.patch(
+              `${this.apiBaseUrl}/api/admin/participants/${userId}`,
+              payload,
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          await this.refreshAll();
+          this.log('participant', 'Admin updated participant', payload.fullName ?? `User #${userId}`);
+          return { ok: true };
+        } catch (err: any) {
+          return { ok: false, error: err?.error?.error || 'Failed to update participant.' };
+        }
+      }
+
+      this.log('participant', 'Admin updated participant', payload.fullName ?? `User #${userId}`);
+      return { ok: true };
+    });
   }
 
   private setRole(userId: number, role: Role): void {

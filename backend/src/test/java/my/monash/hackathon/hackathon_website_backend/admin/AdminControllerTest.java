@@ -209,4 +209,53 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ok").value(true));
     }
+
+    @Test
+    void getSubmissionDetailReturnsDetail() throws Exception {
+        var subDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminSubmissionDetailDto(
+                1L, "ByteBuilders", "Project AI", "AI Description",
+                "https://github.com/test", "https://demo.test", "https://slides.test", "https://video.test",
+                "Alice", "0123456789", "alice@example.com", "submitted", null
+        );
+        when(adminService.getSubmissionDetail(1L)).thenReturn(subDto);
+
+        mockMvc.perform(get("/api/admin/submissions/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamName").value("ByteBuilders"))
+                .andExpect(jsonPath("$.projectTitle").value("Project AI"))
+                .andExpect(jsonPath("$.githubUrl").value("https://github.com/test"));
+    }
+
+    @Test
+    void updateSubmissionSucceeds() throws Exception {
+        var subDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminSubmissionDetailDto(
+                1L, "ByteBuilders", "Project AI Updated", "New Desc",
+                "https://github.com/new", "https://demo.new", "", "",
+                "Alice", "0123456789", "alice@example.com", "submitted", null
+        );
+        when(adminService.updateSubmission(eq(1L), any(), any())).thenReturn(subDto);
+
+        mockMvc.perform(patch("/api/admin/submissions/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"projectTitle\":\"Project AI Updated\",\"githubUrl\":\"https://github.com/new\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectTitle").value("Project AI Updated"))
+                .andExpect(jsonPath("$.githubUrl").value("https://github.com/new"));
+    }
+
+    @Test
+    void updateParticipantSucceeds() throws Exception {
+        var pDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminParticipantDto(
+                10L, "John Doe", "john@example.com", 1L, "ByteBuilders",
+                true, "eligible", "participant", "019999999", "https://github.com/johndoe", "https://linkedin.com/in/johndoe", "https://resume.test"
+        );
+        when(adminService.updateParticipant(eq(10L), any(), any())).thenReturn(pDto);
+
+        mockMvc.perform(patch("/api/admin/participants/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fullName\":\"John Doe\",\"phone\":\"019999999\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fullName").value("John Doe"))
+                .andExpect(jsonPath("$.phone").value("019999999"));
+    }
 }

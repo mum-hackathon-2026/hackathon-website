@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AdminService, AdminTeamRow } from '../../../core/admin/admin';
-import { EVENT_CONFIG, MYT_OFFSET } from '../../../core/event/event-config';
+import { AdminService, AdminSubmissionDetail, AdminTeamRow } from '../../../core/admin/admin';
+import { MYT_OFFSET } from '../../../core/event/event-config';
 import { SubmissionStatus } from '../../../core/submission/submission';
 
 type StatusFilter = SubmissionStatus | 'none' | 'all';
@@ -14,13 +14,6 @@ const STATUS_LABELS: Record<SubmissionStatus, string> = {
   disqualified: 'Disqualified',
 };
 
-/**
- * Every submission in the event, filterable, with its links.
- *
- * Teams with no `submissions` row appear too, under a 'none' filter that is not
- * a status the column has — a missing row and a draft are different states and
- * an organiser chases them differently.
- */
 @Component({
   selector: 'app-admin-submissions',
   imports: [DatePipe, FormsModule],
@@ -30,15 +23,12 @@ const STATUS_LABELS: Record<SubmissionStatus, string> = {
 })
 export class AdminSubmissions {
   private readonly admin = inject(AdminService);
-  private readonly config = inject(EVENT_CONFIG);
 
   protected readonly myt = MYT_OFFSET;
   protected readonly statusLabels = STATUS_LABELS;
-  protected readonly tracks = this.config.site.tracks;
 
   protected readonly search = signal('');
   protected readonly statusFilter = signal<StatusFilter>('all');
-  protected readonly trackFilter = signal<string>('all');
 
   protected readonly statusFilters: readonly { id: StatusFilter; label: string }[] = [
     { id: 'all', label: 'All statuses' },
@@ -49,15 +39,30 @@ export class AdminSubmissions {
     { id: 'none', label: 'No submission' },
   ];
 
+  // -- Edit Submission Modal State --
+  protected readonly editing = signal<AdminSubmissionDetail | null>(null);
+  protected readonly isSaving = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly successMessage = signal<string | null>(null);
+
+  protected readonly formProjectTitle = signal('');
+  protected readonly formDescription = signal('');
+  protected readonly formGithubUrl = signal('');
+  protected readonly formDeployedUrl = signal('');
+  protected readonly formSlideDeckUrl = signal('');
+  protected readonly formVideoDemoUrl = signal('');
+  protected readonly formRepresentativeName = signal('');
+  protected readonly formRepresentativePhone = signal('');
+  protected readonly formRepresentativeEmail = signal('');
+  protected readonly formStatus = signal<string>('submitted');
+
   protected readonly rows = computed<readonly AdminTeamRow[]>(() => {
     const term = this.search().trim().toLowerCase();
     const status = this.statusFilter();
-    const track = this.trackFilter();
 
     return this.admin.teams().filter((row) => {
       if (status === 'none' && row.submissionStatus !== null) return false;
       if (status !== 'all' && status !== 'none' && row.submissionStatus !== status) return false;
-      if (track !== 'all' && row.trackLabel !== track) return false;
       if (!term) return true;
       return (
         row.teamName.toLowerCase().includes(term) || row.projectTitle.toLowerCase().includes(term)
@@ -66,8 +71,7 @@ export class AdminSubmissions {
   });
 
   protected readonly filtersActive = computed(
-    () =>
-      this.search().trim() !== '' || this.statusFilter() !== 'all' || this.trackFilter() !== 'all',
+    () => this.search().trim() !== '' || this.statusFilter() !== 'all',
   );
 
   protected readonly summary = computed(() => {
@@ -78,6 +82,64 @@ export class AdminSubmissions {
   protected clearFilters(): void {
     this.search.set('');
     this.statusFilter.set('all');
-    this.trackFilter.set('all');
+  }
+
+  protected async openEdit(row: AdminTeamRow): Promise<void> {
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    const detail = await this.admin.getSubmission(row.teamId);
+    if (detail) {
+      this.editing.set(detail);
+      this.formProjectTitle.set(detail.projectTitle || row.projectTitle || '');
+      this.formDescription.set(detail.description || '');
+      this.formGithubUrl.set(detail.githubUrl || row.githubUrl || '');
+      this.formDeployedUrl.set(detail.deployedUrl || row.deployedUrl || '');
+      this.formSlideDeckUrl.set(detail.slideDeckUrl || '');
+      this.formVideoDemoUrl.set(detail.videoDemoUrl || '');
+      this.formRepresentativeName.set(detail.representativeName || '');
+      this.formRepresentativePhone.set(detail.representativePhone || '');
+      this.formRepresentativeEmail.set(detail.representativeEmail || '');
+      this.formStatus.set(detail.status || row.submissionStatus || 'submitted');
+    }
+  }
+
+  protected closeEdit(): void {
+    this.editing.set(null);
+    this.errorMessage.set(null);
+  }
+
+  protected async saveEdit(): Promise<void> {
+    const current = this.editing();
+    if (!current) return;
+
+    if (!this.formProjectTitle().trim()) {
+      this.errorMessage.set('Project Title is required.');
+      return;
+    }
+
+    this.isSaving.set(true);
+    this.errorMessage.set(null);
+
+    const res = await this.admin.updateSubmission(current.teamId, {
+      projectTitle: this.formProjectTitle().trim(),
+      description: this.formDescription().trim(),
+      githubUrl: this.formGithubUrl().trim(),
+      deployedUrl: this.formDeployedUrl().trim(),
+      slideDeckUrl: this.formSlideDeckUrl().trim(),
+      videoDemoUrl: this.formVideoDemoUrl().trim(),
+      representativeName: this.formRepresentativeName().trim(),
+      representativePhone: this.formRepresentativePhone().trim(),
+      representativeEmail: this.formRepresentativeEmail().trim(),
+      status: this.formStatus(),
+    });
+
+    this.isSaving.set(false);
+    if (res.ok) {
+      this.successMessage.set(`Submission updated for "${current.teamName}".`);
+      this.closeEdit();
+      setTimeout(() => this.successMessage.set(null), 4000);
+    } else {
+      this.errorMessage.set(res.error || 'Failed to save submission.');
+    }
   }
 }

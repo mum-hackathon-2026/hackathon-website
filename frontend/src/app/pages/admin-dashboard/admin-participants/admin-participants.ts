@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AdminParticipantRow,
@@ -9,23 +9,9 @@ import {
 import { EVENT_CONFIG } from '../../../core/event/event-config';
 import { EventSettingsService } from '../../../core/event/event-settings';
 
-/** 'all' is the unfiltered default; 'none' is the people on no team. */
 type EligibilityFilter = EligibilityState | 'all';
 type TeamFilter = string;
 
-/**
- * Everyone registered for the event, filterable, read-only.
- *
- * The design draft has two things this does not. It shows a student ID behind a
- * reveal toggle — `users` has no such column, and inventing one to display is
- * worse than leaving it out. And it lets an organiser press Verify or Flag per
- * person, which needs a stored eligibility column that likewise does not exist.
- *
- * What the database does hold is the address itself and `users.email_verified`,
- * and between them those answer the question the Verify button was asking. So
- * eligibility here is derived and reported rather than set — see the note in the
- * template, and EligibilityState in the service.
- */
 @Component({
   selector: 'app-admin-participants',
   imports: [FormsModule],
@@ -40,17 +26,25 @@ export class AdminParticipants {
 
   protected readonly eligibilityLabels = ELIGIBILITY_LABELS;
   protected readonly studentDomain = this.config.site.studentEmailDomain;
-
-  /**
-   * `event_settings.screening_enabled` — a real column with nothing behind it
-   * yet. Surfaced rather than acted on: when screening is off these checks are
-   * advisory, and saying so is more honest than implying they gate anything.
-   */
   protected readonly screeningEnabled = this.settings.screeningEnabled;
 
   protected readonly search = signal('');
   protected readonly teamFilter = signal<TeamFilter>('all');
   protected readonly eligibilityFilter = signal<EligibilityFilter>('all');
+
+  // -- Edit Participant State --
+  protected readonly editing = signal<AdminParticipantRow | null>(null);
+  protected readonly isSaving = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly successMessage = signal<string | null>(null);
+
+  protected readonly formFullName = signal('');
+  protected readonly formEmail = signal('');
+  protected readonly formPhone = signal('');
+  protected readonly formGithubUrl = signal('');
+  protected readonly formLinkedinUrl = signal('');
+  protected readonly formResumeUrl = signal('');
+  protected readonly formRole = signal('participant');
 
   protected readonly eligibilityFilters: readonly { id: EligibilityFilter; label: string }[] = [
     { id: 'all', label: 'All eligibility' },
@@ -59,7 +53,6 @@ export class AdminParticipants {
     { id: 'not_student', label: ELIGIBILITY_LABELS.not_student },
   ];
 
-  /** Teams to filter by, in the order the Teams section lists them. */
   protected readonly teams = computed(() =>
     this.admin.teams().map((team) => ({ id: String(team.teamId), name: team.teamName })),
   );
@@ -97,5 +90,55 @@ export class AdminParticipants {
     this.search.set('');
     this.teamFilter.set('all');
     this.eligibilityFilter.set('all');
+  }
+
+  protected openEdit(row: AdminParticipantRow): void {
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.editing.set(row);
+    this.formFullName.set(row.fullName || '');
+    this.formEmail.set(row.email || '');
+    this.formPhone.set(row.phone || '');
+    this.formGithubUrl.set(row.githubUrl || '');
+    this.formLinkedinUrl.set(row.linkedinUrl || '');
+    this.formResumeUrl.set(row.resumeUrl || '');
+    this.formRole.set(row.role || 'participant');
+  }
+
+  protected closeEdit(): void {
+    this.editing.set(null);
+    this.errorMessage.set(null);
+  }
+
+  protected async saveEdit(): Promise<void> {
+    const current = this.editing();
+    if (!current) return;
+
+    if (!this.formFullName().trim() || !this.formEmail().trim()) {
+      this.errorMessage.set('Name and Email are required.');
+      return;
+    }
+
+    this.isSaving.set(true);
+    this.errorMessage.set(null);
+
+    const res = await this.admin.updateParticipant(current.userId, {
+      fullName: this.formFullName().trim(),
+      email: this.formEmail().trim(),
+      phone: this.formPhone().trim(),
+      githubUrl: this.formGithubUrl().trim(),
+      linkedinUrl: this.formLinkedinUrl().trim(),
+      resumeUrl: this.formResumeUrl().trim(),
+      role: this.formRole(),
+    });
+
+    this.isSaving.set(false);
+    if (res.ok) {
+      this.successMessage.set(`Participant "${this.formFullName().trim()}" updated successfully.`);
+      this.closeEdit();
+      setTimeout(() => this.successMessage.set(null), 4000);
+    } else {
+      this.errorMessage.set(res.error || 'Failed to save participant.');
+    }
   }
 }

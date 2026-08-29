@@ -71,7 +71,9 @@ public class SecurityConfig {
                 "http://localhost:8080",
                 "https://monash-hackathon-2026.web.app",
                 "https://*.web.app",
-                "https://*.firebaseapp.com"
+                "https://*.firebaseapp.com",
+                "https://*.run.app",
+                "https://*.monash.edu.my"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
