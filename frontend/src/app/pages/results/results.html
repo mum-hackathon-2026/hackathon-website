@@ -14,7 +14,17 @@
       <p class="locked-preview">Your team's score breakdown, finalist qualification status, and judges' feedback will appear here.</p>
     </app-state-locked>
   } @else {
-    @if (myResult(); as mine) {
+    @if (isJudgeOrAdmin()) {
+      <!-- ── Judge & Organiser Preliminary Leaderboard ──────────────────────── -->
+      <div class="judge-admin-view">
+        <div class="section-card">
+          <div class="section-card__header">
+            <h3 class="section-title">All Squad Preliminary Rankings ({{ rankings().length }} Teams)</h3>
+          </div>
+          <app-rankings-table [rows]="rankings()" />
+        </div>
+      </div>
+    } @else if (myResult(); as mine) {
       <!-- ── Qualification Status & Actions Banner ────────────────────────────── -->
       <div class="status-banner" [class.status-banner--finalist]="isFinalist()">
         <div class="status-banner__content">

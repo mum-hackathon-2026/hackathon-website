@@ -121,6 +121,13 @@ describe('AssignmentTable', () => {
 
       expect(openLink(0)!.textContent?.trim()).toBe('Start review');
       expect(openLink(1)!.textContent?.trim()).toBe('Continue');
+      expect(openLink(2)!.textContent?.trim()).toBe('Edit review');
+    });
+
+    it('labels completed reviews as View when judging is closed', async () => {
+      fixture.componentRef.setInput('judgingOpen', false);
+      await render();
+
       expect(openLink(2)!.textContent?.trim()).toBe('View');
     });
 

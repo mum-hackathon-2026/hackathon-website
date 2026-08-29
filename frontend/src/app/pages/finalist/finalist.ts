@@ -6,9 +6,10 @@ import {
   OnDestroy,
   ViewChild,
   computed,
+  effect,
   inject,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { EventSettingsService } from '../../core/event/event-settings';
 import { ResultsService } from '../../core/results/results';
 import { TeamService } from '../../core/team/team';
 
@@ -27,7 +28,6 @@ interface Particle {
 
 @Component({
   selector: 'app-finalist',
-  imports: [RouterLink],
   templateUrl: './finalist.html',
   styleUrl: './finalist.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,33 +37,111 @@ export class Finalist implements AfterViewInit, OnDestroy {
 
   private readonly results = inject(ResultsService);
   private readonly teams = inject(TeamService);
+  private readonly settings = inject(EventSettingsService);
 
   /** Configured Google Form URL for finalist squad onboarding */
   protected readonly finalistFormUrl =
     'https://docs.google.com/forms/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/viewform';
 
+  /** Official Grand Finals Judging Criteria Google Sheets */
+  protected readonly finalistCriteriaSheetUrl =
+    'https://docs.google.com/spreadsheets/d/1HpQ3cT3EH__FDCCu574_-LS2jsOMaoXJYVPie1W5YEA/edit?usp=sharing';
+
   protected readonly myTeam = this.teams.myTeam;
   protected readonly myResult = this.results.myResult;
 
+  /** Grand Finals pitch date and time string formatted dynamically */
+  protected readonly finalPitchDateText = computed(() => {
+    const at = this.settings.finalPitchDateAt();
+    if (!at) return 'Saturday, October 10 · 09:00 AM MYT';
+
+    try {
+      const options: Intl.DateTimeFormatOptions = {
+        timeZone: 'Asia/Kuala_Lumpur',
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      };
+      const formatted = new Intl.DateTimeFormat('en-MY', options).format(at);
+      return `${formatted} MYT`;
+    } catch {
+      return 'Saturday, October 10 · 09:00 AM MYT';
+    }
+  });
+
+  /** Whether the Grand Finals results & awards are officially published */
+  protected readonly isResultsPublished = this.results.finalResultsPublished;
+
+  /** All 10 Grand Finalist standings in order of rank */
+  protected readonly allStandings = this.results.finalistStandings;
+
+  /** This squad's final placement record */
+  protected readonly myPlacement = this.results.myFinalistPlacement;
+
   protected readonly teamName = computed(() => {
-    return this.myResult()?.teamName ?? this.myTeam()?.name ?? 'Finalist Squad';
+    return (
+      this.myPlacement()?.teamName ??
+      this.myResult()?.teamName ??
+      this.myTeam()?.name ??
+      'Finalist Squad'
+    );
   });
 
   protected readonly projectTitle = computed(() => {
-    return this.myResult()?.projectTitle ?? 'Preliminary Submission';
+    return (
+      this.myPlacement()?.projectTitle ??
+      this.myResult()?.projectTitle ??
+      'Grand Finals Project'
+    );
   });
 
   protected readonly scoreText = computed(() => {
-    const score = this.myResult()?.finalScore;
-    return score !== null && score !== undefined ? score.toFixed(1) : '--';
+    const score = this.isResultsPublished()
+      ? this.myPlacement()?.finalScore
+      : this.myResult()?.finalScore;
+    return score !== null && score !== undefined ? Number(score).toFixed(1) : '--';
+  });
+
+  /** Rank number in Grand Finals (1 to 10) */
+  protected readonly finalRank = computed(() => {
+    return this.myPlacement()?.finalRank ?? 1;
+  });
+
+  /** True if this squad placed 1st, 2nd, or 3rd (Podium Winner) */
+  protected readonly isPodiumWinner = computed(() => {
+    const rank = this.finalRank();
+    return rank >= 1 && rank <= 3;
+  });
+
+  /** Top 3 podium teams for the awards highlight section */
+  protected readonly topThreeStandings = computed(() => {
+    const list = this.allStandings();
+    return list.filter((s) => s.finalRank !== null && s.finalRank >= 1 && s.finalRank <= 3);
   });
 
   private animFrameId: number | null = null;
   private particles: Particle[] = [];
 
+  constructor() {
+    effect(() => {
+      const published = this.isResultsPublished();
+      const isPodium = this.isPodiumWinner();
+      if (typeof window !== 'undefined') {
+        if (!published || isPodium) {
+          setTimeout(() => this.initConfetti(), 50);
+        }
+      }
+    });
+  }
+
   ngAfterViewInit(): void {
     if (typeof window !== 'undefined') {
-      this.initConfetti();
+      if (!this.isResultsPublished() || this.isPodiumWinner()) {
+        this.initConfetti();
+      }
     }
   }
 
@@ -103,7 +181,7 @@ export class Finalist implements AfterViewInit, OnDestroy {
       const originY = height * 0.45;
       const angle = isLeft
         ? (Math.random() * 0.5 - 0.25) * Math.PI - 0.2
-        : (Math.PI - (Math.random() * 0.5 - 0.25) * Math.PI) + 0.2;
+        : Math.PI - (Math.random() * 0.5 - 0.25) * Math.PI + 0.2;
       const speed = 7 + Math.random() * 14;
 
       this.particles.push({

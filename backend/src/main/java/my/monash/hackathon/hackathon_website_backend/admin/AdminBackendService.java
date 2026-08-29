@@ -703,7 +703,11 @@ public class AdminBackendService {
                     List<Score> aScores = scoresByAssignment.getOrDefault(a.getId(), Collections.emptyList());
                     if (!aScores.isEmpty()) {
                         BigDecimal aTotal = aScores.stream()
-                                .map(Score::getScore)
+                                .map(s -> {
+                                    if (s.getScore() == null || s.getCriteriaMaxScoreSnapshot() == null || s.getCriteriaWeightSnapshot() == null) return BigDecimal.ZERO;
+                                    if (s.getCriteriaMaxScoreSnapshot().compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
+                                    return s.getScore().divide(s.getCriteriaMaxScoreSnapshot(), 4, RoundingMode.HALF_UP).multiply(s.getCriteriaWeightSnapshot());
+                                })
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
                         sumOfJudges = sumOfJudges.add(aTotal);
                         validJudgeCount++;
@@ -714,8 +718,8 @@ public class AdminBackendService {
                 }
             }
 
-            BigDecimal scoreToUse = (saved != null && saved.getFinalScore() != null) ? saved.getFinalScore() : computedScore;
-            int judgeCountToUse = (saved != null && saved.getJudgeCount() > 0) ? saved.getJudgeCount() : teamCompleted.size();
+            BigDecimal scoreToUse = computedScore != null ? computedScore : (saved != null ? saved.getFinalScore() : null);
+            int judgeCountToUse = teamCompleted.size() > 0 ? teamCompleted.size() : (saved != null ? saved.getJudgeCount() : 0);
 
             scoredTeams.add(new ScoredTeam(team, submission, scoreToUse, judgeCountToUse, saved));
         }
@@ -751,13 +755,11 @@ public class AdminBackendService {
                 tied = true;
             }
 
-            String outcome = null;
+            String outcome = "participant";
             if ("disqualified".equalsIgnoreCase(st.team.getStatus())) {
                 outcome = "disqualified";
             } else if (st.team.isShortlisted()) {
                 outcome = "finalist";
-            } else if (rank != null) {
-                outcome = (rank <= 10) ? "finalist" : "participant";
             }
 
             List<String> issues = new ArrayList<>();

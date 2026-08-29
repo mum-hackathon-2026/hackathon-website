@@ -1,105 +1,297 @@
-<div class="finalist-page">
-  <!-- Confetti Canvas Particle Overlay -->
+<section class="finalist-page">
+  <!-- Interactive Canvas Particle Bursts -->
   <canvas #confettiCanvas class="confetti-canvas" aria-hidden="true"></canvas>
 
-  <div class="page page--narrow finalist-content">
-    <!-- Top Sparkle Eyebrow -->
-    <div class="finalist-celebration">
-      <span class="celebration-pill">
-        <span class="celebration-spark" aria-hidden="true">✨</span>
-        Grand Finals Qualifier
-        <span class="celebration-spark" aria-hidden="true">✨</span>
-      </span>
-
-      <h1 class="celebration-title">
-        Congratulations,<br />
-        <span class="celebration-team-name">{{ teamName() }}</span>!
-      </h1>
-
-      <p class="celebration-subtitle">
-        Your squad has distinguished itself among all preliminary competitors and earned a coveted spot in the <strong>Top 10 Grand Finals</strong> of Monash Hackathon 2026.
-      </p>
-    </div>
-
-    <!-- ── Finalist Action Card (Google Form) ────────────────────────────────── -->
-    <section class="finalist-card finalist-card--action" aria-labelledby="action-heading">
-      <div class="action-card__icon-wrap" aria-hidden="true">
-        <span class="action-card__icon">📋</span>
-      </div>
-      <div class="action-card__body">
-        <div class="action-card__header">
-          <span class="action-card__tag">Mandatory Next Step</span>
-          <h2 class="action-card__title" id="action-heading">Finalist Squad Confirmation Form</h2>
+  <div class="finalist-container">
+    @if (!isResultsPublished()) {
+      <!-- ══════════════════════════════════════════════════════════════════════
+           PRE-RESULTS PUBLICATION: QUALIFICATION CELEBRATION & PITCH PREP
+           ══════════════════════════════════════════════════════════════════════ -->
+      <div class="celebration-hero">
+        <div class="celebration-badge">
+          <span class="celebration-badge__sparkle">✨</span>
+          <span>Grand Finals Qualifier</span>
+          <span class="celebration-badge__sparkle">✨</span>
         </div>
-        <p class="action-card__desc">
-          To prepare your squad for the final pitch stage, equipment logistics, and stage scheduling, please complete the official Finalist Confirmation Form.
+
+        <h1 class="celebration-title">
+          Congratulations,<br />
+          <span class="celebration-team-name">{{ teamName() }}</span>!
+        </h1>
+
+        <p class="celebration-subtitle">
+          Your squad has distinguished itself among all preliminary competitors and earned a coveted spot in the <strong>Top 10 Grand Finals</strong> of Averis X Monash Hackathon 2026.
         </p>
-        <div class="action-card__callout">
-          <svg class="callout__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <span><strong>One submission per squad:</strong> This form must be filled out by <em>one person only</em> (your team leader or designated representative).</span>
-        </div>
-        <div class="action-card__cta">
-          <a
-            [href]="finalistFormUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn-finalist-form"
-          >
-            <span>Open Finalist Confirmation Form</span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-              <line x1="7" y1="17" x2="17" y2="7" />
-              <polyline points="7 7 17 7 17 17" />
-            </svg>
-          </a>
-        </div>
       </div>
-    </section>
 
-    <!-- ── Grand Finals Instructions & Format ───────────────────────────────── -->
-    <section class="finalist-card finalist-card--info" aria-labelledby="format-heading">
-      <h2 class="info-title" id="format-heading">Grand Finals Judging & Stage Format</h2>
+      <!-- ── Finalist Action Card (Google Form) ────────────────────────────────── -->
+      <section class="finalist-card finalist-card--action" aria-labelledby="action-heading">
+        <div class="action-card__icon-wrap" aria-hidden="true">
+          <span class="action-card__icon">📋</span>
+        </div>
+        <div class="action-card__body">
+          <div class="action-card__header">
+            <span class="action-card__tag">Action Required</span>
+            <h2 id="action-heading" class="action-card__title">Complete Finalist Squad Confirmation</h2>
+          </div>
+          <p class="action-card__desc">
+            To finalize your pitch session slot, provide technical requirements, and confirm on-site attendee names, all qualified squads must fill out the official Google Form before the final pitch day.
+          </p>
+          <div class="action-card__actions">
+            <a
+              [href]="finalistFormUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-form"
+            >
+              <span>Open Confirmation Form</span>
+              <svg class="btn-form__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M11 3h6m0 0v6m0-6L7 13" />
+                <path d="M17 11v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6" />
+              </svg>
+            </a>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-item__icon" aria-hidden="true">📝</div>
-          <div class="info-item__text">
-            <h3>Paper-Based Evaluation</h3>
-            <p>For the Grand Finals, the judging panel will evaluate your live pitch and demonstration on paper score sheets rather than through this portal.</p>
+            <a
+              [href]="finalistCriteriaSheetUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-rubric"
+            >
+              <span>View Finalist Judging Criteria</span>
+              <svg class="btn-rubric__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M11 3h6m0 0v6m0-6L7 13" />
+                <path d="M17 11v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6" />
+              </svg>
+            </a>
           </div>
         </div>
+      </section>
 
-        <div class="info-item">
-          <div class="info-item__icon" aria-hidden="true">⏱️</div>
-          <div class="info-item__text">
-            <h3>Live Pitch &amp; Q&amp;A</h3>
-            <p>Each finalist squad will have a strict 5-minute presentation followed by 3 minutes of direct Q&amp;A with the industry executive panel.</p>
+      <!-- ── Squad Details, Pitch Schedule & Judging Rubric Grid ──────────────── -->
+      <div class="finalist-grid">
+        <div class="finalist-card info-card">
+          <div class="info-card__header">
+            <span class="info-card__icon" aria-hidden="true">🛡️</span>
+            <h3 class="info-card__title">Your Squad Profile</h3>
           </div>
+          <dl class="info-card__list">
+            <div class="info-card__row">
+              <dt class="info-card__label">Team Name</dt>
+              <dd class="info-card__value info-card__value--highlight">{{ teamName() }}</dd>
+            </div>
+            <div class="info-card__row">
+              <dt class="info-card__label">Project Title</dt>
+              <dd class="info-card__value">{{ projectTitle() }}</dd>
+            </div>
+            <div class="info-card__row">
+              <dt class="info-card__label">Preliminary Score</dt>
+              <dd class="info-card__value info-card__value--score">{{ scoreText() }} / 100</dd>
+            </div>
+          </dl>
         </div>
 
-        <div class="info-item">
-          <div class="info-item__icon" aria-hidden="true">🏆</div>
-          <div class="info-item__text">
-            <h3>RM 9,000 Prize Pool</h3>
-            <p>1st Place (RM 5,000), 2nd Place (RM 3,000), and 3rd Place (RM 1,000) cash prizes and official trophies will be awarded during the closing ceremony.</p>
+        <div class="finalist-card info-card">
+          <div class="info-card__header">
+            <span class="info-card__icon" aria-hidden="true">⏱️</span>
+            <h3 class="info-card__title">Grand Finals Pitch Day</h3>
           </div>
+          <dl class="info-card__list">
+            <div class="info-card__row">
+              <dt class="info-card__label">Date &amp; Time</dt>
+              <dd class="info-card__value">{{ finalPitchDateText() }}</dd>
+            </div>
+            <div class="info-card__row">
+              <dt class="info-card__label">Venue</dt>
+              <dd class="info-card__value">Plenary Theatre, Monash University Malaysia</dd>
+            </div>
+            <div class="info-card__row">
+              <dt class="info-card__label">Format</dt>
+              <dd class="info-card__value">10 min Live Pitch + 5 min Judges Q&amp;A</dd>
+            </div>
+          </dl>
         </div>
       </div>
-    </section>
+    } @else {
+      <!-- ══════════════════════════════════════════════════════════════════════
+           POST-RESULTS PUBLICATION: LIVE GRAND FINALS RESULTS & AWARDS PORTAL
+           ══════════════════════════════════════════════════════════════════════ -->
 
-    <!-- ── Quick Squad Snapshot ─────────────────────────────────────────────── -->
-    <div class="squad-snapshot">
-      <h3 class="snapshot-heading">Your Finalist Squad Snapshot</h3>
-      <div class="snapshot-details">
-        <p><strong>Project:</strong> {{ projectTitle() }}</p>
-        <p><strong>Preliminary Score:</strong> {{ scoreText() }} / 100</p>
+      <!-- ── Squad Placement Hero ───────────────────────────────────────── -->
+      <div class="winner-hero" [class.winner-hero--podium]="isPodiumWinner()" [class.winner-hero--champion]="finalRank() === 1">
+        @if (finalRank() === 1) {
+          <div class="winner-hero__trophy" aria-hidden="true">🏆</div>
+          <div class="winner-hero__badge winner-hero__badge--gold">
+            <span>🥇 Grand Champion · 1st Place</span>
+          </div>
+          <h1 class="winner-hero__title">
+            EXTRAORDINARY VICTORY!<br />
+            <span class="winner-hero__team-name">{{ teamName() }}</span>
+          </h1>
+          <p class="winner-hero__blurb">
+            Hurray! Your squad has emerged as the <strong>Grand Champion</strong> of Averis X Monash Hackathon 2026 with a winning score of <strong>{{ scoreText() }} / 100</strong>!
+          </p>
+          <div class="winner-hero__prize-pill winner-hero__prize-pill--gold">
+            🎁 Award: {{ myPlacement()?.awardTitle || 'Grand Champion' }} · Prize: {{ myPlacement()?.prize || 'RM 5,000 + Champion Trophy' }}
+          </div>
+        } @else if (finalRank() === 2) {
+          <div class="winner-hero__trophy" aria-hidden="true">🥈</div>
+          <div class="winner-hero__badge winner-hero__badge--silver">
+            <span>🥈 1st Runner-Up · 2nd Place</span>
+          </div>
+          <h1 class="winner-hero__title">
+            OUTSTANDING ACHIEVEMENT!<br />
+            <span class="winner-hero__team-name">{{ teamName() }}</span>
+          </h1>
+          <p class="winner-hero__blurb">
+            Hurray! Your squad has earned <strong>2nd Place</strong> in the Grand Finals with an exceptional score of <strong>{{ scoreText() }} / 100</strong>!
+          </p>
+          <div class="winner-hero__prize-pill winner-hero__prize-pill--silver">
+            🎁 Award: {{ myPlacement()?.awardTitle || '1st Runner-Up' }} · Prize: {{ myPlacement()?.prize || 'RM 2,500 + 2nd Place Trophy' }}
+          </div>
+        } @else if (finalRank() === 3) {
+          <div class="winner-hero__trophy" aria-hidden="true">🥉</div>
+          <div class="winner-hero__badge winner-hero__badge--bronze">
+            <span>🥉 2nd Runner-Up · 3rd Place</span>
+          </div>
+          <h1 class="winner-hero__title">
+            REMARKABLE PERFORMANCE!<br />
+            <span class="winner-hero__team-name">{{ teamName() }}</span>
+          </h1>
+          <p class="winner-hero__blurb">
+            Hurray! Your squad has secured <strong>3rd Place</strong> on the Grand Finals Podium with a stellar score of <strong>{{ scoreText() }} / 100</strong>!
+          </p>
+          <div class="winner-hero__prize-pill winner-hero__prize-pill--bronze">
+            🎁 Award: {{ myPlacement()?.awardTitle || '2nd Runner-Up' }} · Prize: {{ myPlacement()?.prize || 'RM 1,500 + 3rd Place Trophy' }}
+          </div>
+        } @else {
+          <div class="winner-hero__trophy winner-hero__trophy--finalist" aria-hidden="true">🎖️</div>
+          <div class="winner-hero__badge winner-hero__badge--finalist">
+            <span>Top 10 Grand Finalist · Rank #{{ finalRank() }}</span>
+          </div>
+          <h1 class="winner-hero__title winner-hero__title--finalist">
+            Congratulations,<br />
+            <span class="winner-hero__team-name">{{ teamName() }}</span>!
+          </h1>
+          <p class="winner-hero__blurb">
+            Your squad competed among the <strong>Top 10 Grand Finalists</strong> with a final score of <strong>{{ scoreText() }} / 100</strong>. Thank you for your outstanding passion, hard work, and technical innovation!
+          </p>
+          <div class="winner-hero__prize-pill">
+            🎖️ Award: {{ myPlacement()?.awardTitle || 'Finalist Honoree' }} · {{ myPlacement()?.prize || 'Top 10 Finalist Plaque' }}
+          </div>
+        }
       </div>
-      <div class="snapshot-footer">
-        <a routerLink="/results" class="link-report">&larr; Back to Preliminary Evaluation Breakdown &amp; PDF Report</a>
-      </div>
-    </div>
+
+      <!-- ── Top 3 Awards Podium Showcase ────────────────────────────────── -->
+      <section class="awards-section" aria-labelledby="awards-heading">
+        <div class="awards-section__head">
+          <span class="awards-section__eyebrow">Averis X Monash Hackathon 2026</span>
+          <h2 id="awards-heading" class="awards-section__title">Grand Finals Awards &amp; Podium</h2>
+        </div>
+
+        <div class="podium-grid">
+          @for (squad of topThreeStandings(); track squad.teamId) {
+            <div
+              class="podium-card"
+              [class.podium-card--gold]="squad.finalRank === 1"
+              [class.podium-card--silver]="squad.finalRank === 2"
+              [class.podium-card--bronze]="squad.finalRank === 3"
+              [class.podium-card--mine]="squad.teamId === myPlacement()?.teamId"
+            >
+              <div class="podium-card__rank-header">
+                <span class="podium-card__icon" aria-hidden="true">
+                  @if (squad.finalRank === 1) { 🏆 }
+                  @else if (squad.finalRank === 2) { 🥈 }
+                  @else if (squad.finalRank === 3) { 🥉 }
+                </span>
+                <span class="podium-card__rank-text">
+                  @if (squad.finalRank === 1) { 1st Place }
+                  @else if (squad.finalRank === 2) { 2nd Place }
+                  @else if (squad.finalRank === 3) { 3rd Place }
+                </span>
+                @if (squad.teamId === myPlacement()?.teamId) {
+                  <span class="podium-card__mine-badge">Your Squad</span>
+                }
+              </div>
+
+              <div class="podium-card__body">
+                <h3 class="podium-card__team-name">{{ squad.teamName }}</h3>
+                <p class="podium-card__project">{{ squad.projectTitle }}</p>
+
+                <div class="podium-card__score-box">
+                  <span class="podium-card__score-label">Final Score</span>
+                  <strong class="podium-card__score-val">{{ squad.finalScore !== null ? squad.finalScore.toFixed(1) : '--' }} / 100</strong>
+                </div>
+
+                <div class="podium-card__prize-box">
+                  <span class="podium-card__award-name">{{ squad.awardTitle }}</span>
+                  <span class="podium-card__prize-amt">{{ squad.prize }}</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- ── Complete 10-Team Grand Finals Leaderboard ────────────────────── -->
+      <section class="standings-section" aria-labelledby="standings-heading">
+        <div class="standings-section__head">
+          <h2 id="standings-heading" class="standings-section__title">Official Grand Finals Leaderboard</h2>
+          <p class="standings-section__subtitle">Complete standings of all 10 finalist squads based on Grand Finals paper judging.</p>
+        </div>
+
+        <div class="standings-table-wrap">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th scope="col" style="width: 80px">Rank</th>
+                <th scope="col" style="min-width: 180px">Team / Squad</th>
+                <th scope="col" style="min-width: 180px">Project</th>
+                <th scope="col" style="width: 130px">Final Score</th>
+                <th scope="col" style="min-width: 220px">Award / Placement</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of allStandings(); track item.teamId) {
+                <tr
+                  class="standings-table__row"
+                  [class.standings-table__row--mine]="item.teamId === myPlacement()?.teamId"
+                  [class.standings-table__row--gold]="item.finalRank === 1"
+                  [class.standings-table__row--silver]="item.finalRank === 2"
+                  [class.standings-table__row--bronze]="item.finalRank === 3"
+                >
+                  <td class="standings-table__cell-rank">
+                    <span class="standings-table__rank-badge" [class.standings-table__rank-badge--podium]="item.finalRank && item.finalRank <= 3">
+                      @if (item.finalRank === 1) { 🥇 1 }
+                      @else if (item.finalRank === 2) { 🥈 2 }
+                      @else if (item.finalRank === 3) { 🥉 3 }
+                      @else { #{{ item.finalRank }} }
+                    </span>
+                  </td>
+                  <td class="standings-table__cell-team">
+                    <span class="standings-table__team-name">{{ item.teamName }}</span>
+                    @if (item.teamId === myPlacement()?.teamId) {
+                      <span class="standings-table__mine-tag">Your Team</span>
+                    }
+                  </td>
+                  <td class="standings-table__cell-project">
+                    {{ item.projectTitle }}
+                  </td>
+                  <td class="standings-table__cell-score">
+                    <strong>{{ item.finalScore !== null && item.finalScore !== undefined ? item.finalScore.toFixed(1) : '--' }}</strong>
+                    <span class="standings-table__score-max">/100</span>
+                  </td>
+                  <td class="standings-table__cell-award">
+                    <div class="standings-table__award-text">
+                      <span class="standings-table__award-title">{{ item.awardTitle }}</span>
+                      <span class="standings-table__prize-text">{{ item.prize }}</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
   </div>
-</div>
+</section>

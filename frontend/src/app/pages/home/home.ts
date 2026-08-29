@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { EventTrack } from '../../layout/event-track/event-track';
+import { ConnectSection } from './connect/connect';
 import { DirectorSection } from './director/director';
 import { FaqSection } from './faq/faq';
 import { HomeFooter } from './footer/footer';
@@ -20,6 +21,7 @@ import { ThemeSection } from './theme/theme';
     SponsorsSection,
     OrganizersSection,
     DirectorSection,
+    ConnectSection,
     HomeFooter,
   ],
   templateUrl: './home.html',

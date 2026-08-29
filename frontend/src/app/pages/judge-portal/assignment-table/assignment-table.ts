@@ -22,12 +22,16 @@ export class AssignmentTable {
   readonly rows = input.required<readonly AssignmentView[]>();
   /** Disables the decline control while a mutation is in flight. */
   readonly busy = input(false);
+  readonly judgingOpen = input(true);
 
   /** Emits the assignment id the judge wants to step back from. */
   readonly declined = output<number>();
 
   /** A declined assignment has no review to open. */
   protected actionLabel(status: AssignmentStatus): string | null {
+    if (status === 'completed') {
+      return this.judgingOpen() ? 'Edit review' : 'View';
+    }
     return ACTION_LABELS[status] ?? null;
   }
 }

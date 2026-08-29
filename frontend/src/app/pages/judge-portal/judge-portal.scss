@@ -205,6 +205,19 @@
   color: var(--color-subtle);
 }
 
+.done__head-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.done__edit-btn {
+  padding: 4px 12px;
+  font-size: var(--text-2xs);
+  border-radius: 999px;
+  text-decoration: none;
+}
+
 .done__score {
   font-family: var(--font-numeric);
   font-size: var(--text-lg);

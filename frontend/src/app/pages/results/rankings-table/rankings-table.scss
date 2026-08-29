@@ -1,58 +1,97 @@
 /* ── Rankings table ────────────────────────────────────────────────────── */
 
-/* The table must scroll inside itself rather than widening the page. */
+/* The table must scroll inside itself both horizontally and vertically */
 .table-scroll {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: clamp(380px, 60vh, 600px);
+  border-radius: 8px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rankings {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--text-sm);
 }
 
 .rankings th {
-  padding: 8px 10px;
+  position: sticky;
+  top: 0;
+  background: var(--color-surface, #ffffff);
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--color-border);
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  text-align: left;
   color: var(--color-subtle);
   white-space: nowrap;
 }
 
 .rankings td {
-  padding: 10px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-hairline);
   vertical-align: top;
 }
 
-.rankings__rank-col,
-.rankings__score-col {
-  text-align: right;
+/* Rank column - strictly left aligned */
+th.rankings__rank-col,
+.rankings__rank-col {
+  text-align: left;
+  width: 90px;
 }
 
-.rankings__rank,
-.rankings__score {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
+td.rankings__rank,
 .rankings__rank {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--color-ink);
+  white-space: nowrap;
+  width: 90px;
 }
 
+/* Team column - left aligned, fluid */
+th.rankings__team-col,
+.rankings__team-col {
+  text-align: left;
+}
+
+td.rankings__team-cell,
+.rankings__team-cell {
+  text-align: left;
+}
+
+/* Score column - strictly right aligned */
+th.rankings__score-col,
+.rankings__score-col {
+  text-align: right;
+  width: 100px;
+}
+
+td.rankings__score,
 .rankings__score {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--color-body);
+  white-space: nowrap;
+  width: 100px;
+}
+
+.rankings__team-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .rankings__team {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-ink);
 }
 
@@ -60,16 +99,73 @@
   display: block;
   font-size: var(--text-2xs);
   color: var(--color-subtle);
+  margin-top: 2px;
 }
 
-.rankings__track {
-  font-size: var(--text-xs);
-  color: var(--color-muted);
+.rankings__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  letter-spacing: 0.03em;
   white-space: nowrap;
+
+  &--finalist {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #b45309;
+  }
+
+  &--completed {
+    background: rgba(100, 116, 139, 0.1);
+    border: 1px solid rgba(100, 116, 139, 0.2);
+    color: var(--color-muted);
+  }
+}
+
+:host-context([data-theme='dark']) .rankings__badge--finalist {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: var(--color-surface-hover, rgba(0, 0, 0, 0.04));
+  color: var(--color-muted);
+
+  &--finalist {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+  }
+
+  &--top {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+  }
+}
+
+:host-context([data-theme='dark']) .rank-badge--top {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.4));
+  color: #fef3c7;
+}
+
+.score-max {
+  font-size: var(--text-3xs);
+  color: var(--color-subtle);
+  font-weight: 500;
 }
 
 .rankings__you {
-  margin-left: 6px;
   padding: 1px 7px;
   border-radius: 20px;
   background: var(--color-blue-tint);
@@ -80,4 +176,8 @@
 
 .rankings__row--mine {
   background: var(--color-blue-wash);
+}
+
+.rankings__row--finalist {
+  background: rgba(245, 158, 11, 0.02);
 }

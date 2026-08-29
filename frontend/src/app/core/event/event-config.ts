@@ -23,6 +23,7 @@ export interface EventSettings {
   /** V1 models judging as a boolean an admin flips, not a date window. */
   readonly judgingOpen: boolean;
   readonly resultsPublishedAt: Date | null;
+  readonly finalPitchDateAt?: Date | null;
   readonly minTeamSize: number;
   readonly maxTeamSize: number;
   readonly screeningEnabled: boolean;
@@ -90,7 +91,7 @@ export interface EventConfig {
  */
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   settings: {
-    eventName: 'Monash Hackathon 2026',
+    eventName: 'Averis X Monash Hackathon 2026',
     // Not in the proposal. The close is pinned to the opening ceremony, since
     // that is when the problem statement drops and the build period starts —
     // and it has to precede the submission deadline or the `submission` phase
@@ -105,6 +106,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     // Pitch Day (26 September) decides the winners, but the site has no column
     // for that instant — `resultsPublishedAt` is what gates the results page.
     resultsPublishedAt: new Date('2026-09-25T12:00:00+08:00'),
+    finalPitchDateAt: new Date('2026-10-10T09:00:00+08:00'),
     // Mirrors `event_settings` as V6 leaves it: teams are 2–5 and solo entries
     // are not accepted. V1 seeds 1/4 and V6 corrects the row, so 2/5 is the
     // migrated state this seed has to match — not V1's literal.
@@ -124,9 +126,9 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     organisedBy: 'GDGoC Monash University Malaysia & MUMTEC',
     // The proposal runs eight days, not a weekend, and draws students from
     // several universities — so neither "48 hours" nor "one campus" was true.
-    tagline: 'One industry problem, three days to solve it.',
+    tagline: 'One industry problem, four days to solve it.',
     contactEmail: 'mum-sit-averis-hackathon@monash.edu',
-    discordUrl: 'https://discord.gg/monashhack',
+    discordUrl: 'https://discord.gg/cbFDNWwj5',
     teamRegistrationFormUrl:
       'https://docs.google.com/forms/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/viewform',
     projectSubmissionFormUrl:

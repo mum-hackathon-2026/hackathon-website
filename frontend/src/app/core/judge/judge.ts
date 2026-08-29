@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL, AuthService } from '../auth/auth';
 import { EVENT_CONFIG } from '../event/event-config';
 import { PhaseService } from '../event/phase';
+import { ResultsService } from '../results/results';
 
 /**
  * DEMO JUDGING DATA — NOT PERSISTED.
@@ -303,6 +304,7 @@ export class JudgeService {
   private readonly phase = inject(PhaseService);
   private readonly config = inject(EVENT_CONFIG);
   private readonly http = inject(HttpClient, { optional: true });
+  private readonly resultsService = inject(ResultsService, { optional: true });
   private readonly apiBaseUrl =
     inject(API_BASE_URL, { optional: true }) ?? 'http://localhost:8080';
 
@@ -428,7 +430,7 @@ export class JudgeService {
               criteriaCount: criteria.length,
               weightedTotal: Math.round(totalWeighted * 100) / 100,
               allScored,
-              locked: a.status === 'completed',
+              locked: a.status === 'completed' && !this.judgingOpen(),
             };
           }),
         );
@@ -534,6 +536,7 @@ export class JudgeService {
             ),
           );
           void this.refreshAll();
+          void this.resultsService?.refreshResults();
           return { ok: true };
         } catch (err: any) {
           const errorMsg = err?.error?.error || 'Failed to save draft on server.';
@@ -583,6 +586,7 @@ export class JudgeService {
             ),
           );
           void this.refreshAll();
+          void this.resultsService?.refreshResults();
           return { ok: true };
         } catch (err: any) {
           const errorMsg = err?.error?.error || 'Failed to submit review on server.';
@@ -665,9 +669,6 @@ export class JudgeService {
 
     if (!this.judgingOpen()) {
       return { ok: false, error: 'Judging is closed, so scores cannot be changed.' };
-    }
-    if (assignment.status === 'completed') {
-      return { ok: false, error: 'This review has been submitted and can no longer be changed.' };
     }
     if (assignment.status === 'declined') {
       return { ok: false, error: 'You declined this assignment. An organiser can reassign it.' };
@@ -794,7 +795,7 @@ export class JudgeService {
       criteriaCount: criteria.length,
       weightedTotal: weightedTotal(rows),
       allScored: scoredCount === criteria.length,
-      locked: assignment.status === 'completed',
+      locked: assignment.status === 'completed' && !this.judgingOpen(),
     };
   }
 

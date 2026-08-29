@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth/auth';
 import { EVENT_CONFIG, MYT_OFFSET } from '../../core/event/event-config';
 import { EventSettingsService } from '../../core/event/event-settings';
 import { OUTCOME_LABELS, ResultsService } from '../../core/results/results';
@@ -9,6 +10,7 @@ import { PdfReportService } from '../../core/results/pdf-report.service';
 import { PageHeader } from '../../layout/page-header/page-header';
 import { StateLocked } from '../../layout/state-locked/state-locked';
 import { JudgeReviews } from './judge-reviews/judge-reviews';
+import { RankingsTable } from './rankings-table/rankings-table';
 
 type ResultsTab = 'result' | 'feedback';
 
@@ -26,6 +28,7 @@ interface TabDef {
     PageHeader,
     StateLocked,
     JudgeReviews,
+    RankingsTable,
   ],
   templateUrl: './results.html',
   styleUrl: './results.scss',
@@ -34,6 +37,7 @@ interface TabDef {
 export class Results {
   private readonly results = inject(ResultsService);
   private readonly teams = inject(TeamService);
+  private readonly auth = inject(AuthService);
   private readonly pdfService = inject(PdfReportService);
 
   protected readonly config = inject(EVENT_CONFIG);
@@ -47,6 +51,12 @@ export class Results {
   protected readonly myResult = this.results.myResult;
   protected readonly criteria = this.results.myCriteria;
   protected readonly reviews = this.results.myReviews;
+  protected readonly rankings = this.results.rankings;
+
+  protected readonly isJudgeOrAdmin = computed(() => {
+    const role = this.auth.user()?.role;
+    return role === 'admin' || role === 'judge';
+  });
 
   protected readonly isFinalist = computed(() => {
     const mine = this.myResult();
@@ -72,6 +82,10 @@ export class Results {
 
   protected readonly subtitle = computed(() => {
     if (!this.published()) return 'Preliminary results have not been published yet.';
+
+    if (this.isJudgeOrAdmin()) {
+      return 'Official Preliminary Evaluation Standings & Squad Scores (Judges & Organizers View).';
+    }
 
     const mine = this.myResult();
     if (!mine) return 'Preliminary Round Evaluation Results.';

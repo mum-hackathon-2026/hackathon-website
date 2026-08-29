@@ -40,6 +40,7 @@ const NAV_LINKS: readonly NavLink[] = [
   { path: '/', fragment: 'criteria', label: 'Criteria', roles: ['public'] },
   { path: '/', fragment: 'faq', label: 'FAQ', roles: ['public'] },
   { path: '/', fragment: 'organizers', label: 'Organisers', roles: ['public'] },
+  { path: '/', fragment: 'connect', label: 'Connect', roles: ['public'] },
   { path: '/participant/team', label: 'Team', roles: ['participant'] },
   { path: '/participant/submission', label: 'Submission', roles: ['participant'] },
   { path: '/participant/progress', label: 'Progress', roles: ['participant'] },

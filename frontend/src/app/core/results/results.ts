@@ -58,6 +58,17 @@ export interface Award {
   readonly isMine: boolean;
 }
 
+export interface FinalistStanding {
+  readonly teamId: number;
+  readonly teamName: string;
+  readonly projectTitle: string;
+  finalRank: number | null;
+  finalScore: number | null;
+  awardTitle: string;
+  prize: string;
+  notes?: string;
+}
+
 interface BackendPublicResultDto {
   readonly teamId: number;
   readonly teamName: string;
@@ -241,6 +252,135 @@ export class ResultsService {
       return { ...seedMine, outcome: 'finalist' };
     }
     return seedMine;
+  });
+
+  // ── Grand Finals Standings & Publication ──────────────────────────────────
+  private readonly FINALIST_STANDINGS_KEY = 'monash_hackathon_finalist_standings';
+  private readonly FINALIST_PUBLISHED_KEY = 'monash_hackathon_final_results_published';
+
+  private loadFinalistStandingsFromStorage(): FinalistStanding[] | null {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem(this.FINALIST_STANDINGS_KEY);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
+          }
+        } catch {}
+      }
+    }
+    return null;
+  }
+
+  private loadFinalResultsPublishedFromStorage(): boolean {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem(this.FINALIST_PUBLISHED_KEY) === 'true';
+    }
+    return false;
+  }
+
+  /**
+   * Live reactive signal for Grand Finals published state.
+   */
+  readonly finalResultsPublished = signal<boolean>(
+    this.loadFinalResultsPublishedFromStorage(),
+  );
+
+  readonly customFinalistStandings = signal<FinalistStanding[] | null>(
+    this.loadFinalistStandingsFromStorage(),
+  );
+
+  /**
+   * Standings of all Top 10 Grand Finalist teams.
+   */
+  readonly finalistStandings = computed<readonly FinalistStanding[]>(() => {
+    const custom = this.customFinalistStandings();
+    const finalistRows = this.rankings().filter(
+      (t) => t.outcome === 'finalist',
+    );
+
+    if (finalistRows.length === 0 && (!custom || custom.length === 0)) {
+      return [];
+    }
+
+    const customMap = new Map((custom ?? []).map((s) => [s.teamId, s]));
+    const listToUse = finalistRows.length > 0 ? finalistRows : (custom ?? []);
+
+    return listToUse
+      .map((t: any, idx: number) => {
+        const customItem = customMap.get(t.teamId);
+        const rank = customItem?.finalRank ?? idx + 1;
+        let awardTitle = customItem?.awardTitle ?? 'Finalist Honoree';
+        let prize = customItem?.prize ?? 'Top 10 Finalist Plaque';
+        if (!customItem) {
+          if (rank === 1) {
+            awardTitle = 'Grand Champion (1st Place)';
+            prize = 'RM 5,000 + Champion Trophy';
+          } else if (rank === 2) {
+            awardTitle = '1st Runner-Up (2nd Place)';
+            prize = 'RM 2,500 + 2nd Place Trophy';
+          } else if (rank === 3) {
+            awardTitle = '2nd Runner-Up (3rd Place)';
+            prize = 'RM 1,500 + 3rd Place Trophy';
+          }
+        }
+        return {
+          teamId: t.teamId,
+          teamName: t.teamName,
+          projectTitle: customItem?.projectTitle ?? t.projectTitle,
+          finalRank: rank,
+          finalScore: customItem?.finalScore !== undefined ? customItem.finalScore : null,
+          awardTitle,
+          prize,
+        };
+      })
+      .sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
+  });
+
+  setFinalResultsPublished(published: boolean): void {
+    this.finalResultsPublished.set(published);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(this.FINALIST_PUBLISHED_KEY, published ? 'true' : 'false');
+    }
+  }
+
+  setFinalistStandings(standings: FinalistStanding[]): void {
+    const sorted = [...standings].sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
+    this.customFinalistStandings.set(sorted);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(this.FINALIST_STANDINGS_KEY, JSON.stringify(sorted));
+    }
+  }
+
+  /**
+   * Current participant squad's final placement in the Grand Finals.
+   */
+  readonly myFinalistPlacement = computed<FinalistStanding | null>(() => {
+    const team = this.teams.myTeam();
+    const result = this.myResult();
+    const list = this.finalistStandings();
+
+    if (team) {
+      const match = list.find(
+        (s) =>
+          s.teamId === team.id ||
+          s.teamName.toLowerCase() === team.name.toLowerCase(),
+      );
+      if (match) return match;
+    }
+
+    if (result) {
+      const match = list.find(
+        (s) =>
+          s.teamId === result.teamId ||
+          s.teamName.toLowerCase() === result.teamName.toLowerCase(),
+      );
+      if (match) return match;
+    }
+
+    // Default first finalist for preview/testing
+    return list[0] ?? null;
   });
 
   /** Per-criterion scores for this team, averaged across its judges. */

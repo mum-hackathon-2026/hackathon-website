@@ -78,28 +78,21 @@
       <p class="review__banner review__banner--declined">
         You declined this assignment, so it is not yours to score. An organiser can reassign it.
       </p>
-    } @else if (locked()) {
-      <p class="review__banner review__banner--locked">
-        @if (review.completedAt; as when) {
-          Submitted. Reviews are locked once sent, so this is a record only.
-        } @else {
-          Submitted and locked.
-        }
-        @if (!judgingOpen()) {
-          Judging has since closed.
-        }
-      </p>
     } @else if (!judgingOpen()) {
       <app-state-locked heading="Judging is closed" [reason]="closedReason()">
         <p class="locked-preview">
-          The rubric and this team's submission stay visible, but nothing can be scored.
+          The judging cutoff time has been reached. Scores are locked and preliminary results are finalised.
         </p>
       </app-state-locked>
+    } @else if (isCompleted()) {
+      <p class="review__banner review__banner--submitted">
+        ✓ Submitted evaluation. You can edit and update marks freely until judging closes.
+      </p>
     }
 
     <!-- ── Scoring ────────────────────────────────────────────────────── -->
 
-    @if (editable() || locked()) {
+    @if ((editable() || locked()) && !declined()) {
       <h2 class="section-title">
         Scoring
         <span class="section-title__aside">
@@ -112,10 +105,9 @@
           <li>
             <app-criterion-card
               [criterion]="criterion"
-              [readOnly]="locked()"
+              [readOnly]="!judgingOpen()"
               [disabled]="busy()"
               (scoreChange)="updateScore(criterion.criteriaId, $event)"
-              (commentChange)="updateComment(criterion.criteriaId, $event)"
             />
           </li>
         }
@@ -124,9 +116,9 @@
       <!-- ── Overall feedback ─────────────────────────────────────────── -->
 
       <section class="feedback" aria-labelledby="feedback-heading">
-        <h2 class="section-title" id="feedback-heading">Overall feedback</h2>
+        <h2 class="section-title" id="feedback-heading">Overall Feedback</h2>
 
-        @if (locked()) {
+        @if (!judgingOpen()) {
           @if (review.overallFeedback) {
             <p class="feedback__read">{{ review.overallFeedback }}</p>
           } @else {
@@ -134,14 +126,14 @@
           }
         } @else {
           <label class="field-label" for="overall-feedback">
-            Notes for the organising team <span class="feedback__optional">optional</span>
+            Feedback for the squad <span class="feedback__optional">shared with the team</span>
           </label>
           <textarea
             id="overall-feedback"
             class="input feedback__input"
             name="overallFeedback"
             rows="4"
-            placeholder="Not shared with the team"
+            placeholder="Constructive feedback, highlights, and strengths shared with the squad..."
             [disabled]="busy()"
             [ngModel]="form().overallFeedback"
             (ngModelChange)="updateFeedback($event)"
@@ -158,6 +150,7 @@
         [allScored]="allScored()"
         [dirty]="dirty()"
         [busy]="busy()"
+        [isCompleted]="isCompleted()"
         [savedAt]="savedAt()"
         (save)="save()"
         (submitted)="ask('submit')"

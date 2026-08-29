@@ -63,11 +63,10 @@ describe('RankingsTable', () => {
     ]);
   });
 
-  it('shows each team’s rank, track and project', async () => {
+  it('shows each team’s rank and project', async () => {
     await render();
 
     expect(cell(0, '.rankings__rank')).toBe('1');
-    expect(cell(0, '.rankings__track')).toBe('Open Innovation');
     expect(cell(0, '.rankings__project')).toBe('Project 1');
   });
 
@@ -134,7 +133,7 @@ describe('RankingsTable', () => {
     await render();
     const headers = Array.from(host().querySelectorAll('thead th'));
 
-    expect(headers.map((h) => h.textContent!.trim())).toEqual(['Rank', 'Team', 'Track', 'Score']);
+    expect(headers.map((h) => h.textContent!.trim())).toEqual(['Rank', 'Team', 'Score']);
     for (const header of headers) {
       expect(header.getAttribute('scope')).toBe('col');
     }

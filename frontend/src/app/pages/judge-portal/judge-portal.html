@@ -117,7 +117,7 @@
           @if (filtered().length === 0) {
             <p class="note note--standalone">No assignments match that search.</p>
           } @else {
-            <app-assignment-table [rows]="filtered()" [busy]="pending()" (declined)="ask($event)" />
+            <app-assignment-table [rows]="filtered()" [busy]="pending()" [judgingOpen]="judgingOpen()" (declined)="ask($event)" />
           }
         }
 
@@ -137,10 +137,15 @@
                       <span class="done__team">{{ row.teamName }}</span>
                       <span class="done__project">{{ row.projectTitle }}</span>
                     </div>
-                    <span class="done__score"
-                      >{{ row.weightedTotal.toFixed(1)
-                      }}<span class="done__score-max">/100</span></span
-                    >
+                    <div class="done__head-right">
+                      <span class="done__score"
+                        >{{ row.weightedTotal.toFixed(1)
+                        }}<span class="done__score-max">/100</span></span
+                      >
+                      <a class="button button--secondary done__edit-btn" [routerLink]="['/judge/reviews', row.id]">
+                        {{ judgingOpen() ? 'Edit marks' : 'View' }}
+                      </a>
+                    </div>
                   </div>
                   <ul class="done__scores">
                     @for (score of row.scores; track score.criteriaId) {
@@ -155,7 +160,11 @@
             </ul>
 
             <p class="note">
-              Submitted reviews are locked. Ask an organiser if one needs reopening.
+              @if (judgingOpen()) {
+                You can edit and update marks for any completed team until judging cutoff is reached.
+              } @else {
+                Judging has closed and submitted evaluations are now locked.
+              }
             </p>
           }
         }

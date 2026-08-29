@@ -94,14 +94,16 @@ export class JudgeReview {
     });
   }
 
-  /** Submitted reviews are read-only, whether judging is open or not. */
-  protected readonly locked = computed(() => this.assignment()?.status === 'completed');
+  /** Reviews become read-only once judging cutoff is reached (judging is closed). */
+  protected readonly locked = computed(() => !this.judgingOpen() && !this.declined());
+
+  protected readonly isCompleted = computed(() => this.assignment()?.status === 'completed');
 
   protected readonly declined = computed(() => this.assignment()?.status === 'declined');
 
   protected readonly editable = computed(() => {
     const assignment = this.assignment();
-    return !!assignment && this.judgingOpen() && !this.locked() && !this.declined();
+    return !!assignment && this.judgingOpen() && !this.declined();
   });
 
   /**
@@ -172,9 +174,11 @@ export class JudgeReview {
     switch (this.pendingAction()?.kind) {
       case 'submit':
         return {
-          heading: 'Submit this review?',
-          body: `${this.liveTotal().toFixed(1)} of 100. Once submitted it is locked and counted towards the team's final result. Only an organiser can reopen it.`,
-          confirmLabel: 'Submit review',
+          heading: this.isCompleted() ? 'Update this review?' : 'Submit this review?',
+          body: this.isCompleted()
+            ? `${this.liveTotal().toFixed(1)} of 100. Updating this evaluation will recalculate the team's preliminary score. You can make further changes until judging closes.`
+            : `${this.liveTotal().toFixed(1)} of 100. Once submitted, this review is counted towards the team's score. You can edit and update marks freely until judging closes.`,
+          confirmLabel: this.isCompleted() ? 'Update review' : 'Submit review',
         };
       case 'leave':
         return {

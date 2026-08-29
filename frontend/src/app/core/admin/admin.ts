@@ -286,6 +286,7 @@ export type SectionId =
   | 'assignments'
   | 'judging'
   | 'results'
+  | 'finalists'
   | 'settings'
   | 'audit';
 
@@ -297,6 +298,7 @@ const SETTING_LABELS = (key: keyof EventSettingsPatch): string =>
     registrationClosesAt: 'registration closes',
     submissionDeadlineAt: 'submission deadline',
     resultsPublishedAt: 'results published',
+    finalPitchDateAt: 'grand finals pitch date',
     judgingOpen: 'judging open',
     minTeamSize: 'minimum team size',
     maxTeamSize: 'maximum team size',
@@ -342,9 +344,21 @@ export const SECTIONS: readonly { readonly id: SectionId; readonly label: string
   { id: 'assignments', label: 'Assignments' },
   { id: 'judging', label: 'Judging Progress' },
   { id: 'results', label: 'Results & Publication' },
+  { id: 'finalists', label: 'Grand Finalists' },
   { id: 'settings', label: 'Event Settings' },
   { id: 'audit', label: 'Audit Log' },
 ];
+
+export interface FinalistStanding {
+  readonly teamId: number;
+  readonly teamName: string;
+  readonly projectTitle: string;
+  finalRank: number | null;
+  finalScore: number | null;
+  awardTitle: string;
+  prize: string;
+  notes?: string;
+}
 
 export function isSectionId(value: string | null | undefined): value is SectionId {
   return SECTIONS.some((section) => section.id === value);
@@ -1153,6 +1167,7 @@ export class AdminService {
         this.liveResults.set(
           results.map((r: any) => ({
             ...r,
+            outcome: (r.shortlisted ? 'finalist' : 'participant') as ResultOutcome,
             publishedAt: r.publishedAt ? new Date(r.publishedAt) : null,
           })),
         );
@@ -1384,7 +1399,7 @@ export class AdminService {
           trackLabel: row.trackLabel,
           finalScore: row.finalScore,
           rank: row.rank,
-          outcome: row.outcome,
+          outcome: (team?.shortlisted ? 'finalist' : 'participant') as ResultOutcome,
           judgeCount: row.judgeCount,
           tied: row.tied,
           shortlisted: team?.shortlisted ?? false,
@@ -1949,6 +1964,121 @@ export class AdminService {
     });
   }
 
+  // ── Grand Finalists Paper-Judging & Results Workflow ─────────────────────
+  readonly finalResultsPublished = this.resultsService.finalResultsPublished;
+  readonly finalistStandings = computed<readonly FinalistStanding[]>(() => {
+    const finalistRows = this.results().filter(
+      (row) => row.shortlisted === true || row.outcome === 'finalist',
+    );
+    const customMap = new Map(
+      (this.resultsService.customFinalistStandings() ?? []).map((s) => [s.teamId, s]),
+    );
+
+    return finalistRows
+      .map((t, idx) => {
+        const custom = customMap.get(t.teamId);
+        const defaultRank = idx + 1;
+        const rank = custom?.finalRank ?? defaultRank;
+        let awardTitle = custom?.awardTitle ?? 'Finalist Honoree';
+        let prize = custom?.prize ?? 'Top 10 Finalist Plaque';
+
+        if (!custom) {
+          if (rank === 1) {
+            awardTitle = 'Grand Champion (1st Place)';
+            prize = 'RM 5,000 + Champion Trophy';
+          } else if (rank === 2) {
+            awardTitle = '1st Runner-Up (2nd Place)';
+            prize = 'RM 2,500 + 2nd Place Trophy';
+          } else if (rank === 3) {
+            awardTitle = '2nd Runner-Up (3rd Place)';
+            prize = 'RM 1,500 + 3rd Place Trophy';
+          }
+        }
+
+        return {
+          teamId: t.teamId,
+          teamName: t.teamName,
+          projectTitle: custom?.projectTitle ?? t.projectTitle,
+          finalRank: rank,
+          finalScore: custom?.finalScore !== undefined ? custom.finalScore : null,
+          awardTitle,
+          prize,
+        };
+      })
+      .sort((a, b) => (a.finalRank ?? 99) - (b.finalRank ?? 99));
+  });
+
+  updateFinalistStanding(
+    teamId: number,
+    patch: Partial<FinalistStanding>,
+  ): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const current = [...this.resultsService.finalistStandings()];
+      const index = current.findIndex((s) => s.teamId === teamId);
+      if (index === -1) return { ok: false, error: 'Finalist squad not found.' };
+
+      current[index] = { ...current[index], ...patch };
+      this.resultsService.setFinalistStandings(current);
+      this.log('result', 'Finalist score/rank updated', current[index].teamName);
+      return { ok: true };
+    });
+  }
+
+  saveAllFinalistStandings(standings: FinalistStanding[]): Promise<AdminActionResult> {
+    return this.run(async () => {
+      this.resultsService.setFinalistStandings(standings);
+      this.log('result', 'Grand Finalist rankings saved', `${standings.length} teams`);
+      return { ok: true };
+    });
+  }
+
+  autoRankFinalistsByScore(): void {
+    const current = [...this.resultsService.finalistStandings()];
+    current.sort((a, b) => (Number(b.finalScore) || 0) - (Number(a.finalScore) || 0));
+    const ranked = current.map((item, idx) => {
+      const rank = idx + 1;
+      let awardTitle = 'Finalist Honoree';
+      let prize = 'Top 10 Finalist Plaque';
+      if (rank === 1) {
+        awardTitle = 'Grand Champion (1st Place)';
+        prize = 'RM 5,000 + Champion Trophy';
+      } else if (rank === 2) {
+        awardTitle = '1st Runner-Up (2nd Place)';
+        prize = 'RM 2,500 + 2nd Place Trophy';
+      } else if (rank === 3) {
+        awardTitle = '2nd Runner-Up (3rd Place)';
+        prize = 'RM 1,500 + 3rd Place Trophy';
+      }
+      return {
+        ...item,
+        finalRank: rank,
+        awardTitle:
+          item.awardTitle && item.awardTitle !== 'Finalist Honoree' && rank > 3
+            ? item.awardTitle
+            : awardTitle,
+        prize:
+          item.prize && item.prize !== 'Top 10 Finalist Plaque' && rank > 3
+            ? item.prize
+            : prize,
+      };
+    });
+    this.resultsService.setFinalistStandings(ranked);
+  }
+
+  publishFinalResults(publish: boolean): Promise<AdminActionResult> {
+    return this.run(async () => {
+      this.resultsService.setFinalResultsPublished(publish);
+      this.log(
+        'result',
+        publish
+          ? 'Grand Finals results published'
+          : 'Grand Finals results reverted to draft',
+        'Finalist Portal',
+      );
+      return { ok: true };
+    });
+  }
+
   /**
    * Writes `event_settings` and records what moved.
    *
@@ -1973,6 +2103,7 @@ export class AdminService {
           registrationClosesAt: patch.registrationClosesAt ? patch.registrationClosesAt.toISOString() : null,
           submissionDeadlineAt: patch.submissionDeadlineAt ? patch.submissionDeadlineAt.toISOString() : null,
           resultsPublishedAt: patch.resultsPublishedAt ? patch.resultsPublishedAt.toISOString() : null,
+          finalPitchDateAt: patch.finalPitchDateAt ? patch.finalPitchDateAt.toISOString() : null,
           judgingOpen: patch.judgingOpen,
           minTeamSize: patch.minTeamSize,
           maxTeamSize: patch.maxTeamSize,
@@ -1984,6 +2115,7 @@ export class AdminService {
           const res = await firstValueFrom(
             this.http.patch<any>(`${this.apiBaseUrl}/api/admin/settings`, body, { headers }),
           );
+          await this.eventSettings.update(patch);
           if (res) {
             this.eventSettings.applyBackendSettings(res);
           }

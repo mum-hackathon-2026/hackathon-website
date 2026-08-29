@@ -10,48 +10,48 @@ interface PageMetadata {
 
 const ROUTE_META: Record<string, PageMetadata> = {
   '/': {
-    title: 'Monash Hackathon 2026 | Averis Industry Innovation Challenge',
+    title: 'Averis X Monash Hackathon 2026 | Industry Innovation Challenge',
     description:
-      'Monash Hackathon 2026: One industry problem, three days to solve it. Compete for RM 9,000 in prizes. Open to all university students.',
+      'Averis X Monash Hackathon 2026: One industry problem, four days to solve it. Compete for RM 9,000 in prizes. Open to all university students.',
   },
   '/timeline': {
-    title: 'Event Schedule & Timeline | Monash Hackathon 2026',
+    title: 'Event Schedule & Timeline | Averis X Monash Hackathon 2026',
     description:
-      'Explore the official key milestones, registration windows, kickoff briefings, submission deadlines, and final pitch dates for Monash Hackathon 2026.',
+      'Explore the official key milestones, registration windows, kickoff briefings, submission deadlines, and final pitch dates for Averis X Monash Hackathon 2026.',
   },
   '/results': {
-    title: 'Leaderboard & Competition Results | Monash Hackathon 2026',
+    title: 'Leaderboard & Competition Results | Averis X Monash Hackathon 2026',
     description:
-      'Official competition rankings, finalist awards, and judge evaluations for Monash Hackathon 2026.',
+      'Official competition rankings, finalist awards, and judge evaluations for Averis X Monash Hackathon 2026.',
   },
   '/organizers': {
-    title: 'Organizing Committee & Mentors | Monash Hackathon 2026',
+    title: 'Organizing Committee & Mentors | Averis X Monash Hackathon 2026',
     description:
-      'Meet the Monash University Malaysia faculty leads, student executive committee, and Averis industry mentors behind Monash Hackathon 2026.',
+      'Meet the Monash University Malaysia faculty leads, student executive committee, and Averis industry mentors behind Averis X Monash Hackathon 2026.',
   },
   '/sign-in': {
-    title: 'Sign In | Monash Hackathon 2026 Portal',
+    title: 'Sign In | Averis X Monash Hackathon 2026 Portal',
     description:
       'Access your squad workspace, manage submissions, or review evaluations with your registered Google account.',
   },
   '/participant/team': {
-    title: 'My Squad | Monash Hackathon 2026',
+    title: 'My Squad | Averis X Monash Hackathon 2026',
     description: 'Manage your team members, share join codes, and coordinate your project submission.',
   },
   '/participant/submission': {
-    title: 'Project Submission | Monash Hackathon 2026',
+    title: 'Project Submission | Averis X Monash Hackathon 2026',
     description: 'Submit your GitHub repository, deployed preview URL, slide deck, and video demo.',
   },
   '/participant/progress': {
-    title: 'Submission Progress | Monash Hackathon 2026',
+    title: 'Submission Progress | Averis X Monash Hackathon 2026',
     description: 'Track your submission milestones and evaluation progress in real-time.',
   },
   '/judge/portal': {
-    title: 'Judge Evaluation Portal | Monash Hackathon 2026',
+    title: 'Judge Evaluation Portal | Averis X Monash Hackathon 2026',
     description: 'Review assigned hackathon submissions against the official 7-pillar rubric.',
   },
   '/admin/dashboard': {
-    title: 'Administration Dashboard | Monash Hackathon 2026',
+    title: 'Administration Dashboard | Averis X Monash Hackathon 2026',
     description: 'Event operations, team oversight, judge assignment allocation, and results publication.',
   },
 };
@@ -68,8 +68,8 @@ export class SeoService {
       .subscribe((event) => {
         const url = event.urlAfterRedirects.split('?')[0].split('#')[0] || '/';
         const meta = ROUTE_META[url] ?? {
-          title: 'Monash Hackathon 2026',
-          description: 'Monash Hackathon 2026. One industry problem, three days to solve it.',
+          title: 'Averis X Monash Hackathon 2026',
+          description: 'Averis X Monash Hackathon 2026. One industry problem, four days to solve it.',
         };
 
         this.titleService.setTitle(meta.title);

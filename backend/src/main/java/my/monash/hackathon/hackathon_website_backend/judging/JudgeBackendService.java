@@ -133,9 +133,6 @@ public class JudgeBackendService {
     public JudgeAssignmentResponse saveDraft(Long assignmentId, SaveReviewRequest request, User judge) {
         Assignment assignment = getVerifiedAssignment(assignmentId, judge);
 
-        if ("completed".equalsIgnoreCase(assignment.getStatus())) {
-            throw new IllegalArgumentException("This review has been submitted and can no longer be edited.");
-        }
         if ("declined".equalsIgnoreCase(assignment.getStatus())) {
             throw new IllegalArgumentException("You declined this assignment. An organiser can reassign it.");
         }
@@ -163,9 +160,6 @@ public class JudgeBackendService {
     public JudgeAssignmentResponse completeReview(Long assignmentId, SaveReviewRequest request, User judge) {
         Assignment assignment = getVerifiedAssignment(assignmentId, judge);
 
-        if ("completed".equalsIgnoreCase(assignment.getStatus())) {
-            throw new IllegalArgumentException("This review is already completed.");
-        }
         if ("declined".equalsIgnoreCase(assignment.getStatus())) {
             throw new IllegalArgumentException("You declined this assignment and cannot submit scores.");
         }

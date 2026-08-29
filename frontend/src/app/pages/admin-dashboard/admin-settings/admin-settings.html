@@ -86,7 +86,22 @@
           (ngModelChange)="update('resultsPublishedAt', $event)"
         />
         <p class="field__hint">
-          A time in the past opens the results to every participant as soon as you save.
+          A time in the past opens the preliminary results to every participant as soon as you save.
+        </p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="pitch-day-at">Grand Finals pitch day <span>MYT</span></label>
+        <input
+          id="pitch-day-at"
+          class="input"
+          type="datetime-local"
+          name="finalPitchDateAt"
+          [ngModel]="draft().finalPitchDateAt"
+          (ngModelChange)="update('finalPitchDateAt', $event)"
+        />
+        <p class="field__hint">
+          Displayed on the finalist qualification page and pitch schedule.
         </p>
       </div>
     </div>
