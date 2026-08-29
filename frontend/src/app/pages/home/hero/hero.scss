@@ -25,10 +25,6 @@
 .hero__title {
   margin: 0 auto 14px;
   max-width: 680px;
-  /* A touch past the type ramp's own ceiling (--text-6xl): this is the one
-     title on the site that is meant to read as bigger than anything else. */
-  font-size: clamp(var(--text-3xl), 7.2vw, calc(var(--text-6xl) * 1.12));
-  font-weight: 800;
   line-height: 1.1;
   /* Halved from the sans setting: serif counters close up under tight tracking
      at this size. */
@@ -36,22 +32,89 @@
   color: var(--color-ink);
 }
 
-.hero__wordmark {
-  position: relative;
-  display: inline-block;
+/* Flex column so every line centers as a unit regardless of its own width —
+   more predictable than leaning on text-align across mixed block/inline
+   children. */
+.hero__lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.hero__letter--blue {
-  color: var(--color-blue);
+/* Smaller than the wordmark on purpose — this is the co-brand line, not the
+   headline. */
+.hero__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: clamp(var(--text-2xl), 4.8vw, var(--text-5xl));
+  font-weight: 700;
+  color: var(--color-ink);
 }
-.hero__letter--red {
-  color: var(--color-red);
+
+/* Tied to the surrounding text size so the wordmark scales with the brand
+   line instead of needing its own breakpoints. */
+.hero__brand-logo {
+  display: block;
+  height: 1em;
+  width: auto;
 }
-.hero__letter--yellow {
-  color: var(--color-yellow);
+
+/* Plain sans at an even bold weight, standing apart from the serif/pixel
+   faces on either side of it — and orange to match the wordmark. */
+.hero__brand-x {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: #e78823;
 }
-.hero__letter--green {
-  color: var(--color-green);
+
+/* Same face as the wordmark's year, so the two ends of the lockup read as a
+   pair. */
+.hero__brand-monash {
+  font-family: 'Chakra Petch', var(--font-sans);
+}
+
+/* Sized to its widest line (the wordmark), then centered as a unit by the
+   parent; the year right-aligns to that same width, landing under the
+   right edge of /HACKATHON rather than under the page center. */
+.hero__wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 8px;
+}
+
+/* Arcade lockup: brand-guideline colours, not design-system tokens — this
+   pairing (pixel heading + chamfered year) exists only here. The largest
+   text on the page: everything else in the hero reads smaller than this. */
+.hero__wordmark-main {
+  display: block;
+  font-family: 'Press Start 2P', var(--font-sans);
+  font-size: clamp(var(--text-5xl), 12.5vw, calc(var(--text-6xl) * 1.7));
+  font-weight: 800;
+  line-height: 1.2;
+  color: #e78823;
+}
+
+/* Press Start 2P has no kerning table, so most pairs sit fine on the
+   monospaced grid — but "A" pads empty pixels on its right and "T" pads its
+   left, and together that reads as a stray gap. Pull just this one pair in
+   rather than tracking the whole word, which would fight the pairs that are
+   already even. */
+.hero__wordmark-kern {
+  margin-right: -0.12em;
+}
+
+.hero__wordmark-year {
+  display: block;
+  margin-top: 4px;
+  font-family: 'Chakra Petch', var(--font-sans);
+  font-weight: 700;
+  font-size: clamp(var(--text-3xl), 5.2vw, calc(var(--text-6xl) * 0.9));
+  letter-spacing: 0.04em;
+  /* Matches .hero__brand — the two co-brand lines read as one color pair
+     bracketing the wordmark. */
+  color: var(--color-ink);
 }
 
 .hero__tagline {
