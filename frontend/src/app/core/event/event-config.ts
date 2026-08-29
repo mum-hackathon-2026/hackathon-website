@@ -128,7 +128,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     // several universities — so neither "48 hours" nor "one campus" was true.
     tagline: 'One industry problem, three days to solve it.',
     contactEmail: 'mum-sit-averis-hackathon@monash.edu',
-    discordUrl: 'https://discord.gg/monashhack',
+    discordUrl: 'https://discord.gg/cbFDNWwj5',
     teamRegistrationFormUrl:
       'https://docs.google.com/forms/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/viewform',
     projectSubmissionFormUrl:
