@@ -38,15 +38,18 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService;
+    private final org.springframework.core.env.Environment environment;
 
     public AuthController(GoogleTokenVerifier googleTokenVerifier,
                           JwtService jwtService,
                           UserRepository userRepository,
-                          my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService) {
+                          my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService,
+                          org.springframework.core.env.Environment environment) {
         this.googleTokenVerifier = googleTokenVerifier;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.registrationImportService = registrationImportService;
+        this.environment = environment;
     }
 
     /**
@@ -134,6 +137,12 @@ public class AuthController {
 
     @PostMapping("/dev-login")
     public ResponseEntity<?> devLogin(@RequestBody Map<String, String> request) {
+        if (environment != null && java.util.Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(p -> p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "dev-login is disabled in production"));
+        }
+
         String role = request.getOrDefault("role", "admin");
         String email = request.get("email");
 

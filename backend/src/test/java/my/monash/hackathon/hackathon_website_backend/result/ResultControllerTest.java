@@ -71,7 +71,7 @@ class ResultControllerTest {
     void getPublicResults_returnsEmpty_whenNotPublished() {
         when(eventSettingsRepository.findSingleton()).thenReturn(Optional.empty());
 
-        ResponseEntity<List<PublicTeamResultDto>> response = controller.getPublicResults();
+        ResponseEntity<List<PublicTeamResultDto>> response = controller.getPublicResults(null);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEmpty();
     }
