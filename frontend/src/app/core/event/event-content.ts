@@ -159,7 +159,7 @@ export interface ScaleFigure {
 export const EVENT_SCALE: readonly ScaleFigure[] = [
   { value: '100', label: 'teams can enter' },
   { value: '10', label: 'reach Final Pitch Day' },
-  { value: '3', label: 'days, kickoff to final pitch' },
+  { value: '4', label: 'days to build and hack' },
 ];
 
 export interface SchedulePhase {
