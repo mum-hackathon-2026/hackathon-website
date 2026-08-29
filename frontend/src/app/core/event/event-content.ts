@@ -135,7 +135,7 @@ export const ALL_FAQS: readonly Faq[] = [...FAQS, ...EXTRA_FAQS];
 export const EVENT_PURPOSE: readonly string[] = [
   'Work on a real industry problem, set by the company that actually has it.',
   'Get practice at building, working in a team and pitching, all against a deadline.',
-  'Meet the Averis engineers who judge the event. Contacts and job leads come out of that.',
+  'Meet the Averis engineers who judge the event. Contacts, job leads, and even a fast track to an internship can come out of that.',
 ];
 
 export interface ScaleFigure {
