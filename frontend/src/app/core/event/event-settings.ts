@@ -124,10 +124,18 @@ export class EventSettingsService {
 
     this.current.set({
       eventName: data.eventName || current.eventName,
-      registrationOpensAt: data.registrationOpensAt ? new Date(data.registrationOpensAt) : null,
-      registrationClosesAt: data.registrationClosesAt ? new Date(data.registrationClosesAt) : null,
-      submissionDeadlineAt: data.submissionDeadlineAt ? new Date(data.submissionDeadlineAt) : null,
-      resultsPublishedAt: data.resultsPublishedAt ? new Date(data.resultsPublishedAt) : null,
+      registrationOpensAt: data.registrationOpensAt
+        ? new Date(data.registrationOpensAt)
+        : (current.registrationOpensAt ?? this.config.settings.registrationOpensAt),
+      registrationClosesAt: data.registrationClosesAt
+        ? new Date(data.registrationClosesAt)
+        : (current.registrationClosesAt ?? this.config.settings.registrationClosesAt),
+      submissionDeadlineAt: data.submissionDeadlineAt
+        ? new Date(data.submissionDeadlineAt)
+        : (current.submissionDeadlineAt ?? this.config.settings.submissionDeadlineAt),
+      resultsPublishedAt: data.resultsPublishedAt
+        ? new Date(data.resultsPublishedAt)
+        : (current.resultsPublishedAt ?? this.config.settings.resultsPublishedAt),
       finalPitchDateAt: finalPitchDate,
       judgingOpen: data.judgingOpen ?? current.judgingOpen,
       minTeamSize: Number(data.minTeamSize) || current.minTeamSize,
