@@ -57,7 +57,16 @@ const JWT_STORAGE_KEY = 'hackathon.jwt-token';
 
 export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL', {
   providedIn: 'root',
-  factory: () => 'http://localhost:8080',
+  factory: () => {
+    if (typeof window !== 'undefined' && window.location) {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8080';
+      }
+      return 'https://hackathon-backend-xjhca4nqka-as.a.run.app';
+    }
+    return 'http://localhost:8080';
+  },
 });
 
 /**
