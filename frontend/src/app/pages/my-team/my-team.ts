@@ -33,6 +33,8 @@ export class MyTeam {
 
   protected readonly team = this.teams.myTeam;
   protected readonly members = this.teams.myTeamMembers;
+  protected readonly infoPackUrl =
+    'https://docs.google.com/document/d/1YrnEANXCxypIKwONAr6QrcLnVW35FtwR66sJn_8M5dc/edit?usp=sharing';
 
   /**
    * Locked once registration has closed. Derived from the phase rather than a
