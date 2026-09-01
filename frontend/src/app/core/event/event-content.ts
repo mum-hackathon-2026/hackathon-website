@@ -237,7 +237,7 @@ export const EVENT_SCHEDULE: readonly SchedulePhase[] = [
     name: 'Final Pitch Day',
     start: new Date('2026-09-26T09:00:00+08:00'),
     end: new Date('2026-09-26T17:30:00+08:00'),
-    venue: 'Plenary Theatre',
+    venue: 'Monash University Malaysia',
     summary:
       'Top 10 finalist squads deliver in-person 10-minute pitches with 5-minute Q&A, judged live on paper score sheets for the RM 9,000 prize pool.',
   },

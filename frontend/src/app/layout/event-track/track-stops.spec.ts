@@ -99,7 +99,7 @@ describe('buildStops', () => {
     const stops = buildStops(MILESTONES, EVENT_SCHEDULE, BEFORE_ANYTHING);
     const finals = stops.find((stop) => stop.id === 'final-pitch-day');
 
-    expect(finals?.venue).toBe('Plenary Theatre');
+    expect(finals?.venue).toBe('Monash University Malaysia');
   });
 
   describe('where now sits', () => {
