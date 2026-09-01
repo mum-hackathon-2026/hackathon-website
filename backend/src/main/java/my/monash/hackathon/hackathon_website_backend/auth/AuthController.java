@@ -38,18 +38,15 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService;
-    private final org.springframework.core.env.Environment environment;
 
     public AuthController(GoogleTokenVerifier googleTokenVerifier,
                           JwtService jwtService,
                           UserRepository userRepository,
-                          my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService,
-                          org.springframework.core.env.Environment environment) {
+                          my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService) {
         this.googleTokenVerifier = googleTokenVerifier;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.registrationImportService = registrationImportService;
-        this.environment = environment;
     }
 
     /**
@@ -82,16 +79,16 @@ public class AuthController {
         if (userOpt.isEmpty() && registrationImportService != null) {
             // Attempt on-demand sync from Google Sheets in case the form was just submitted
             try {
-                log.info("Email {} not yet in local DB. Checking Google Sheets on-demand...", email);
+                log.debug("Email {} not yet in local DB. Checking Google Sheets on-demand...", email);
                 registrationImportService.syncFromSheets(false);
                 userOpt = userRepository.findByEmail(email);
             } catch (Exception e) {
-                log.warn("On-demand sheet sync check failed during login for {}: {}", email, e.getMessage());
+                log.debug("On-demand sheet sync check failed during login for {}: {}", email, e.getMessage());
             }
         }
 
         if (userOpt.isEmpty()) {
-            log.info("Login denied: email not registered — {}", email);
+            log.debug("Login denied: email not registered — {}", email);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Access denied: email not registered"));
         }
@@ -131,51 +128,8 @@ public class AuthController {
                 )
         );
 
-        log.info("Login successful: {} (role={})", email, user.getRole());
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/dev-login")
-    public ResponseEntity<?> devLogin(@RequestBody Map<String, String> request) {
-        if (environment != null && java.util.Arrays.stream(environment.getActiveProfiles())
-                .anyMatch(p -> p.equalsIgnoreCase("prod") || p.equalsIgnoreCase("production"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "dev-login is disabled in production"));
-        }
-
-        String role = request.getOrDefault("role", "admin");
-        String email = request.get("email");
-
-        User user = null;
-        if (email != null && !email.isBlank()) {
-            user = userRepository.findByEmail(email.toLowerCase()).orElse(null);
-        }
-        if (user == null) {
-            var users = userRepository.findByRole(role);
-            if (!users.isEmpty()) {
-                user = users.get(0);
-            }
-        }
-        if (user == null) {
-            // If no user found in DB for this role, fallback to first user or create local dev admin
-            user = userRepository.findAll().stream().findFirst().orElse(null);
-        }
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "No user found in database"));
-        }
-
-        String token = jwtService.generateToken(user);
-        var response = new AuthResponse(
-                token,
-                new AuthResponse.UserInfo(
-                        user.getId(),
-                        user.getEmail(),
-                        user.getFullName(),
-                        user.getRole()
-                )
-        );
+        log.info("Login successful: userId={} (role={})", user.getId(), user.getRole());
+        log.debug("Login successful: email={} (role={})", email, user.getRole());
         return ResponseEntity.ok(response);
     }
 

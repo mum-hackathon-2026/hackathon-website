@@ -25,8 +25,14 @@ public class JwtService {
     private final long expirationMs;
 
     public JwtService(JwtProperties properties) {
-        this.signingKey = Keys.hmacShaKeyFor(
-                properties.secret().getBytes(StandardCharsets.UTF_8));
+        if (properties == null || properties.secret() == null || properties.secret().isBlank()) {
+            throw new IllegalStateException("app.jwt.secret must not be blank");
+        }
+        byte[] secretBytes = properties.secret().getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < 32) {
+            throw new IllegalStateException("app.jwt.secret must be at least 32 bytes (256 bits) for HMAC-SHA256");
+        }
+        this.signingKey = Keys.hmacShaKeyFor(secretBytes);
         this.expirationMs = properties.expirationMs();
     }
 

@@ -20,8 +20,8 @@ class RegistrationWebhookControllerTest {
     @Test
     void rejectsRequestsWithInvalidOrMissingSecret() throws Exception {
         RegistrationImportService service = mock(RegistrationImportService.class);
-        WebhookProperties props = new WebhookProperties("expected_secret_123");
-        RegistrationWebhookController controller = new RegistrationWebhookController(service, props);
+        WebhookSecretValidator validator = new WebhookSecretValidator(new WebhookProperties("expected_secret_123"));
+        RegistrationWebhookController controller = new RegistrationWebhookController(service, validator);
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         mockMvc.perform(post("/api/webhooks/forms/registration")
@@ -36,16 +36,16 @@ class RegistrationWebhookControllerTest {
     }
 
     @Test
-    void acceptsValidHeaderSecretAndRunsImport() throws Exception {
+    void acceptsValidHeaderSecretAndRunsImportWithoutLeakingLogMessages() throws Exception {
         RegistrationImportService service = mock(RegistrationImportService.class);
-        WebhookProperties props = new WebhookProperties("expected_secret_123");
+        WebhookSecretValidator validator = new WebhookSecretValidator(new WebhookProperties("expected_secret_123"));
 
         FormRegistrationImporter.ImportSummary summary = new FormRegistrationImporter.ImportSummary(
-                true, 2, 1, 1, 0, 0, List.of("line 2 IMPORTED", "line 3 SKIPPED")
+                true, 2, 1, 1, 0, 0, List.of("line 2 IMPORTED: participant@example.com JOINCODE1", "line 3 SKIPPED")
         );
         when(service.syncFromSheets(anyBoolean())).thenReturn(summary);
 
-        RegistrationWebhookController controller = new RegistrationWebhookController(service, props);
+        RegistrationWebhookController controller = new RegistrationWebhookController(service, validator);
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         mockMvc.perform(post("/api/webhooks/forms/registration")
@@ -56,20 +56,22 @@ class RegistrationWebhookControllerTest {
                 .andExpect(jsonPath("$.totalRows").value(2))
                 .andExpect(jsonPath("$.imported").value(1))
                 .andExpect(jsonPath("$.skipped").value(1))
-                .andExpect(jsonPath("$.rejected").value(0));
+                .andExpect(jsonPath("$.rejected").value(0))
+                .andExpect(jsonPath("$.pending").value(0))
+                .andExpect(jsonPath("$.logMessages").doesNotExist());
     }
 
     @Test
     void acceptsBearerAuthSecret() throws Exception {
         RegistrationImportService service = mock(RegistrationImportService.class);
-        WebhookProperties props = new WebhookProperties("expected_secret_123");
+        WebhookSecretValidator validator = new WebhookSecretValidator(new WebhookProperties("expected_secret_123"));
 
         FormRegistrationImporter.ImportSummary summary = new FormRegistrationImporter.ImportSummary(
                 true, 1, 1, 0, 0, 0, List.of("line 2 IMPORTED")
         );
         when(service.syncFromSheets(anyBoolean())).thenReturn(summary);
 
-        RegistrationWebhookController controller = new RegistrationWebhookController(service, props);
+        RegistrationWebhookController controller = new RegistrationWebhookController(service, validator);
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         mockMvc.perform(post("/api/webhooks/forms/registration")
@@ -77,6 +79,7 @@ class RegistrationWebhookControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.imported").value(1));
+                .andExpect(jsonPath("$.imported").value(1))
+                .andExpect(jsonPath("$.logMessages").doesNotExist());
     }
 }
