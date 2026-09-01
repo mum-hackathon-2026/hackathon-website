@@ -362,3 +362,123 @@
   font-weight: 600;
   color: var(--color-ink);
 }
+
+// ── Participant Info Pack Card ─────────────────────────────────────────────
+
+.my-team__info-pack-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 22px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-brand, #f59e0b) 35%, transparent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-brand, #f59e0b) 8%, var(--color-surface)) 0%,
+    var(--color-surface) 100%
+  );
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+  }
+}
+
+.my-team__info-pack-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-brand, #f59e0b) 18%, transparent);
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.my-team__info-pack-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.my-team__info-pack-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.my-team__info-pack-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.my-team__info-pack-badge {
+  font-size: var(--text-3xs, 0.65rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-brand, #f59e0b) 20%, transparent);
+  color: #b45309;
+}
+
+.my-team__info-pack-title {
+  margin: 0;
+  font-size: var(--text-base, 1rem);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.my-team__info-pack-desc {
+  margin: 0;
+  font-size: var(--text-xs, 0.75rem);
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+.my-team__info-pack-action {
+  flex-shrink: 0;
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+}
+
+.my-team__info-pack-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  font-size: var(--text-xs, 0.8125rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  background: #d97706;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #b45309;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px -2px rgba(217, 119, 6, 0.35);
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+}
+
+.my-team__btn-arrow {
+  width: 15px;
+  height: 15px;
+}
