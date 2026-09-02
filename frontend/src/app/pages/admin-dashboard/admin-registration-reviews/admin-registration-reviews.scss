@@ -1,65 +1,131 @@
 @use '../admin-table';
 
-/* -- Eligibility ----------------------------------------------------------- */
+/* -- Review cards ------------------------------------------------------------ */
 
-.dot--eligible {
-  background: var(--color-green);
+.reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.dot--unverified {
-  background: var(--color-yellow);
-}
-
-.dot--not_student {
-  background: var(--color-red-ink);
-}
-
-.dot--incomplete_profile {
-  background: var(--color-blue-ink);
-}
-
-/* -- Bits ------------------------------------------------------------------ */
-
-.banner--muted {
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid var(--color-border);
-  background: var(--color-surface-alt);
-  color: var(--color-muted);
+  border-radius: 10px;
+  background: var(--color-surface);
 }
 
-.banner--muted code {
-  color: var(--color-body);
+.review-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.grid__email {
-  color: var(--color-muted);
+.review-card__title {
+  margin: 2px 0 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.review-card__meta {
   font-size: var(--text-xs);
-}
-
-.grid__action-col {
-  text-align: right;
+  color: var(--color-muted);
   white-space: nowrap;
 }
 
-.btn-edit {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: 600;
-  color: var(--color-brand, #3b82f6);
-  background: color-mix(in srgb, var(--color-brand, #3b82f6) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand, #3b82f6) 30%, transparent);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.review-card__status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-  &:hover {
-    background: color-mix(in srgb, var(--color-brand, #3b82f6) 20%, transparent);
+.review-card__status--awaiting_review {
+  background: color-mix(in srgb, var(--color-amber-ink) 15%, transparent);
+  color: var(--color-amber-ink);
+}
+
+.review-card__status--needs_fix {
+  background: color-mix(in srgb, var(--color-yellow) 25%, transparent);
+  color: var(--color-amber-ink);
+}
+
+.review-card__status--approved {
+  background: color-mix(in srgb, var(--color-green) 15%, transparent);
+  color: var(--color-green-ink);
+}
+
+.review-card__status--rejected {
+  background: color-mix(in srgb, var(--color-red) 15%, transparent);
+  color: var(--color-red-ink);
+}
+
+.review-card__issues {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--text-sm);
+  color: var(--color-body);
+  line-height: 1.5;
+}
+
+.review-card__note {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--color-surface-alt);
+  font-size: var(--text-xs);
+  color: var(--color-body);
+}
+
+.review-card__cell--missing {
+  color: var(--color-red-ink);
+  font-style: italic;
+}
+
+.review-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.review-card__decided {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+/* -- Approve form -------------------------------------------------------------- */
+
+.modal-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.member-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: 8px;
+
+  legend {
+    padding: 0 6px;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--color-muted);
   }
 }
 
-/* -- Modal Dialog ---------------------------------------------------------- */
+/* -- Modal dialog (matches the pattern in admin-participants) ----------------- */
 
 .modal-backdrop {
   position: fixed;
@@ -149,13 +215,9 @@
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-ink, #334155);
-
-  .required {
-    color: var(--color-red-ink, #ef4444);
-  }
 }
 
-.form-input, .form-textarea {
+.form-input {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--color-border, #cbd5e1);
@@ -164,11 +226,16 @@
   background: var(--color-background, #fff);
   color: var(--color-ink, #0f172a);
   box-sizing: border-box;
+  font-family: var(--font-sans);
 
   &:focus {
     outline: none;
     border-color: var(--color-brand, #3b82f6);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand, #3b82f6) 20%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.6;
   }
 }
 
@@ -191,6 +258,7 @@
   border-radius: 6px;
   color: var(--color-body, #475569);
   cursor: pointer;
+  font-family: var(--font-sans);
 
   &:hover:not(:disabled) {
     background: var(--color-hairline, #f1f5f9);
@@ -206,6 +274,7 @@
   border-radius: 6px;
   color: #fff;
   cursor: pointer;
+  font-family: var(--font-sans);
 
   &:hover:not(:disabled) {
     opacity: 0.9;
@@ -214,6 +283,22 @@
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+}
+
+.btn-edit {
+  padding: 8px 16px;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-brand, #3b82f6);
+  background: color-mix(in srgb, var(--color-brand, #3b82f6) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand, #3b82f6) 30%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-brand, #3b82f6) 20%, transparent);
   }
 }
 

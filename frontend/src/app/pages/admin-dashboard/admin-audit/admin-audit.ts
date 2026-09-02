@@ -21,6 +21,7 @@ const KIND_LABELS: Record<AuditEntry['kind'], string> = {
   submission: 'Submissions',
   result: 'Results',
   settings: 'Event settings',
+  registration: 'Registration reviews',
 };
 
 /**

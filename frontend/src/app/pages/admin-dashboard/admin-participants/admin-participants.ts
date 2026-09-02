@@ -51,6 +51,7 @@ export class AdminParticipants {
     { id: 'eligible', label: ELIGIBILITY_LABELS.eligible },
     { id: 'unverified', label: ELIGIBILITY_LABELS.unverified },
     { id: 'not_student', label: ELIGIBILITY_LABELS.not_student },
+    { id: 'incomplete_profile', label: ELIGIBILITY_LABELS.incomplete_profile },
   ];
 
   protected readonly teams = computed(() =>

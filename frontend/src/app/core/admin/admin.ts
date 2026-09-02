@@ -139,12 +139,21 @@ export interface AdminStats {
  * Participants section — so this reports what the data already knows and offers
  * no override.
  */
-export type EligibilityState = 'eligible' | 'unverified' | 'not_student';
+/**
+ * `incomplete_profile` is the fourth state: a verified, on-domain participant who is still
+ * missing a resume, LinkedIn or GitHub link. It exists because of the registration review
+ * queue — an admin can approve a team from there with a field deliberately left blank (the
+ * submitted value was unusable and nobody has supplied a real one yet) — but it is computed
+ * from the same three `users` columns regardless of how a participant got here, so it also
+ * catches a gap introduced later by editing a participant's profile down to nothing.
+ */
+export type EligibilityState = 'eligible' | 'unverified' | 'not_student' | 'incomplete_profile';
 
 export const ELIGIBILITY_LABELS: Record<EligibilityState, string> = {
   eligible: 'Eligible',
   unverified: 'Email unconfirmed',
   not_student: 'Non-student address',
+  incomplete_profile: 'Profile incomplete',
 };
 
 /**
@@ -167,6 +176,48 @@ export interface AdminParticipantRow {
   readonly githubUrl?: string;
   readonly linkedinUrl?: string;
   readonly resumeUrl?: string;
+}
+
+/**
+ * A team the importer could not accept unattended, sitting in `registration_reviews`.
+ *
+ * `awaiting_review` is the initial state; `needs_fix` and `rejected` are an admin's own
+ * decisions, and `approved` means the team has actually been imported — see
+ * `RegistrationReviewService` on the backend for the full state machine, in particular why
+ * `rejected` never comes back on its own and `needs_fix` does once the sheet changes.
+ */
+export type RegistrationReviewStatus = 'awaiting_review' | 'needs_fix' | 'approved' | 'rejected';
+
+/**
+ * One member's fields, exactly as submitted — nothing here has been validated. `block` is
+ * the member's position in the form (`'1'` is always the leader); the rest are what
+ * `FormRegistrationImporter.buildRawPayload` captured, verbatim including whatever made
+ * the row a problem (a blank field, `'N/A'` typed into a URL box, and so on).
+ */
+export interface RegistrationReviewMember {
+  readonly block: string;
+  readonly fullName: string;
+  readonly email: string;
+  readonly phone: string;
+  /** Context only — never persisted; `users` has no `major` column. */
+  readonly major: string;
+  readonly resumeUrl: string | null;
+  readonly linkedinUrl: string | null;
+  readonly githubUrl: string | null;
+}
+
+export interface RegistrationReview {
+  readonly id: number;
+  readonly teamName: string;
+  readonly members: readonly RegistrationReviewMember[];
+  /** Every reason this team needs a decision, in the same words the CLI import report uses. */
+  readonly issues: readonly string[];
+  readonly status: RegistrationReviewStatus;
+  readonly adminNote: string | null;
+  readonly reviewedByName: string | null;
+  readonly reviewedAt: Date | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 }
 
 /**
@@ -240,7 +291,8 @@ export interface JudgeWorkload {
 export interface AuditEntry {
   readonly id: number;
   /** Drives the colour dot; mirrors the entity kind the entry is about. */
-  readonly kind: 'team' | 'participant' | 'judge' | 'submission' | 'result' | 'settings';
+  readonly kind:
+    'team' | 'participant' | 'judge' | 'submission' | 'result' | 'settings' | 'registration';
   readonly action: string;
   readonly target: string;
   readonly actor: string;
@@ -266,6 +318,11 @@ type WireAdminAssignment = Omit<AdminAssignment, 'assignedAt' | 'completedAt'> &
 };
 type WireAdminAssignmentRow = Omit<AdminAssignmentRow, 'judges'> & {
   readonly judges: readonly WireAdminAssignment[];
+};
+type WireRegistrationReview = Omit<RegistrationReview, 'reviewedAt' | 'createdAt' | 'updatedAt'> & {
+  readonly reviewedAt: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 };
 
 /**
@@ -325,6 +382,7 @@ export type SectionId =
   | 'overview'
   | 'teams'
   | 'participants'
+  | 'registrations'
   | 'submissions'
   | 'judges'
   | 'assignments'
@@ -349,6 +407,16 @@ const SETTING_LABELS = (key: keyof EventSettingsPatch): string =>
     screeningEnabled: 'screening',
     judgesPerTeam: 'judges per team',
   })[key] ?? key;
+
+/**
+ * The fulfilled value of one `Promise.allSettled` result, or `undefined` if that one
+ * request failed — the point being that a caller destructures the settled array by
+ * position (keeping each element's own type) and unwraps each with this, rather than
+ * `.map()`-ing the whole array first and collapsing every position into one union type.
+ */
+function valueOf<T>(result: PromiseSettledResult<T>): T | undefined {
+  return result.status === 'fulfilled' ? result.value : undefined;
+}
 
 /**
  * Whether a settings field actually moved.
@@ -383,6 +451,7 @@ export const SECTIONS: readonly { readonly id: SectionId; readonly label: string
   { id: 'overview', label: 'Overview' },
   { id: 'teams', label: 'Teams' },
   { id: 'participants', label: 'Participants' },
+  { id: 'registrations', label: 'Registration Reviews' },
   { id: 'submissions', label: 'Submissions' },
   { id: 'judges', label: 'Judges' },
   { id: 'assignments', label: 'Assignments' },
@@ -495,6 +564,12 @@ function addressFor(fullName: string, domain: string): string {
  * Neither input is a stored column on its own account — see EligibilityState.
  * A non-student address outranks an unconfirmed one: it is the more basic
  * problem, and confirming the address would not fix it.
+ *
+ * Never returns `incomplete_profile`: the demo seed below does not track a fake
+ * resume/LinkedIn/GitHub presence per person, so that state exists only on the
+ * live path (`AdminBackendService.getParticipants`), which checks the real
+ * columns. Inventing seed data for a state the demo can never otherwise reach
+ * was not worth the added fixture complexity.
  */
 function eligibilityOf(studentAddress: boolean, emailVerified: boolean): EligibilityState {
   if (!studentAddress) return 'not_student';
@@ -1086,6 +1161,7 @@ export class AdminService {
   private readonly liveAudit = signal<readonly AuditEntry[] | null>(null);
   private readonly liveStats = signal<AdminStats | null>(null);
   private readonly liveResults = signal<readonly AdminResultRow[] | null>(null);
+  private readonly liveRegistrationReviews = signal<readonly RegistrationReview[] | null>(null);
 
   /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
   private readonly rows = signal<readonly SeedTeam[]>(SEED);
@@ -1124,52 +1200,82 @@ export class AdminService {
         this.liveAudit.set(null);
         this.liveStats.set(null);
         this.liveResults.set(null);
+        this.liveRegistrationReviews.set(null);
       }
     });
   }
 
   async refreshAll(): Promise<void> {
     if (!this.http || this.auth.user()?.role !== 'admin') return;
-    try {
-      const token = this.auth.token();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const [overview, teams, participants, judges, assignments, audit, results] = await Promise.all([
-        firstValueFrom(
-          this.http.get<{ stats: AdminStats; recentAudit: readonly WireAuditEntry[] }>(
-            `${this.apiBaseUrl}/api/admin/overview`,
-            { headers },
-          ),
-        ),
-        firstValueFrom(
-          this.http.get<readonly WireAdminTeamRow[]>(`${this.apiBaseUrl}/api/admin/teams`, {
-            headers,
-          }),
-        ),
-        firstValueFrom(
-          this.http.get<readonly AdminParticipantRow[]>(
-            `${this.apiBaseUrl}/api/admin/participants`,
-            { headers },
-          ),
-        ),
-        firstValueFrom(
-          this.http.get<readonly AdminJudge[]>(`${this.apiBaseUrl}/api/admin/judges`, { headers }),
-        ),
-        firstValueFrom(
-          this.http.get<readonly WireAdminAssignmentRow[]>(
-            `${this.apiBaseUrl}/api/admin/assignments`,
-            { headers },
-          ),
-        ),
-        firstValueFrom(
-          this.http.get<readonly WireAuditEntry[]>(`${this.apiBaseUrl}/api/admin/audit`, {
-            headers,
-          }),
-        ),
-        firstValueFrom(
-          this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/results`, { headers }),
-        ),
-      ]);
+    const token = this.auth.token();
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
+    // allSettled, not all: one endpoint failing (a stale backend build without a newly
+    // added route, a transient 500) must not blank out every other section that fetched
+    // fine. Promise.all rejects the whole batch on a single failure, and every live*
+    // signal below would then keep its previous value forever - which, for an
+    // already-authenticated admin session, reads as "all my data just disappeared".
+    // Destructuring the settled array (rather than .map()-ing it first) is what keeps
+    // each position's own type instead of collapsing all eight into one wide union.
+    const [
+      overviewR,
+      teamsR,
+      participantsR,
+      judgesR,
+      assignmentsR,
+      auditR,
+      resultsR,
+      registrationReviewsR,
+    ] = await Promise.allSettled([
+      firstValueFrom(
+        this.http.get<{ stats: AdminStats; recentAudit: readonly WireAuditEntry[] }>(
+          `${this.apiBaseUrl}/api/admin/overview`,
+          { headers },
+        ),
+      ),
+      firstValueFrom(
+        this.http.get<readonly WireAdminTeamRow[]>(`${this.apiBaseUrl}/api/admin/teams`, {
+          headers,
+        }),
+      ),
+      firstValueFrom(
+        this.http.get<readonly AdminParticipantRow[]>(`${this.apiBaseUrl}/api/admin/participants`, {
+          headers,
+        }),
+      ),
+      firstValueFrom(
+        this.http.get<readonly AdminJudge[]>(`${this.apiBaseUrl}/api/admin/judges`, { headers }),
+      ),
+      firstValueFrom(
+        this.http.get<readonly WireAdminAssignmentRow[]>(
+          `${this.apiBaseUrl}/api/admin/assignments`,
+          { headers },
+        ),
+      ),
+      firstValueFrom(
+        this.http.get<readonly WireAuditEntry[]>(`${this.apiBaseUrl}/api/admin/audit`, {
+          headers,
+        }),
+      ),
+      firstValueFrom(this.http.get<any[]>(`${this.apiBaseUrl}/api/admin/results`, { headers })),
+      firstValueFrom(
+        this.http.get<readonly WireRegistrationReview[]>(
+          `${this.apiBaseUrl}/api/admin/registration-reviews`,
+          { headers },
+        ),
+      ),
+    ]);
+
+    const overview = valueOf(overviewR);
+    const teams = valueOf(teamsR);
+    const participants = valueOf(participantsR);
+    const judges = valueOf(judgesR);
+    const assignments = valueOf(assignmentsR);
+    const audit = valueOf(auditR);
+    const results = valueOf(resultsR);
+    const registrationReviews = valueOf(registrationReviewsR);
+
+    try {
       if (overview?.stats) {
         this.liveStats.set(overview.stats);
       }
@@ -1216,6 +1322,16 @@ export class AdminService {
           })),
         );
       }
+      if (registrationReviews) {
+        this.liveRegistrationReviews.set(
+          registrationReviews.map((r) => ({
+            ...r,
+            reviewedAt: r.reviewedAt ? new Date(r.reviewedAt) : null,
+            createdAt: new Date(r.createdAt),
+            updatedAt: new Date(r.updatedAt),
+          })),
+        );
+      }
     } catch {
       // Fallback smoothly
     }
@@ -1237,9 +1353,7 @@ export class AdminService {
         ...JUDGE_SEED.filter((judge) => overrides.get(judge.userId) !== 'participant').map(
           (judge) => ({ ...judge, competingTeam: '' }),
         ),
-        ...this.mockCustomJudges().filter(
-          (judge) => overrides.get(judge.userId) !== 'participant',
-        ),
+        ...this.mockCustomJudges().filter((judge) => overrides.get(judge.userId) !== 'participant'),
         // Promoted from the floor, so they may well still be on a team.
         ...this.registered()
           .filter((row) => overrides.get(row.userId) === 'judge')
@@ -1461,6 +1575,22 @@ export class AdminService {
     return rows.length > 0 && rows.every((row) => row.publishedAt !== null);
   });
 
+  /**
+   * The registration review queue. No demo/offline fallback — unlike the other sections,
+   * nothing here has ever had a stand-in: a review row only exists because a real import ran
+   * against a real database, so there is nothing plausible to seed for the signed-out /
+   * token-less demo path. It reads empty there, same as it would before any import ever ran.
+   */
+  readonly registrationReviews = computed<readonly RegistrationReview[]>(
+    () => this.liveRegistrationReviews() ?? [],
+  );
+
+  readonly pendingRegistrationReviews = computed(() =>
+    this.registrationReviews().filter(
+      (row) => row.status === 'awaiting_review' || row.status === 'needs_fix',
+    ),
+  );
+
   readonly needsAttention = computed<readonly AdminTeamRow[]>(() =>
     [...this.teams().filter((row) => row.attention.length > 0)].sort(
       (a, b) => b.attention.length - a.attention.length,
@@ -1607,7 +1737,8 @@ export class AdminService {
           this.log('team', 'Team status changed', `${team.teamName} → ${status}`);
           return { ok: true };
         } catch (err: any) {
-          const msg = err?.error?.message ?? err?.message ?? 'Failed to update team status on server.';
+          const msg =
+            err?.error?.message ?? err?.message ?? 'Failed to update team status on server.';
           return { ok: false, error: msg };
         }
       }
@@ -1729,9 +1860,7 @@ export class AdminService {
       }
 
       // Mock fallback:
-      const existingPerson = this.participants().find(
-        (p) => p.email.toLowerCase() === cleanEmail,
-      );
+      const existingPerson = this.participants().find((p) => p.email.toLowerCase() === cleanEmail);
       if (existingPerson) {
         this.setRole(existingPerson.userId, 'judge');
       } else {
@@ -1786,9 +1915,7 @@ export class AdminService {
 
       // Mock fallback:
       for (const j of valid) {
-        const existingPerson = this.participants().find(
-          (p) => p.email.toLowerCase() === j.email,
-        );
+        const existingPerson = this.participants().find((p) => p.email.toLowerCase() === j.email);
         if (existingPerson) {
           this.setRole(existingPerson.userId, 'judge');
         } else {
@@ -2101,9 +2228,7 @@ export class AdminService {
             ? item.awardTitle
             : awardTitle,
         prize:
-          item.prize && item.prize !== 'Top 10 Finalist Plaque' && rank > 3
-            ? item.prize
-            : prize,
+          item.prize && item.prize !== 'Top 10 Finalist Plaque' && rank > 3 ? item.prize : prize,
       };
     });
     this.resultsService.setFinalistStandings(ranked);
@@ -2114,9 +2239,7 @@ export class AdminService {
       this.resultsService.setFinalResultsPublished(publish);
       this.log(
         'result',
-        publish
-          ? 'Grand Finals results published'
-          : 'Grand Finals results reverted to draft',
+        publish ? 'Grand Finals results published' : 'Grand Finals results reverted to draft',
         'Finalist Portal',
       );
       return { ok: true };
@@ -2143,10 +2266,18 @@ export class AdminService {
         const headers = { Authorization: `Bearer ${token}` };
         const body: Record<string, any> = {
           eventName: patch.eventName,
-          registrationOpensAt: patch.registrationOpensAt ? patch.registrationOpensAt.toISOString() : null,
-          registrationClosesAt: patch.registrationClosesAt ? patch.registrationClosesAt.toISOString() : null,
-          submissionDeadlineAt: patch.submissionDeadlineAt ? patch.submissionDeadlineAt.toISOString() : null,
-          resultsPublishedAt: patch.resultsPublishedAt ? patch.resultsPublishedAt.toISOString() : null,
+          registrationOpensAt: patch.registrationOpensAt
+            ? patch.registrationOpensAt.toISOString()
+            : null,
+          registrationClosesAt: patch.registrationClosesAt
+            ? patch.registrationClosesAt.toISOString()
+            : null,
+          submissionDeadlineAt: patch.submissionDeadlineAt
+            ? patch.submissionDeadlineAt.toISOString()
+            : null,
+          resultsPublishedAt: patch.resultsPublishedAt
+            ? patch.resultsPublishedAt.toISOString()
+            : null,
           finalPitchDateAt: patch.finalPitchDateAt ? patch.finalPitchDateAt.toISOString() : null,
           judgingOpen: patch.judgingOpen,
           minTeamSize: patch.minTeamSize,
@@ -2192,9 +2323,12 @@ export class AdminService {
     if (this.http && token && this.auth.user()?.role === 'admin') {
       try {
         return await firstValueFrom(
-          this.http.get<AdminSubmissionDetail>(`${this.apiBaseUrl}/api/admin/submissions/${teamId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          this.http.get<AdminSubmissionDetail>(
+            `${this.apiBaseUrl}/api/admin/submissions/${teamId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          ),
         );
       } catch {
         return null;
@@ -2225,11 +2359,9 @@ export class AdminService {
       if (this.http && token && this.auth.user()?.role === 'admin') {
         try {
           await firstValueFrom(
-            this.http.patch(
-              `${this.apiBaseUrl}/api/admin/submissions/${teamId}`,
-              payload,
-              { headers: { Authorization: `Bearer ${token}` } },
-            ),
+            this.http.patch(`${this.apiBaseUrl}/api/admin/submissions/${teamId}`, payload, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
           );
           await this.refreshAll();
           this.log('submission', 'Admin updated submission', `Team #${teamId}`);
@@ -2254,14 +2386,16 @@ export class AdminService {
       if (this.http && token && this.auth.user()?.role === 'admin') {
         try {
           await firstValueFrom(
-            this.http.patch(
-              `${this.apiBaseUrl}/api/admin/participants/${userId}`,
-              payload,
-              { headers: { Authorization: `Bearer ${token}` } },
-            ),
+            this.http.patch(`${this.apiBaseUrl}/api/admin/participants/${userId}`, payload, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
           );
           await this.refreshAll();
-          this.log('participant', 'Admin updated participant', payload.fullName ?? `User #${userId}`);
+          this.log(
+            'participant',
+            'Admin updated participant',
+            payload.fullName ?? `User #${userId}`,
+          );
           return { ok: true };
         } catch (err: any) {
           return { ok: false, error: err?.error?.error || 'Failed to update participant.' };
@@ -2270,6 +2404,116 @@ export class AdminService {
 
       this.log('participant', 'Admin updated participant', payload.fullName ?? `User #${userId}`);
       return { ok: true };
+    });
+  }
+
+  // ── Registration reviews ────────────────────────────────────────────────
+  //
+  // No offline fallback for any of the four methods below, matching
+  // `registrationReviews` itself: a review only exists because a real import
+  // ran against a real database, so there is nothing to simulate without one.
+
+  /**
+   * Imports the team for real, using whatever the admin has (possibly) edited in the review
+   * form rather than the original submitted values — see `RegistrationReviewService.approve`
+   * on the backend for the validation this re-runs (required name/email per member, team
+   * size, URL shape, live name/email collisions) before anything is written.
+   */
+  approveRegistration(
+    id: number,
+    teamName: string,
+    members: readonly Omit<RegistrationReviewMember, 'block'>[],
+  ): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const token = this.auth.token();
+      if (!this.http || !token || this.auth.user()?.role !== 'admin') {
+        return { ok: false, error: 'Registration reviews require a live connection.' };
+      }
+      try {
+        await firstValueFrom(
+          this.http.post(
+            `${this.apiBaseUrl}/api/admin/registration-reviews/${id}/approve`,
+            { teamName, members },
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        );
+        await this.refreshAll();
+        this.log('registration', 'Registration approved', teamName);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err?.error?.error || 'Failed to approve this registration.' };
+      }
+    });
+  }
+
+  rejectRegistration(id: number, teamName: string, note?: string): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const token = this.auth.token();
+      if (!this.http || !token || this.auth.user()?.role !== 'admin') {
+        return { ok: false, error: 'Registration reviews require a live connection.' };
+      }
+      try {
+        await firstValueFrom(
+          this.http.post(
+            `${this.apiBaseUrl}/api/admin/registration-reviews/${id}/reject`,
+            { note },
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        );
+        await this.refreshAll();
+        this.log('registration', 'Registration rejected', teamName);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err?.error?.error || 'Failed to reject this registration.' };
+      }
+    });
+  }
+
+  /** Sends a team back for a fix — "this data isn't complete yet" — rather than rejecting it. */
+  requestRegistrationFix(id: number, teamName: string, note?: string): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const token = this.auth.token();
+      if (!this.http || !token || this.auth.user()?.role !== 'admin') {
+        return { ok: false, error: 'Registration reviews require a live connection.' };
+      }
+      try {
+        await firstValueFrom(
+          this.http.post(
+            `${this.apiBaseUrl}/api/admin/registration-reviews/${id}/needs-fix`,
+            { note },
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        );
+        await this.refreshAll();
+        this.log('registration', 'Registration sent back for a fix', teamName);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err?.error?.error || 'Failed to send this registration back.' };
+      }
+    });
+  }
+
+  /** Puts a rejected or needs-fix row back to awaiting_review, for a decision reconsidered. */
+  reopenRegistration(id: number, teamName: string): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const token = this.auth.token();
+      if (!this.http || !token || this.auth.user()?.role !== 'admin') {
+        return { ok: false, error: 'Registration reviews require a live connection.' };
+      }
+      try {
+        await firstValueFrom(
+          this.http.post(
+            `${this.apiBaseUrl}/api/admin/registration-reviews/${id}/reopen`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        );
+        await this.refreshAll();
+        this.log('registration', 'Registration reopened for review', teamName);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err?.error?.error || 'Failed to reopen this registration.' };
+      }
     });
   }
 

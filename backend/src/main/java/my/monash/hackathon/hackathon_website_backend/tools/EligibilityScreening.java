@@ -9,17 +9,22 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * The checks that hold a registration back for a human instead of importing it or refusing it.
+ * The checks that flag a registration for a human to decide, rather than importing it
+ * unattended.
  *
- * <p>Everything here produces a PENDING reason, never a rejection. The distinction is the
- * point of the class: {@link TeamRow} refuses rows that are structurally wrong and cannot be
- * fixed without the team registering again — a missing email, a team of six — while
- * everything here is a judgement call or an almost-certain typo. A resume link pasted into
- * the LinkedIn box is not a reason to throw a team out; it is a reason for somebody to look.
+ * <p>Every reason produced here is a judgement call or an almost-certain typo — a resume
+ * link pasted into the LinkedIn box, a major that does not obviously match an IT course.
+ * None of it used to be grounds to throw a team out on its own; now it is one of the ways a
+ * team ends up in the admin review queue, alongside the purely structural problems
+ * {@link TeamRow} finds (a missing email, a team of six). Both kinds are reported the same
+ * way — a list of strings the importer writes to {@code registration_reviews.issues} — and
+ * an admin decides from there.
  *
- * <p>A PENDING team is <strong>not written to the database</strong> and holds no rows, so it
- * is re-screened from scratch on every run and disappears from the report the moment the
- * spreadsheet is corrected. Nothing needs to be cleared and no state is kept.
+ * <p>A team is <strong>not written to {@code users}/{@code teams}/{@code team_members}</strong>
+ * just because it was screened; only an admin's Approve action does that. A team still
+ * sitting as {@code awaiting_review} or {@code needs_fix} is re-screened from the sheet on
+ * every run, so correcting the spreadsheet refreshes what the admin sees without anyone
+ * having to clear anything by hand — see {@code FormRegistrationImporter.toReview}.
  *
  * <p><strong>These checks are offline.</strong> Nothing here opens a network connection.
  * A URL is checked for its shape and its domain and nothing more — this class cannot tell

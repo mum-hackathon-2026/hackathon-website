@@ -53,14 +53,18 @@ public class RegistrationImportService {
             if (summary.imported() > 0) {
                 log.info("Scheduled sync imported {} new registration(s)", summary.imported());
             }
-            // Held teams are logged at INFO too. They are not in the database and nothing
-            // else will mention them, so at DEBUG a registration could sit unscreened for
-            // days with the poll reporting nothing at all.
-            if (summary.pending() > 0) {
-                log.info("Scheduled sync held {} registration(s) for a human: {}",
-                        summary.pending(), summary.logMessages().stream()
-                                .filter(message -> message.contains(" PENDING "))
+            // Reviewed teams are logged at INFO too. They are not in the database and
+            // nothing else will mention them until an admin acts, so at DEBUG a
+            // registration could sit waiting for days with the poll reporting nothing at all.
+            if (summary.review() > 0) {
+                log.info("Scheduled sync sent {} registration(s) to admin review: {}",
+                        summary.review(), summary.logMessages().stream()
+                                .filter(message -> message.contains(" NEEDS REVIEW "))
                                 .toList());
+            }
+            if (summary.errors() > 0) {
+                log.warn("Scheduled sync hit {} error(s) it could not resolve on its own",
+                        summary.errors());
             }
         } catch (Exception e) {
             log.debug("Scheduled sync poll check: {}", e.getMessage());

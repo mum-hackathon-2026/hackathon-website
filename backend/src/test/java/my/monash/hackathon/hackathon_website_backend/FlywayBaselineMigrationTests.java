@@ -37,6 +37,7 @@ class FlywayBaselineMigrationTests {
             "event_settings",
             "judging_criteria",
             "notifications_log",
+            "registration_reviews",
             "scores",
             "submissions",
             "team_members",
@@ -65,8 +66,8 @@ class FlywayBaselineMigrationTests {
 
         MigrateResult result = flyway.migrate();
 
-        assertThat(result.migrationsExecuted).isEqualTo(8);
-        assertThat(result.targetSchemaVersion).isEqualTo("8");
+        assertThat(result.migrationsExecuted).isEqualTo(11);
+        assertThat(result.targetSchemaVersion).isEqualTo("11");
 
         Map<String, Object> baselineRow = jdbcTemplate.queryForMap(
                 "select version, description, success from flyway_schema_history where version = ?",
@@ -139,6 +140,33 @@ class FlywayBaselineMigrationTests {
                 .as("V8 must be recorded as successfully applied")
                 .isEqualTo(Boolean.TRUE);
         assertThat(judgesPerTeamRow.get("description")).isEqualTo("judges per team setting");
+
+        Map<String, Object> darrenAdminRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "9");
+
+        assertThat(darrenAdminRow.get("success"))
+                .as("V9 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(darrenAdminRow.get("description")).isEqualTo("register admin darren");
+
+        Map<String, Object> mingDongAdminRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "10");
+
+        assertThat(mingDongAdminRow.get("success"))
+                .as("V10 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(mingDongAdminRow.get("description")).isEqualTo("register admin ming dong");
+
+        Map<String, Object> registrationReviewsRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "11");
+
+        assertThat(registrationReviewsRow.get("success"))
+                .as("V11 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(registrationReviewsRow.get("description")).isEqualTo("registration reviews");
 
         List<String> actualTables = jdbcTemplate.queryForList(
                 """

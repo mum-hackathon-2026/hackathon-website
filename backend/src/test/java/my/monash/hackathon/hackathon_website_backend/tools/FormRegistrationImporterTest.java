@@ -250,10 +250,10 @@ class FormRegistrationImporterTest {
     }
 
     @Test
-    void exitCodeIsOneWhenSomethingIsRejected() throws IOException, SQLException {
+    void exitCodeIsOneWhenSomethingNeedsReview() throws IOException, SQLException {
         Path file = csv("one-bad-row.csv",
                 header(4),
-                // Two members, not one: the minimum is 2, and a solo team would be rejected
+                // Two members, not one: the minimum is 2, and a solo team would need review
                 // on size before its email was ever looked at.
                 "2026/08/01 9:00:00 AM GMT+8," + team("Good Team") + ","
                         + member("Alpha One") + "," + member("Beta Two") + ","
@@ -268,18 +268,18 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
-                .contains("RESULT mode=live rows=2 imported=1 skipped=0 rejected=1")
+                .contains("RESULT mode=live rows=2 imported=1 skipped=0 rejected=0 pending=0 review=1")
                 // Singular, and the verb agrees with it.
                 .contains("1 row needs a human")
                 .doesNotContain("1 row need a human");
 
-        // A rejection does not cost the good row its import.
+        // A row sent to review does not cost the good row its import.
         assertThat(countUsers()).isEqualTo(2);
         assertThat(countTeams()).isEqualTo(1);
     }
 
     @Test
-    void pluralRejectionMessageAgrees() throws IOException {
+    void pluralReviewMessageAgrees() throws IOException {
         Path file = csv("two-bad-rows.csv",
                 header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Bad One") + ",Broken,not-an-email,"
@@ -300,7 +300,7 @@ class FormRegistrationImporterTest {
     }
 
     @Test
-    void dryRunWithRejectionsAlsoExitsOne() throws IOException {
+    void dryRunWithReviewRowsAlsoExitsOne() throws IOException, SQLException {
         Path file = csv("dry-bad.csv",
                 header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Bad One") + ",Broken,not-an-email,"
@@ -313,7 +313,10 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output()).contains("RESULT mode=dry-run rows=1 imported=0 "
-                + "skipped=0 rejected=1");
+                + "skipped=0 rejected=0 pending=0 review=1");
+        // A dry run must not write to the review queue either.
+        assertThat(queryOne("select count(*) from registration_reviews where team_name = ?",
+                team("Bad One"))).isZero();
     }
 
     @Test
@@ -469,11 +472,11 @@ class FormRegistrationImporterTest {
         assertThat(run.output())
                 .contains("Exit codes:")
                 .contains("0   the import ran to the end and nothing needs a human")
-                .contains("1   the import ran to the end, but rejected= or pending= is non-zero")
+                .contains("1   the import ran to the end, but review= or error= is non-zero")
                 .contains("2   nothing was imported.")
-                // The three outcomes and the limits of the URL check are documented where
-                // an operator will actually meet them, not only in docs/.
-                .contains("PENDING   screening held it for a human")
+                // The outcomes and the limits of the URL check are documented where an
+                // operator will actually meet them, not only in docs/.
+                .contains("REVIEW    sent to the admin dashboard's Registration Reviews section")
                 .contains("Links are checked for SHAPE and DOMAIN ONLY.");
     }
 
@@ -564,9 +567,10 @@ class FormRegistrationImporterTest {
     }
 
     @Test
-    void soloTeamIsRejectedAndNamesTheMinimum() throws IOException, SQLException {
-        // This used to import. Solo entries ended with V6; the message has to say so in
-        // terms the organiser chasing the registrant can repeat back to them.
+    void soloTeamIsSentToReviewAndNamesTheMinimum() throws IOException, SQLException {
+        // Solo entries ended with V6; the message has to say so in terms the organiser
+        // chasing the registrant can repeat back to them. It is no longer an automatic
+        // refusal - an admin decides from the review queue, which is where this lands.
         Path file = csv("solo.csv",
                 header(5),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Solo Mission") + ","
@@ -577,15 +581,16 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
-                .contains("REJECTED")
+                .contains("NEEDS REVIEW")
                 .contains("team has 1 member; the minimum is 2")
-                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=1");
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=0 review=1");
         assertThat(countUsers()).isZero();
         assertThat(countTeams()).isZero();
+        assertThat(countReviews()).isEqualTo(1);
     }
 
     @Test
-    void sixMemberTeamIsRejected() throws IOException, SQLException {
+    void sixMemberTeamIsSentToReview() throws IOException, SQLException {
         // The scan looks past the maximum on purpose, so an oversized team is named as
         // oversized rather than having its sixth member quietly dropped.
         Path file = csv("six.csv",
@@ -599,9 +604,9 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
-                .contains("REJECTED")
+                .contains("NEEDS REVIEW")
                 .contains("team size is 6; teams must have between 2 and 5 members")
-                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=1");
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=0 review=1");
         assertThat(countUsers()).isZero();
         assertThat(countTeams()).isZero();
     }
@@ -738,8 +743,8 @@ class FormRegistrationImporterTest {
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
         assertThat(run.output())
                 .contains("IMPORTED")
-                .contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0 pending=0")
-                .doesNotContain("PENDING");
+                .contains("RESULT mode=live rows=1 imported=1 skipped=0 rejected=0 pending=0 review=0")
+                .doesNotContain("NEEDS REVIEW");
         assertThat(countTeams()).isEqualTo(1);
     }
 
@@ -756,16 +761,17 @@ class FormRegistrationImporterTest {
         Run run = runImporter("--file=" + file);
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_OK);
-        assertThat(run.output()).contains("IMPORTED").doesNotContain("PENDING");
+        assertThat(run.output()).contains("IMPORTED").doesNotContain("NEEDS REVIEW");
         assertThat(countTeams()).isEqualTo(1);
     }
 
     @Test
-    void teamWithNoItMemberIsPendingNotRejectedAndIsNotInTheDatabase()
+    void teamWithNoItMemberIsSentToReviewAndIsNotInTheDatabase()
             throws IOException, SQLException {
         // The distinction this whole change exists for. Nobody on the team is obviously on
-        // an IT course - which is a question for a person, not grounds for a refusal - so
-        // the row is held, every major is quoted back verbatim, and nothing is written.
+        // an IT course - which is a question for a person, not grounds for an automatic
+        // refusal - so the row is sent to admin review, every major is quoted back verbatim,
+        // and nothing is written to users/teams/team_members.
         Path file = csv("no-it-member.csv",
                 header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("No IT") + ","
@@ -776,24 +782,32 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
-                .contains("PENDING")
-                .contains("'" + team("No IT") + "' - no clear IT-related course")
+                .contains("NEEDS REVIEW")
+                .contains("'" + team("No IT") + "' - sent to admin review")
+                .contains("no clear IT-related course")
                 .contains("(majors: \"Business Analytics\", \"Actuarial Science\")")
-                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=1")
-                // Held, not refused: the two are on different lists and mean different work.
-                .doesNotContain("REJECTED");
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=0 review=1");
 
         assertThat(countUsers()).isZero();
         assertThat(countTeams()).isZero();
+
+        // It is not just skipped over - a row now sits in the admin review queue for it.
+        assertThat(queryString(
+                "select status from registration_reviews where team_name = ?", team("No IT")))
+                .isEqualTo("awaiting_review");
+        assertThat(queryString(
+                "select issues::text from registration_reviews where team_name = ?", team("No IT")))
+                .contains("no clear IT-related course");
     }
 
     @Test
-    void pendingTeamsReappearOnASecondRun() throws IOException, SQLException {
-        // Nothing was written the first time, so nothing suppresses the second report. This
-        // is what makes PENDING self-clearing: fix the sheet and the team simply imports.
-        Path file = csv("pending-twice.csv",
+    void reviewRowsReflectTheLatestSheetOnASecondRun() throws IOException, SQLException {
+        // Nothing was written to users/teams the first time, but the review row itself is
+        // now real state - re-running while it is still awaiting_review refreshes it rather
+        // than duplicating it, which is what lets correcting the spreadsheet resurface it.
+        Path file = csv("review-twice.csv",
                 header(2),
-                "2026/08/01 9:00:00 AM GMT+8," + team("Held Twice") + ","
+                "2026/08/01 9:00:00 AM GMT+8," + team("Reviewed Twice") + ","
                         + member("Alpha One", "Business Analytics") + ","
                         + member("Beta Two", "Actuarial Science"));
 
@@ -803,11 +817,46 @@ class FormRegistrationImporterTest {
         assertThat(first.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(second.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(second.output())
-                .contains("PENDING")
-                .contains("'" + team("Held Twice") + "' - no clear IT-related course")
-                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=1")
-                // Not reported as already present: a held team holds no rows to match on.
+                .contains("NEEDS REVIEW")
+                .contains("'" + team("Reviewed Twice") + "' - sent to admin review")
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=0 review=1")
+                // Not reported as already present: a reviewed team holds no users/teams rows.
                 .doesNotContain("SKIPPED");
+        assertThat(countUsers()).isZero();
+        assertThat(countTeams()).isZero();
+        // Exactly one row, refreshed rather than duplicated.
+        assertThat(countReviews()).isEqualTo(1);
+    }
+
+    @Test
+    void anAdminRejectionIsNotReopenedByASubsequentSync() throws IOException, SQLException {
+        // The whole point of the upsert's WHERE clause: once an admin has decided, a later
+        // sync of the same sheet must not silently put the row back in front of them.
+        Path file = csv("stays-rejected.csv",
+                header(2),
+                "2026/08/01 9:00:00 AM GMT+8," + team("Admin Rejected") + ","
+                        + member("Alpha One", "Business Analytics") + ","
+                        + member("Beta Two", "Actuarial Science"));
+
+        Run first = runImporter("--file=" + file);
+        assertThat(first.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+
+        try (Connection connection = testConnection();
+                var statement = connection.prepareStatement(
+                        "update registration_reviews set status = 'rejected' where team_name = ?")) {
+            statement.setString(1, team("Admin Rejected"));
+            statement.executeUpdate();
+        }
+
+        Run second = runImporter("--file=" + file);
+
+        assertThat(second.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
+        assertThat(second.output())
+                .contains("already decided by an admin (status: rejected); left untouched");
+        assertThat(queryString(
+                "select status from registration_reviews where team_name = ?",
+                team("Admin Rejected")))
+                .isEqualTo("rejected");
         assertThat(countUsers()).isZero();
         assertThat(countTeams()).isZero();
     }
@@ -866,7 +915,7 @@ class FormRegistrationImporterTest {
     // ------------------------------------------------------- screening: links and phone
 
     @Test
-    void aGithubUrlInTheLinkedInFieldIsPending() throws IOException, SQLException {
+    void aGithubUrlInTheLinkedInFieldIsSentToReview() throws IOException, SQLException {
         // This is in the real registration data. It is a paste error, not a bad-faith
         // registration, and refusing the team over it would be absurd - but importing a
         // GitHub URL as somebody's LinkedIn profile is silently wrong forever.
@@ -882,15 +931,15 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
-                .contains("PENDING")
+                .contains("NEEDS REVIEW")
                 .contains("member 2 (Beta Two) gave a github.com link for LinkedIn")
-                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=1");
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=0 review=1");
         assertThat(countUsers()).isZero();
         assertThat(countTeams()).isZero();
     }
 
     @Test
-    void aMissingResumeIsPending() throws IOException, SQLException {
+    void aMissingResumeIsSentToReview() throws IOException, SQLException {
         // This used to import with a note attached, which meant it imported and nobody read
         // the note. A participant with no resume is a participant an organiser has to chase.
         Path file = csv("no-resume.csv",
@@ -904,15 +953,15 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
-                .contains("PENDING")
+                .contains("NEEDS REVIEW")
                 .contains("member 2 (Beta Two) gave no resume link")
-                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=1");
+                .contains("RESULT mode=live rows=1 imported=0 skipped=0 rejected=0 pending=0 review=1");
         assertThat(countUsers()).isZero();
         assertThat(countTeams()).isZero();
     }
 
     @Test
-    void aResumeOnTheWrongHostIsPendingAndAGoogleDocIsNot() throws IOException, SQLException {
+    void aResumeOnTheWrongHostIsSentToReviewAndAGoogleDocIsNot() throws IOException, SQLException {
         // docs.google.com is as good as drive.google.com; dropbox.com is a question for a
         // person, because the form asked for a Drive link and did not get one.
         Path file = csv("resume-hosts.csv",
@@ -933,7 +982,7 @@ class FormRegistrationImporterTest {
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
                 .contains("member 2 (Delta Four) gave a dropbox.com link for the resume")
-                .contains("RESULT mode=live rows=2 imported=1 skipped=0 rejected=0 pending=1");
+                .contains("RESULT mode=live rows=2 imported=1 skipped=0 rejected=0 pending=0 review=1");
 
         // Only the Google Docs team is in the database.
         assertThat(countTeams()).isEqualTo(1);
@@ -942,7 +991,7 @@ class FormRegistrationImporterTest {
     }
 
     @Test
-    void anUnreadablePhoneNumberIsPendingButABlankOneIsOnlyANote()
+    void anUnreadablePhoneNumberIsSentToReviewButABlankOneIsOnlyANote()
             throws IOException, SQLException {
         Path file = csv("phones.csv",
                 header(2),
@@ -966,13 +1015,13 @@ class FormRegistrationImporterTest {
                 .contains("note: member 2 (Beta Two) gave no phone number")
                 .contains("member 2 (Delta Four) gave a phone number that is not 8 to 15 "
                         + "digits: 'call me'")
-                .contains("RESULT mode=live rows=2 imported=1 skipped=0 rejected=0 pending=1");
+                .contains("RESULT mode=live rows=2 imported=1 skipped=0 rejected=0 pending=0 review=1");
         assertThat(queryOne("select count(*) from teams where name = ?", team("No Phone")))
                 .isEqualTo(1);
     }
 
     @Test
-    void aLinkedInUrlWithTheDomainInTheUserinfoIsPending() throws IOException, SQLException {
+    void aLinkedInUrlWithTheDomainInTheUserinfoIsSentToReview() throws IOException, SQLException {
         // Parsed as a URL, not searched for a substring: the host here is example.com and a
         // "does it contain linkedin.com" check would have waved it through.
         Path file = csv("userinfo-host.csv",
@@ -992,13 +1041,14 @@ class FormRegistrationImporterTest {
         assertThat(countTeams()).isZero();
     }
 
-    // ------------------------------------------------- the three outcomes in one report
+    // ------------------------------------------------- both kinds of issue in one report
 
     @Test
-    void pendingAndRejectedAreCountedAndListedSeparately() throws IOException, SQLException {
-        // One of each, in one run. The two follow-up lists exist because the two jobs are
-        // different: a pending team needs the sheet corrected, a rejected one needs a new
-        // registration, and whoever chases them should not have to sort them by eye.
+    void screeningAndStructuralIssuesShareOneReviewQueue() throws IOException, SQLException {
+        // One judgement call (no IT member) and one structural problem (team too small), in
+        // one run. Both now land in the same admin review queue rather than on two separate
+        // lists - the distinction between "pending" and "rejected" no longer changes the
+        // outcome, only the wording of the reason.
         Path file = csv("one-of-each.csv",
                 header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("Clean") + ","
@@ -1013,11 +1063,13 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
-                .contains("RESULT mode=live rows=3 imported=1 skipped=0 rejected=1 pending=1")
-                .contains("PENDING - 1 team was NOT imported, waiting on a human:")
-                .contains("REJECTED - 1 team could not be imported as it stands:")
-                .contains("'" + team("Held") + "' - no clear IT-related course")
-                .contains("'" + team("Refused") + "' - team has 1 member; the minimum is 2")
+                .contains("RESULT mode=live rows=3 imported=1 skipped=0 rejected=0 pending=0 review=2")
+                .contains("SENT TO ADMIN REVIEW - 2 teams NOT imported, waiting on a decision "
+                        + "in the admin dashboard:")
+                .contains("'" + team("Held") + "' - sent to admin review")
+                .contains("no clear IT-related course")
+                .contains("'" + team("Refused") + "' - sent to admin review")
+                .contains("team has 1 member; the minimum is 2")
                 .contains("2 rows need a human");
 
         // Exactly one team reached the database, and it is the clean one.
@@ -1025,13 +1077,16 @@ class FormRegistrationImporterTest {
         assertThat(countUsers()).isEqualTo(2);
         assertThat(queryOne("select count(*) from teams where name = ?", team("Clean")))
                 .isEqualTo(1);
+        // The other two are sitting in the review queue, not gone.
+        assertThat(countReviews()).isEqualTo(2);
     }
 
     @Test
-    void existingRejectionsAreUnchangedByScreening() throws IOException, SQLException {
-        // The rules that were already here still reject rather than hold: a person on two
-        // teams is not a judgement call, and screening must not have softened it.
-        Path file = csv("still-rejected.csv",
+    void structuralConflictsStillGoThroughReviewNotStraightImport() throws IOException, SQLException {
+        // Screening does not soften these: a person on two teams or a duplicate email within
+        // one team is still flagged. The difference from before is only that an admin now
+        // makes the call instead of the row being discarded outright.
+        Path file = csv("still-flagged.csv",
                 header(2),
                 "2026/08/01 9:00:00 AM GMT+8," + team("First Claim") + ","
                         + member("Alpha One") + "," + member("Beta Two"),
@@ -1046,10 +1101,15 @@ class FormRegistrationImporterTest {
 
         assertThat(run.exitCode()).isEqualTo(FormRegistrationImporter.EXIT_REJECTIONS);
         assertThat(run.output())
-                .contains("RESULT mode=live rows=3 imported=1 skipped=0 rejected=2 pending=0")
+                .contains("RESULT mode=live rows=3 imported=1 skipped=0 rejected=0 pending=0 review=2")
                 .contains("A person may only be on one team.")
                 .contains("duplicate email within this team");
         assertThat(countTeams()).isEqualTo(1);
+        // "Same Email" could not even be parsed into a TeamRow, so it is filed under its own
+        // team name rather than one of the successfully-parsed ones.
+        assertThat(queryString(
+                "select status from registration_reviews where team_name = ?", team("Same Email")))
+                .isEqualTo("awaiting_review");
     }
 
     // ------------------------------------------------------------------ helpers
@@ -1167,7 +1227,14 @@ class FormRegistrationImporterTest {
                     "delete from teams where name like '" + TEAM_PREFIX + "%'");
             statement.executeUpdate(
                     "delete from users where email like '%@" + EMAIL_DOMAIN + "'");
+            statement.executeUpdate(
+                    "delete from registration_reviews where team_name like '" + TEAM_PREFIX + "%'");
         }
+    }
+
+    private int countReviews() throws SQLException {
+        return queryOne("select count(*) from registration_reviews where team_name like ?",
+                TEAM_PREFIX + "%");
     }
 
     /**
