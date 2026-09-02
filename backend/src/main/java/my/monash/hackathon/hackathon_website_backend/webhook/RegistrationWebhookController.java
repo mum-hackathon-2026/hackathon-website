@@ -45,10 +45,10 @@ public class RegistrationWebhookController {
 
         try {
             FormRegistrationImporter.ImportSummary summary = importService.syncFromSheets(dryRun);
-            log.info("Webhook import completed: total={}, imported={}, skipped={}, rejected={}, "
-                            + "pending={}",
-                    summary.totalRows(), summary.imported(), summary.skipped(), summary.rejected(),
-                    summary.pending());
+            log.info("Webhook import completed: total={}, imported={}, skipped={}, review={}, "
+                            + "errors={}",
+                    summary.totalRows(), summary.imported(), summary.skipped(), summary.review(),
+                    summary.errors());
 
             return ResponseEntity.ok(Map.of(
                     "status", summary.success() ? "success" : "partial_success",
@@ -56,10 +56,10 @@ public class RegistrationWebhookController {
                     "totalRows", summary.totalRows(),
                     "imported", summary.imported(),
                     "skipped", summary.skipped(),
-                    "rejected", summary.rejected(),
-                    // Teams screening held back. They are not in the database and will be
-                    // screened again on the next poll; details go to server log only.
-                    "pending", summary.pending()
+                    // Teams sent to the admin review queue. They are not in the database;
+                    // an admin decides on them from the Registration Reviews dashboard.
+                    "review", summary.review(),
+                    "errors", summary.errors()
             ));
         } catch (Exception e) {
             log.error("Failed to process Google Form submission webhook", e);

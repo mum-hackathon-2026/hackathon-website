@@ -20,22 +20,36 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Imports Google Form team registrations from an exported CSV or directly from Google Sheets API
  * into users, teams and team_members.
  *
- * <h2>Three outcomes</h2>
+ * <h2>Two outcomes, and a queue for everything else</h2>
  *
- * <p>A team is IMPORTED, PENDING or REJECTED. IMPORTED and REJECTED are the original pair:
- * clean rows are written, structurally broken rows are refused. PENDING is
- * {@link EligibilityScreening}'s: the row is fine but somebody has to look at it — no member
- * on an obviously IT course, a GitHub URL in the LinkedIn box, a missing resume.
+ * <p>A team is either IMPORTED (or, for a team already in the database with exactly the same
+ * members, SKIPPED) or it goes to REVIEW. There used to be a third, silent outcome —
+ * REJECTED — for anything structurally wrong, and PENDING was {@link EligibilityScreening}'s
+ * name for a judgement call. Both are gone as terminal outcomes: nothing this importer decides
+ * is final any more except a clean import. Every reason a row used to be rejected or held
+ * pending — a malformed link, a duplicate team name, a member already on another team, no
+ * member on an obviously IT course — is instead written to the {@code registration_reviews}
+ * table for an admin to act on. See {@link #toReview}.
  *
- * <p><strong>A PENDING team is not written to the database at all</strong>, and nothing
- * records that it was held. That is what makes it self-clearing: the next run reads the
- * sheet again and screens it again, so correcting the spreadsheet is the entire fix and
- * there is no state to reconcile if a human decides the team is fine after all.
+ * <p><strong>A row in review is not written to {@code users}/{@code teams}/{@code
+ * team_members}</strong> — only an admin's Approve action does that, from the admin dashboard,
+ * not from this importer. Re-running this importer against an unchanged sheet leaves an
+ * existing review's decision alone (see the {@code where} clause in {@link
+ * #UPSERT_REGISTRATION_REVIEW}); it only refreshes a row still sitting in {@code
+ * awaiting_review} or {@code needs_fix}, which is what lets correcting the spreadsheet resurface
+ * a team an admin already asked to be fixed.
+ *
+ * <p>ERROR is a third, separate outcome for a genuine system fault while handling a row — a
+ * database error, a JSON serialisation failure — as opposed to a problem with the row's data.
+ * It is never written to {@code registration_reviews}: there is nothing about the row itself
+ * to review.
  *
  * <h2>Usage</h2>
  *
@@ -57,13 +71,13 @@ public final class FormRegistrationImporter {
 
     // Exit codes. An unattended caller reads these; the RESULT line stays the record of what
     // happened, but a scheduler should not have to parse anything to learn that a run failed.
-    /** The import ran to the end and no row was rejected or held pending. */
+    /** The import ran to the end and every row imported or was already present. */
     static final int EXIT_OK = 0;
     /**
-     * The import ran to the end, but at least one row needs a human — either rejected
-     * outright or held PENDING by screening. One code covers both because the question an
-     * unattended caller asks is "does somebody have to look at this?", and the answer is yes
-     * either way; the RESULT line's {@code rejected=} and {@code pending=} say which.
+     * The import ran to the end, but at least one row needs a human — sent to the admin
+     * review queue, or a per-row ERROR. The question an unattended caller asks is "does
+     * somebody have to look at this?", and the answer is yes either way; the RESULT line's
+     * {@code review=} and {@code error=} say which.
      */
     static final int EXIT_REJECTIONS = 1;
     /** Nothing was imported: bad arguments, an unreadable or mis-titled sheet, or no database. */
@@ -74,6 +88,33 @@ public final class FormRegistrationImporter {
                                linkedin_url, github_url)
             values (?, ?, 'participant', false, ?, ?, ?, ?)
             """;
+
+    /**
+     * Writes (or refreshes) one row in the admin review queue. {@code excluded} carries the
+     * values this statement was about to insert, per Postgres's {@code on conflict} syntax.
+     *
+     * <p>The {@code where} clause is what protects an admin's decision from being silently
+     * reopened: it only fires while the existing row's status is still {@code awaiting_review}
+     * or {@code needs_fix}. Once a row is {@code approved} or {@code rejected}, this statement
+     * matches zero rows and changes nothing — Postgres reports it as an update to zero rows,
+     * which {@link #toReview} checks for.
+     */
+    private static final String UPSERT_REGISTRATION_REVIEW = """
+            insert into registration_reviews (team_name, raw_payload, issues, source_line, status, updated_at)
+            values (?, ?::jsonb, ?::jsonb, ?, 'awaiting_review', now())
+            on conflict (team_name) do update
+            set raw_payload = excluded.raw_payload,
+                issues = excluded.issues,
+                source_line = excluded.source_line,
+                status = 'awaiting_review',
+                updated_at = now()
+            where registration_reviews.status in ('awaiting_review', 'needs_fix')
+            """;
+
+    private static final String FIND_REVIEW_STATUS_BY_TEAM_NAME =
+            "select status from registration_reviews where team_name = ?";
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String INSERT_TEAM =
             "insert into teams (name, join_code, created_by, status) values (?, ?, ?, 'complete')";
@@ -135,8 +176,15 @@ public final class FormRegistrationImporter {
     private final Set<String> joinCodesMinted = new HashSet<>();
 
     /**
-     * {@code success} is false when anything needs a human, pending or rejected — the
-     * webhook reports it as a partial success, which is what it is.
+     * {@code success} is false only when the run itself faulted (ERROR outcomes, or an abort
+     * before anything ran) — sending rows to admin review is the normal, expected case now and
+     * does not make a run unsuccessful. {@code rejected} and {@code pending} are kept, always
+     * zero: this record's field order and count are part of its public constructor signature,
+     * and dropping fields would break every existing caller's positional constructor call for
+     * no benefit. {@code review} and {@code errors} are the new fields carrying the real
+     * counts; {@code RegistrationWebhookController}'s JSON response reports {@code review}/
+     * {@code errors} directly rather than the always-zero pair, since that response is not
+     * documented as a stable contract the way the CLI's {@code RESULT} line is.
      */
     public record ImportSummary(
             boolean success,
@@ -145,6 +193,8 @@ public final class FormRegistrationImporter {
             int skipped,
             int rejected,
             int pending,
+            int review,
+            int errors,
             List<String> logMessages
     ) {}
 
@@ -162,17 +212,17 @@ public final class FormRegistrationImporter {
         try {
             limits = readTeamSizeLimits(connection);
         } catch (MissingLimitsException e) {
-            return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(), 0,
+            return new ImportSummary(false, sheet.rows().size(), 0, 0, 0, 0, 0, sheet.rows().size(),
                     List.of("STOPPING: " + e.getMessage()));
         }
 
         if (!reportColumnMapping(sheet, limits)) {
-            return new ImportSummary(false, sheet.rows().size(), 0, 0, sheet.rows().size(), 0,
+            return new ImportSummary(false, sheet.rows().size(), 0, 0, 0, 0, 0, sheet.rows().size(),
                     List.of("Column mapping failed - incomplete member block, a missing "
                             + "Major column, or a disallowed repository question"));
         }
         if (sheet.rows().isEmpty()) {
-            return new ImportSummary(true, 0, 0, 0, 0, 0, List.of("The sheet has no data rows"));
+            return new ImportSummary(true, 0, 0, 0, 0, 0, 0, 0, List.of("The sheet has no data rows"));
         }
 
         FormRegistrationImporter importer = new FormRegistrationImporter();
@@ -193,11 +243,11 @@ public final class FormRegistrationImporter {
                 .filter(o -> o.status() == Status.IMPORTED || o.status() == Status.WOULD_IMPORT)
                 .count();
         int skipped = (int) outcomes.stream().filter(o -> o.status() == Status.ALREADY_PRESENT).count();
-        int rejected = (int) outcomes.stream().filter(o -> o.status() == Status.REJECTED).count();
-        int pending = (int) outcomes.stream().filter(o -> o.status() == Status.PENDING).count();
+        int review = (int) outcomes.stream().filter(o -> o.status() == Status.REVIEW).count();
+        int errors = (int) outcomes.stream().filter(o -> o.status() == Status.ERROR).count();
 
-        return new ImportSummary(rejected == 0 && pending == 0, outcomes.size(), imported,
-                skipped, rejected, pending, logMessages);
+        return new ImportSummary(errors == 0, outcomes.size(), imported,
+                skipped, 0, 0, review, errors, logMessages);
     }
 
     private enum Status {
@@ -205,11 +255,18 @@ public final class FormRegistrationImporter {
         WOULD_IMPORT("WOULD IMPORT"),
         ALREADY_PRESENT("SKIPPED"),
         /**
-         * Screening held this team back. Nothing was written, so the next run screens it
-         * again from the sheet — correcting the spreadsheet is the whole of the fix.
+         * Sent to (or already sitting in) the {@code registration_reviews} queue. Nothing was
+         * written to {@code users}/{@code teams}/{@code team_members} — only an admin's
+         * Approve action does that. Covers everything that used to be REJECTED or PENDING:
+         * malformed data, a name or email collision, an unclear course match, a missing link.
          */
-        PENDING("PENDING"),
-        REJECTED("REJECTED");
+        REVIEW("NEEDS REVIEW"),
+        /**
+         * A system fault handling this row — a database error, a JSON failure — not a
+         * question about the row's own data. Never written to {@code registration_reviews}:
+         * there is nothing here for an admin to review.
+         */
+        ERROR("ERROR");
 
         private final String label;
 
@@ -404,8 +461,8 @@ public final class FormRegistrationImporter {
         // Kept alongside the outcomes so the two follow-up lists can be reprinted together
         // at the end. Whoever chases these reads the bottom of the output, not the middle:
         // in a run of eighty rows the six that need a person are invisible in row order.
-        List<String> pendingReport = new ArrayList<>();
-        List<String> rejectedReport = new ArrayList<>();
+        List<String> reviewReport = new ArrayList<>();
+        List<String> errorReport = new ArrayList<>();
 
         System.out.println("Rows");
         System.out.println("-".repeat(78));
@@ -415,17 +472,17 @@ public final class FormRegistrationImporter {
             outcomes.add(outcome);
             printOutcome(row.lineNumber(), outcome);
 
-            if (outcome.status() == Status.PENDING) {
-                pendingReport.add(describeForFollowUp(row.lineNumber(), outcome));
-            } else if (outcome.status() == Status.REJECTED) {
-                rejectedReport.add(describeForFollowUp(row.lineNumber(), outcome));
+            if (outcome.status() == Status.REVIEW) {
+                reviewReport.add(describeForFollowUp(row.lineNumber(), outcome));
+            } else if (outcome.status() == Status.ERROR) {
+                errorReport.add(describeForFollowUp(row.lineNumber(), outcome));
             }
         }
 
-        printSummary(outcomes, dryRun, pendingReport, rejectedReport);
+        printSummary(outcomes, dryRun, reviewReport, errorReport);
 
         boolean needsHuman = outcomes.stream()
-                .anyMatch(o -> o.status() == Status.REJECTED || o.status() == Status.PENDING);
+                .anyMatch(o -> o.status() == Status.REVIEW || o.status() == Status.ERROR);
         return needsHuman ? EXIT_REJECTIONS : EXIT_OK;
     }
 
@@ -458,9 +515,10 @@ public final class FormRegistrationImporter {
     }
 
     /**
-     * Handles one team. Every rejection returns an {@link Outcome} rather than throwing, so
-     * one bad row never stops the import — the point of the report is that a human can chase
-     * all the rejects in one pass instead of discovering them one re-run at a time.
+     * Handles one team. Every problem sends the row to admin review rather than throwing, so
+     * one bad row never stops the import — a human (now the admin, not whoever reads this
+     * console) can act on every flagged row in one pass instead of discovering them one
+     * re-run at a time.
      */
     private Outcome processRow(Connection connection, CsvReader.Row row,
                                TeamRow.SizeLimits limits, boolean dryRun) {
@@ -468,7 +526,16 @@ public final class FormRegistrationImporter {
         try {
             team = TeamRow.from(row, limits);
         } catch (TeamRow.InvalidRowException e) {
-            return Outcome.of(Status.REJECTED, e.getMessage());
+            String teamName = extractTeamNameForReview(row);
+            // TeamRow.from already prefixes most of its own messages with 'teamName' - see
+            // its catch-and-rethrow around membersOf. toReview adds that same prefix itself
+            // when it reports the outcome, so strip it here rather than showing it twice.
+            String message = e.getMessage();
+            String selfPrefix = "'" + teamName + "' - ";
+            if (message.startsWith(selfPrefix)) {
+                message = message.substring(selfPrefix.length());
+            }
+            return toReview(connection, row, teamName, List.of(message), limits, dryRun);
         }
 
         String label = "'" + team.teamName() + "'";
@@ -477,7 +544,7 @@ public final class FormRegistrationImporter {
         try {
             existingTeamId = findTeamByName(connection, team.teamName());
         } catch (SQLException e) {
-            return Outcome.of(Status.REJECTED, label + " - database error: " + readable(e));
+            return Outcome.of(Status.ERROR, label + " - database error: " + readable(e));
         }
 
         if (existingTeamId.isPresent()) {
@@ -485,7 +552,7 @@ public final class FormRegistrationImporter {
             try {
                 existingEmails = findTeamMemberEmails(connection, existingTeamId.get());
             } catch (SQLException e) {
-                return Outcome.of(Status.REJECTED, label + " - database error: " + readable(e));
+                return Outcome.of(Status.ERROR, label + " - database error: " + readable(e));
             }
             Set<String> csvEmails = new LinkedHashSet<>(team.emails());
             if (existingEmails.equals(csvEmails)) {
@@ -493,22 +560,23 @@ public final class FormRegistrationImporter {
                 return Outcome.of(Status.ALREADY_PRESENT, label + " - already imported (team "
                         + existingTeamId.get() + ", same " + describeSize(csvEmails.size()) + ")");
             }
-            return Outcome.of(Status.REJECTED, label + " - a different team already has this "
-                    + "name (team " + existingTeamId.get() + ", members "
+            return toReview(connection, row, team.teamName(), List.of("a different team already "
+                    + "has this name (team " + existingTeamId.get() + ", members "
                     + String.join(", ", existingEmails) + "). Two teams cannot share a name; "
-                    + "one of them has to rename.");
+                    + "one of them has to rename."), limits, dryRun);
         }
 
         Integer claimedOn = teamNamesSeen.get(team.teamName());
         if (claimedOn != null) {
-            return Outcome.of(Status.REJECTED, label + " - a team on line " + claimedOn
-                    + " of this file already uses this name");
+            return toReview(connection, row, team.teamName(), List.of("a team on line "
+                    + claimedOn + " of this file already uses this name"), limits, dryRun);
         }
         for (String email : team.emails()) {
             String claimedBy = emailsSeen.get(email);
             if (claimedBy != null) {
-                return Outcome.of(Status.REJECTED, label + " - " + email + " is already on "
-                        + claimedBy + ". A person may only be on one team.");
+                return toReview(connection, row, team.teamName(), List.of(email
+                        + " is already on " + claimedBy + ". A person may only be on one team."),
+                        limits, dryRun);
             }
         }
 
@@ -518,35 +586,141 @@ public final class FormRegistrationImporter {
                 if (existingUserId.isPresent()) {
                     Optional<String> theirTeam = findTeamOfUser(connection, existingUserId.get());
                     if (theirTeam.isPresent()) {
-                        return Outcome.of(Status.REJECTED, label + " - " + email
+                        return toReview(connection, row, team.teamName(), List.of(email
                                 + " is already registered and is on team '" + theirTeam.get()
-                                + "'. A person may only be on one team.");
+                                + "'. A person may only be on one team."), limits, dryRun);
                     }
-                    return Outcome.of(Status.REJECTED, label + " - " + email
+                    return toReview(connection, row, team.teamName(), List.of(email
                             + " is already registered (they have an account but no team). "
-                            + "Either they registered twice, or this is a judge or admin.");
+                            + "Either they registered twice, or this is a judge or admin."),
+                            limits, dryRun);
                 }
             }
         } catch (SQLException e) {
-            return Outcome.of(Status.REJECTED, label + " - database error: " + readable(e));
+            return Outcome.of(Status.ERROR, label + " - database error: " + readable(e));
         }
 
         // Screening runs last, on a team that would otherwise have been imported. Everything
-        // above it is structural and decides the row on its own terms: a team of six or a
-        // person already on another team is not "pending a look", it is wrong, and reporting
-        // it as pending would put it on the wrong list and understate it.
+        // above it is a relational conflict against the database or this same file; this is
+        // a judgement call about the team on its own. Both kinds land in the same review
+        // queue now - the distinction is only in wording, not in outcome.
         //
-        // A pending team deliberately does NOT claim() its name or emails. It holds no rows
-        // in the database and no reservation in this run, because it may never be imported
-        // at all - and a name reserved by a team that never arrives would reject the team
-        // that legitimately takes it.
-        List<String> pendingReasons = EligibilityScreening.screen(team);
-        if (!pendingReasons.isEmpty()) {
-            return new Outcome(Status.PENDING, label + " - " + String.join("\n", pendingReasons),
-                    team.warnings());
+        // A team sent to review deliberately does NOT claim() its name or emails. It holds no
+        // rows in the database, because it may end up rejected rather than approved - and a
+        // name reserved by a team that is never approved would block the team that
+        // legitimately takes it.
+        List<String> screeningReasons = EligibilityScreening.screen(team);
+        if (!screeningReasons.isEmpty()) {
+            return toReview(connection, row, team.teamName(), screeningReasons, limits, dryRun);
         }
 
         return insertTeam(connection, team, label, dryRun);
+    }
+
+    /**
+     * The team name to file a review under when {@link TeamRow#from} could not even build a
+     * {@link TeamRow} — most commonly because the team name itself is blank. Mirrors the first
+     * few lines of {@code TeamRow.from} rather than calling it, since that method is exactly
+     * what just failed.
+     */
+    private static String extractTeamNameForReview(CsvReader.Row row) {
+        String raw = row.firstPresent(TeamRow.teamNameHeaders());
+        String trimmed = raw == null ? "" : raw.trim();
+        return trimmed.isEmpty() ? "(untitled team, line " + row.lineNumber() + ")" : trimmed;
+    }
+
+    /**
+     * Files (or refreshes) one team in the admin review queue and reports the outcome.
+     * {@code issues} is written verbatim to the {@code issues} jsonb column, and is what the
+     * admin dashboard shows as the reason a team needs a decision.
+     */
+    private Outcome toReview(Connection connection, CsvReader.Row row, String teamName,
+                             List<String> issues, TeamRow.SizeLimits limits, boolean dryRun) {
+        String label = "'" + teamName + "'";
+        String issueList = String.join("\n", issues);
+
+        if (dryRun) {
+            return Outcome.of(Status.REVIEW, label + " - " + describeCount(issues.size())
+                    + ", would be sent to admin review:\n" + issueList);
+        }
+
+        try {
+            String rawPayloadJson = buildRawPayload(row, teamName, limits);
+            String issuesJson = objectMapper.writeValueAsString(issues);
+
+            int affected;
+            try (PreparedStatement statement =
+                    connection.prepareStatement(UPSERT_REGISTRATION_REVIEW)) {
+                statement.setString(1, teamName);
+                statement.setString(2, rawPayloadJson);
+                statement.setString(3, issuesJson);
+                statement.setInt(4, row.lineNumber());
+                affected = statement.executeUpdate();
+            }
+            connection.commit();
+
+            if (affected == 0) {
+                String existingStatus = findReviewStatus(connection, teamName);
+                return Outcome.of(Status.REVIEW, label + " - already decided by an admin "
+                        + "(status: " + existingStatus + "); left untouched. "
+                        + describeCount(issues.size()) + " still on file:\n" + issueList);
+            }
+
+            return Outcome.of(Status.REVIEW, label + " - sent to admin review, "
+                    + describeCount(issues.size()) + ":\n" + issueList);
+        } catch (SQLException e) {
+            rollbackQuietly(connection);
+            return Outcome.of(Status.ERROR, label + " - could not write to the review queue: "
+                    + readable(e));
+        } catch (JacksonException e) {
+            return Outcome.of(Status.ERROR, label + " - could not serialise the review payload: "
+                    + e.getMessage());
+        }
+    }
+
+    private static String describeCount(int size) {
+        return size + (size == 1 ? " issue" : " issues");
+    }
+
+    private String findReviewStatus(Connection connection, String teamName) throws SQLException {
+        try (PreparedStatement statement =
+                connection.prepareStatement(FIND_REVIEW_STATUS_BY_TEAM_NAME)) {
+            statement.setString(1, teamName);
+            try (ResultSet results = statement.executeQuery()) {
+                return results.next() ? results.getString(1) : "unknown";
+            }
+        }
+    }
+
+    /**
+     * Every member block the row filled in, verbatim and unvalidated, plus the team name —
+     * exactly what the admin dashboard needs to render the row for editing. Scanned up to
+     * {@code limits.max()} rather than {@code TeamRow}'s internal scan depth: that is the
+     * count this run actually enforced, and the one the column mapping report already used.
+     */
+    private String buildRawPayload(CsvReader.Row row, String teamName, TeamRow.SizeLimits limits) {
+        List<Map<String, String>> members = new ArrayList<>();
+        for (int block = 1; block <= limits.max(); block++) {
+            Map<String, String> memberFields = new LinkedHashMap<>();
+            boolean any = false;
+            for (TeamRow.Field field : TeamRow.Field.values()) {
+                String raw = row.firstPresent(field.aliases(block));
+                String value = raw == null ? "" : raw.trim();
+                if (!value.isEmpty()) {
+                    any = true;
+                }
+                memberFields.put(field.label().toLowerCase(Locale.ROOT), value);
+            }
+            if (any) {
+                memberFields.put("block", String.valueOf(block));
+                members.add(memberFields);
+            }
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("teamName", teamName);
+        payload.put("members", members);
+        return objectMapper.writeValueAsString(payload);
     }
 
     private Outcome insertTeam(Connection connection, TeamRow team, String label, boolean dryRun) {
@@ -579,7 +753,7 @@ public final class FormRegistrationImporter {
 
         } catch (SQLException e) {
             rollbackQuietly(connection);
-            return Outcome.of(Status.REJECTED, label + " - " + readable(e));
+            return Outcome.of(Status.ERROR, label + " - " + readable(e));
         }
     }
 
@@ -892,52 +1066,51 @@ public final class FormRegistrationImporter {
     }
 
     private static void printSummary(List<Outcome> outcomes, boolean dryRun,
-                                     List<String> pendingReport, List<String> rejectedReport) {
+                                     List<String> reviewReport, List<String> errorReport) {
         long imported = outcomes.stream()
                 .filter(o -> o.status() == Status.IMPORTED || o.status() == Status.WOULD_IMPORT)
                 .count();
         long alreadyPresent =
                 outcomes.stream().filter(o -> o.status() == Status.ALREADY_PRESENT).count();
-        long rejected = outcomes.stream().filter(o -> o.status() == Status.REJECTED).count();
-        long pending = outcomes.stream().filter(o -> o.status() == Status.PENDING).count();
+        long review = outcomes.stream().filter(o -> o.status() == Status.REVIEW).count();
+        long errors = outcomes.stream().filter(o -> o.status() == Status.ERROR).count();
 
         System.out.println("-".repeat(78));
-        System.out.printf("%d data row%s: %d %s, %d already present, %d pending, %d rejected%n",
+        System.out.printf("%d data row%s: %d %s, %d already present, %d sent to admin review, %d error%s%n",
                 outcomes.size(), outcomes.size() == 1 ? "" : "s",
                 imported, dryRun ? "would import" : "imported",
-                alreadyPresent, pending, rejected);
+                alreadyPresent, review, errors, errors == 1 ? "" : "s");
 
-        long needingAHuman = pending + rejected;
+        long needingAHuman = review + errors;
         if (needingAHuman > 0) {
-            System.out.printf("%d row%s %s a human - see the two lists below.%n",
+            System.out.printf("%d row%s %s a human - see the list%s below.%n",
                     needingAHuman, needingAHuman == 1 ? "" : "s",
-                    needingAHuman == 1 ? "needs" : "need");
+                    needingAHuman == 1 ? "needs" : "need", review > 0 && errors > 0 ? "s" : "");
         }
 
-        // The two lists are printed apart because the two jobs are different. Chasing a
-        // pending team means editing the spreadsheet; a rejected team has to register again.
-        // Whoever does the chasing should not have to sort one from the other by eye.
-        if (pending > 0) {
+        // The two lists are printed apart because they need different people: a team sent to
+        // review is now the admin's decision to make from the dashboard; an error is this
+        // importer's own fault and belongs to whoever runs it.
+        if (review > 0) {
             System.out.println();
-            System.out.printf("PENDING - %d team%s NOT imported, waiting on a human:%n",
-                    pending, pending == 1 ? " was" : "s were");
-            pendingReport.forEach(System.out::println);
-            System.out.println("  Nothing was written for these teams. Fix the sheet and run "
-                    + "again - they are re-checked");
-            System.out.println("  from scratch every run, so there is nothing to undo and "
-                    + "nothing to clear.");
+            System.out.printf("SENT TO ADMIN REVIEW - %d team%s NOT imported, waiting on a "
+                    + "decision in the admin dashboard:%n", review, review == 1 ? "" : "s");
+            reviewReport.forEach(System.out::println);
+            System.out.println("  Nothing was written for these teams. An admin approves, "
+                    + "rejects or asks for a fix from");
+            System.out.println("  the Registration Reviews section - this run does not decide "
+                    + "anything on its own.");
         }
 
-        if (rejected > 0) {
+        if (errors > 0) {
             System.out.println();
-            System.out.printf("REJECTED - %d team%s not be imported as %s stand%s:%n",
-                    rejected, rejected == 1 ? " could" : "s could",
-                    rejected == 1 ? "it" : "they", rejected == 1 ? "s" : "");
-            rejectedReport.forEach(System.out::println);
-            System.out.println("  These are not fixable by re-running. The row itself has to "
-                    + "change - usually a new");
-            System.out.println("  registration from the team, or a decision about which team "
-                    + "keeps a name or a member.");
+            System.out.printf("ERROR - %d row%s could not be processed at all:%n",
+                    errors, errors == 1 ? "" : "s");
+            errorReport.forEach(System.out::println);
+            System.out.println("  This is a fault in the run itself (a database error, a "
+                    + "serialisation failure), not a");
+            System.out.println("  judgement about the row's data. Re-running after the "
+                    + "underlying problem is fixed is expected to work.");
         }
 
         if (dryRun) {
@@ -947,13 +1120,14 @@ public final class FormRegistrationImporter {
                     + "--dry-run to keep the results.");
         }
 
-        // The four original keys keep their names, their meanings and their order: they are
-        // documented as stable and something unattended may already be reading them.
-        // pending= is appended rather than inserted for the same reason.
+        // rejected= and pending= are kept, always zero, because they are documented as stable
+        // and something unattended may already be reading them by name. review= and error=
+        // are appended rather than replacing anything, for the same reason.
         System.out.println();
-        System.out.printf("RESULT mode=%s rows=%d imported=%d skipped=%d rejected=%d pending=%d%n",
-                dryRun ? "dry-run" : "live", outcomes.size(), imported, alreadyPresent, rejected,
-                pending);
+        System.out.printf("RESULT mode=%s rows=%d imported=%d skipped=%d rejected=%d pending=%d "
+                        + "review=%d error=%d%n",
+                dryRun ? "dry-run" : "live", outcomes.size(), imported, alreadyPresent, 0, 0,
+                review, errors);
     }
 
     private static Options parseArguments(String[] args) {
@@ -1045,12 +1219,15 @@ public final class FormRegistrationImporter {
 
                 The final line is machine-readable and its keys are stable:
 
-                  RESULT mode=live rows=8 imported=2 skipped=0 rejected=5 pending=1
+                  RESULT mode=live rows=8 imported=2 skipped=0 rejected=0 pending=0 review=5 error=1
+
+                rejected= and pending= are always 0 now (kept for anything already reading
+                them by name); review= and error= carry the real counts - see below.
 
                 Exit codes:
 
                   0   the import ran to the end and nothing needs a human
-                  1   the import ran to the end, but rejected= or pending= is non-zero and
+                  1   the import ran to the end, but review= or error= is non-zero and
                       those rows need a human. Everything else was still imported
                   2   nothing was imported. Bad arguments, unreadable credentials or sheet,
                       a member block missing some of its columns, no Major column at all,
@@ -1059,20 +1236,28 @@ public final class FormRegistrationImporter {
                 A RESULT line is printed for 0 and 1 and never for 2, so an unattended
                 caller can rely on the exit code alone.
 
-                Three outcomes per team:
+                Outcomes per team:
 
                   IMPORTED  clean, written to the database
-                  PENDING   screening held it for a human. NOT written to the database, and
-                            re-checked from the sheet on every run - correct the sheet and
-                            the team imports itself; there is nothing to undo or clear
-                  REJECTED  structurally wrong and unfixable without a new registration: a
-                            duplicate email, a person on two teams, a duplicate team name,
-                            a team outside the permitted size
+                  SKIPPED   already imported earlier with exactly the same members
+                  REVIEW    sent to the admin dashboard's Registration Reviews section.
+                            NOT written to the database. Covers everything that used to be
+                            silently REJECTED or PENDING: a malformed link, a duplicate
+                            team name or email, a team outside the permitted size, no
+                            member on an obviously IT course. An admin approves (editing
+                            the submitted data first if needed), rejects, or asks for a
+                            fix - this importer never decides on its own any more. A row
+                            re-checked from the sheet only refreshes an admin decision
+                            still sitting as awaiting_review or needs_fix; approved and
+                            rejected rows are left alone
+                  ERROR     this run itself faulted on the row (a database error, a JSON
+                            failure) - not a judgement about the row's data
 
-                Screening holds a team PENDING when no member's major contains an IT
-                keyword, when a resume, LinkedIn or GitHub link is blank or on the wrong
-                domain, or when a phone number is not 8-15 digits. The keyword list is
-                printed in the run header, before anything is read.
+                A team is sent to review when no member's major contains an IT keyword,
+                when a resume, LinkedIn or GitHub link is missing or not a URL, when a
+                phone number is not 8-15 digits, or on any of the structural conflicts
+                above. The keyword list is printed in the run header, before anything is
+                read.
 
                 Links are checked for SHAPE and DOMAIN ONLY. Nothing calls the network, so
                 a clean run is not evidence that a link resolves, that a Drive file is

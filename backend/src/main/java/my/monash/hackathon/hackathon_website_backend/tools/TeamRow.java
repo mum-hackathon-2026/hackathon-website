@@ -365,14 +365,16 @@ final class TeamRow {
     }
 
     /**
-     * A value that is present but is not a URL is a rejection — "will send later" in the
-     * resume box is a form somebody filled in wrongly on purpose, and no amount of chasing
-     * turns that string into a link. A value that is simply absent returns null and is
-     * picked up by {@link EligibilityScreening} as a PENDING reason instead: the column is
-     * nullable, and a blank box is a person to remind, not a team to refuse.
+     * A value that is present but is not a URL — "N/A" or "will send later" in the resume
+     * box — cannot be interpreted automatically, so this throws and the whole team is sent
+     * to admin review rather than imported with that field guessed at. It is not a dead
+     * end: the admin dashboard shows the value verbatim and lets an admin type in the real
+     * link before approving. A value that is simply absent returns null instead, which
+     * {@link EligibilityScreening} reports as its own review reason — the column is
+     * nullable, and a blank box is a person to remind, not a reason to guess.
      *
      * <p>Shape only. Which domain the URL points at is screening's business, not this
-     * class's — a wrong domain is a paste error and must not reject the row.
+     * class's — a wrong domain is a paste error and must not block the row on its own.
      */
     private static String validateUrl(String value, String what, String who, String fullName) {
         String trimmed = blankToNull(value);
