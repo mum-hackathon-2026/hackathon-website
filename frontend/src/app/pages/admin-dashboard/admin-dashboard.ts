@@ -13,6 +13,7 @@ import { AdminJudges } from './admin-judges/admin-judges';
 import { AdminJudging } from './admin-judging/admin-judging';
 import { AdminOverview } from './admin-overview/admin-overview';
 import { AdminParticipants } from './admin-participants/admin-participants';
+import { AdminRegistrationReviews } from './admin-registration-reviews/admin-registration-reviews';
 import { AdminResults } from './admin-results/admin-results';
 import { AdminSettings } from './admin-settings/admin-settings';
 import { AdminSidebar } from './admin-sidebar/admin-sidebar';
@@ -41,6 +42,7 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
     AdminJudging,
     AdminOverview,
     AdminParticipants,
+    AdminRegistrationReviews,
     AdminResults,
     AdminSettings,
     AdminSidebar,
@@ -86,6 +88,7 @@ export class AdminDashboard {
     const s = this.stats();
     return {
       teams: s.needingAttention || undefined,
+      registrations: this.admin.pendingRegistrationReviews().length || undefined,
       submissions: s.drafts || undefined,
       judging:
         this.judgingOpen() && s.reviewsExpected > s.reviewsCompleted
