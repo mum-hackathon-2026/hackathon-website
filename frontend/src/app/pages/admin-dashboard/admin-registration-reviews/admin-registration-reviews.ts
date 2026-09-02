@@ -78,6 +78,8 @@ export class AdminRegistrationReviews {
     const status = this.statusFilter();
 
     return this.admin.registrationReviews().filter((row) => {
+      // Once approved, the registration is converted into an official team and removed from the active queue
+      if (status !== 'approved' && row.status === 'approved') return false;
       if (status !== 'all' && row.status !== status) return false;
       if (!term) return true;
       return (
