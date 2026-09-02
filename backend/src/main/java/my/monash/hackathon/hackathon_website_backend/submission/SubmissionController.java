@@ -34,9 +34,7 @@ public class SubmissionController {
     private final AssignmentRepository assignmentRepository;
     private final EventSettingsRepository eventSettingsRepository;
     private final SubmissionImportService submissionImportService;
-
-    @Value("${app.webhook.secret:}")
-    private String webhookSecret;
+    private final my.monash.hackathon.hackathon_website_backend.webhook.WebhookSecretValidator webhookSecretValidator;
 
     public SubmissionController(
             SubmissionRepository submissionRepository,
@@ -44,13 +42,15 @@ public class SubmissionController {
             TeamMemberRepository teamMemberRepository,
             AssignmentRepository assignmentRepository,
             EventSettingsRepository eventSettingsRepository,
-            SubmissionImportService submissionImportService) {
+            SubmissionImportService submissionImportService,
+            my.monash.hackathon.hackathon_website_backend.webhook.WebhookSecretValidator webhookSecretValidator) {
         this.submissionRepository = submissionRepository;
         this.userRepository = userRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.assignmentRepository = assignmentRepository;
         this.eventSettingsRepository = eventSettingsRepository;
         this.submissionImportService = submissionImportService;
+        this.webhookSecretValidator = webhookSecretValidator;
     }
 
     public record SubmissionResponse(
@@ -129,17 +129,21 @@ public class SubmissionController {
             @RequestParam(name = "secret", required = false) String paramSecret,
             @RequestParam(name = "dryRun", defaultValue = "false") boolean dryRun) {
 
-        if (webhookSecret != null && !webhookSecret.isBlank()) {
-            String provided = headerSecret != null ? headerSecret : paramSecret;
-            if (!webhookSecret.equals(provided)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Invalid or missing webhook secret"));
-            }
+        if (!webhookSecretValidator.isValid(headerSecret, null, paramSecret)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or missing webhook secret"));
         }
 
         try {
             var summary = submissionImportService.syncFromSheets(dryRun);
-            return ResponseEntity.ok(summary);
+            return ResponseEntity.ok(Map.of(
+                    "status", summary.success() ? "success" : "partial_success",
+                    "totalRows", summary.totalRows(),
+                    "imported", summary.imported(),
+                    "updated", summary.updated(),
+                    "skipped", summary.skipped(),
+                    "rejected", summary.rejected()
+            ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Sync failed"));

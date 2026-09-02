@@ -5,10 +5,14 @@ import my.monash.hackathon.hackathon_website_backend.user.UserRepository;
 import my.monash.hackathon.hackathon_website_backend.team.Team;
 import my.monash.hackathon.hackathon_website_backend.team.TeamMember;
 import my.monash.hackathon.hackathon_website_backend.team.TeamMemberRepository;
+import my.monash.hackathon.hackathon_website_backend.tools.FormSubmissionImporter;
 import my.monash.hackathon.hackathon_website_backend.webhook.SubmissionImportService;
+import my.monash.hackathon.hackathon_website_backend.webhook.WebhookProperties;
+import my.monash.hackathon.hackathon_website_backend.webhook.WebhookSecretValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -18,11 +22,14 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,6 +41,7 @@ class SubmissionControllerTest {
     private my.monash.hackathon.hackathon_website_backend.judging.AssignmentRepository assignmentRepository;
     private my.monash.hackathon.hackathon_website_backend.event.EventSettingsRepository eventSettingsRepository;
     private SubmissionImportService submissionImportService;
+    private WebhookSecretValidator webhookSecretValidator;
     private SubmissionController controller;
     private User currentUser;
 
@@ -45,13 +53,15 @@ class SubmissionControllerTest {
         assignmentRepository = mock(my.monash.hackathon.hackathon_website_backend.judging.AssignmentRepository.class);
         eventSettingsRepository = mock(my.monash.hackathon.hackathon_website_backend.event.EventSettingsRepository.class);
         submissionImportService = mock(SubmissionImportService.class);
+        webhookSecretValidator = new WebhookSecretValidator(new WebhookProperties("test_webhook_secret"));
         controller = new SubmissionController(
                 submissionRepository,
                 userRepository,
                 teamMemberRepository,
                 assignmentRepository,
                 eventSettingsRepository,
-                submissionImportService
+                submissionImportService,
+                webhookSecretValidator
         );
         currentUser = null;
     }
@@ -132,6 +142,42 @@ class SubmissionControllerTest {
                 .andExpect(jsonPath("$.representativeName").value("Alice Smith"))
                 .andExpect(jsonPath("$.trackLabel").value("Sustainability"))
                 .andExpect(jsonPath("$.status").value("submitted"));
+    }
+
+    @Test
+    void webhookSubmissionsRejectsWhenSecretMissingOrWrong() throws Exception {
+        buildMockMvc().perform(post("/api/webhook/submissions"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid or missing webhook secret"));
+
+        buildMockMvc().perform(post("/api/webhook/submissions")
+                        .header("X-Webhook-Secret", "wrong_secret"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid or missing webhook secret"));
+
+        buildMockMvc().perform(post("/api/webhook/submissions?secret=wrong_secret"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid or missing webhook secret"));
+    }
+
+    @Test
+    void webhookSubmissionsAcceptsValidSecretAndReturnsCountsOnly() throws Exception {
+        FormSubmissionImporter.ImportSummary summary = new FormSubmissionImporter.ImportSummary(
+                true, 5, 2, 1, 1, 1, List.of("imported row 1", "updated row 2", "rejected row 3")
+        );
+        when(submissionImportService.syncFromSheets(anyBoolean())).thenReturn(summary);
+
+        buildMockMvc().perform(post("/api/webhook/submissions")
+                        .header("X-Webhook-Secret", "test_webhook_secret")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.totalRows").value(5))
+                .andExpect(jsonPath("$.imported").value(2))
+                .andExpect(jsonPath("$.updated").value(1))
+                .andExpect(jsonPath("$.skipped").value(1))
+                .andExpect(jsonPath("$.rejected").value(1))
+                .andExpect(jsonPath("$.logMessages").doesNotExist());
     }
 
     private static void setId(Object entity, Long id) throws Exception {

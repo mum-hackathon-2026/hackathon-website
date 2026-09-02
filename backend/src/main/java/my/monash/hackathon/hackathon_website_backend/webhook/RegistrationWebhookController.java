@@ -22,12 +22,12 @@ public class RegistrationWebhookController {
     private static final Logger log = LoggerFactory.getLogger(RegistrationWebhookController.class);
 
     private final RegistrationImportService importService;
-    private final WebhookProperties webhookProperties;
+    private final WebhookSecretValidator webhookSecretValidator;
 
     public RegistrationWebhookController(RegistrationImportService importService,
-                                         WebhookProperties webhookProperties) {
+                                         WebhookSecretValidator webhookSecretValidator) {
         this.importService = importService;
-        this.webhookProperties = webhookProperties;
+        this.webhookSecretValidator = webhookSecretValidator;
     }
 
     @PostMapping("/forms/registration")
@@ -36,18 +36,11 @@ public class RegistrationWebhookController {
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(value = "dryRun", defaultValue = "false") boolean dryRun
     ) {
-        String configuredSecret = webhookProperties.secret();
-        if (configuredSecret != null && !configuredSecret.isBlank()) {
-            boolean matchesHeader = configuredSecret.equals(headerSecret);
-            boolean matchesBearer = authHeader != null && authHeader.equalsIgnoreCase("Bearer " + configuredSecret);
-
-            if (!matchesHeader && !matchesBearer) {
-                log.warn("Rejected webhook request due to invalid or missing secret");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                        "status", "unauthorized",
-                        "message", "Invalid or missing X-Webhook-Secret header"
-                ));
-            }
+        if (!webhookSecretValidator.isValid(headerSecret, authHeader, null)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "status", "unauthorized",
+                    "message", "Invalid or missing webhook secret"
+            ));
         }
 
         try {
@@ -65,9 +58,8 @@ public class RegistrationWebhookController {
                     "skipped", summary.skipped(),
                     "rejected", summary.rejected(),
                     // Teams screening held back. They are not in the database and will be
-                    // screened again on the next poll; the reasons are in logMessages.
-                    "pending", summary.pending(),
-                    "logMessages", summary.logMessages()
+                    // screened again on the next poll; details go to server log only.
+                    "pending", summary.pending()
             ));
         } catch (Exception e) {
             log.error("Failed to process Google Form submission webhook", e);

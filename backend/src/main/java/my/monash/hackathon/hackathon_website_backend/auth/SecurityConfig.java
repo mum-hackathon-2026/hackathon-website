@@ -29,15 +29,19 @@ import java.util.List;
 @EnableConfigurationProperties({
         JwtProperties.class,
         GoogleAuthProperties.class,
+        CorsProperties.class,
         my.monash.hackathon.hackathon_website_backend.webhook.WebhookProperties.class,
         my.monash.hackathon.hackathon_website_backend.webhook.SheetsProperties.class
 })
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CorsProperties corsProperties;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          CorsProperties corsProperties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.corsProperties = corsProperties;
     }
 
     @Bean
@@ -66,15 +70,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         var config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost:4200",
-                "http://localhost:8080",
-                "https://monash-hackathon-2026.web.app",
-                "https://*.web.app",
-                "https://*.firebaseapp.com",
-                "https://*.run.app",
-                "https://*.monash.edu.my"
-        ));
+        config.setAllowedOrigins(corsProperties.effectiveOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
