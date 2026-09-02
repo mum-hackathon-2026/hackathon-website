@@ -254,7 +254,7 @@ public class RegistrationReviewService {
 
     private String validatedUrlOrNull(String value, String fullName, String what) {
         String trimmed = value == null ? "" : value.trim();
-        if (trimmed.isEmpty()) {
+        if (trimmed.isEmpty() || isPlaceholder(trimmed)) {
             return null;
         }
         if (!URL.matcher(trimmed).matches()) {
@@ -262,6 +262,14 @@ public class RegistrationReviewService {
                     + trimmed + "' - it must start with http:// or https://, or be left blank.");
         }
         return trimmed;
+    }
+
+    private static boolean isPlaceholder(String val) {
+        String lower = val.trim().toLowerCase(Locale.ROOT);
+        return lower.equals("n/a") || lower.equals("na") || lower.equals("none")
+                || lower.equals("nil") || lower.equals("-") || lower.equals("--")
+                || lower.equals("null") || lower.equals("no") || lower.equals("n.a.")
+                || lower.equals("n/a.");
     }
 
     private String mintJoinCode() {

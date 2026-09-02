@@ -106,6 +106,16 @@ export class AdminRegistrationReviews {
 
   // ── Approve ─────────────────────────────────────────────────────────────
 
+  private cleanUrl(val: string | null | undefined): string | null {
+    if (!val) return null;
+    const trimmed = val.trim();
+    const lower = trimmed.toLowerCase();
+    if (!trimmed || ['n/a', 'na', 'none', 'nil', '-', '--', 'no', 'null', 'n.a.', 'n/a.'].includes(lower)) {
+      return null;
+    }
+    return trimmed;
+  }
+
   protected openApprove(row: RegistrationReview): void {
     this.approving.set(row);
     this.approveTeamName.set(row.teamName);
@@ -115,9 +125,9 @@ export class AdminRegistrationReviews {
         email: m.email,
         phone: m.phone,
         major: m.major,
-        resumeUrl: m.resumeUrl ?? '',
-        linkedinUrl: m.linkedinUrl ?? '',
-        githubUrl: m.githubUrl ?? '',
+        resumeUrl: this.cleanUrl(m.resumeUrl) ?? '',
+        linkedinUrl: this.cleanUrl(m.linkedinUrl) ?? '',
+        githubUrl: this.cleanUrl(m.githubUrl) ?? '',
       })),
     );
     this.approveError.set(null);
@@ -148,9 +158,9 @@ export class AdminRegistrationReviews {
           email: m.email.trim(),
           phone: m.phone.trim(),
           major: m.major,
-          resumeUrl: m.resumeUrl.trim() || null,
-          linkedinUrl: m.linkedinUrl.trim() || null,
-          githubUrl: m.githubUrl.trim() || null,
+          resumeUrl: this.cleanUrl(m.resumeUrl),
+          linkedinUrl: this.cleanUrl(m.linkedinUrl),
+          githubUrl: this.cleanUrl(m.githubUrl),
         })),
       );
       if (result.ok) {

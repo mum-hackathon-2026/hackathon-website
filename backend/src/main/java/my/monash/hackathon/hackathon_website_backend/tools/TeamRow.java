@@ -378,7 +378,7 @@ final class TeamRow {
      */
     private static String validateUrl(String value, String what, String who, String fullName) {
         String trimmed = blankToNull(value);
-        if (trimmed == null) {
+        if (trimmed == null || isPlaceholder(trimmed)) {
             return null;
         }
         if (!URL.matcher(trimmed).matches()) {
@@ -386,6 +386,14 @@ final class TeamRow {
                     + ") is not a URL: '" + trimmed + "' - it must start with http:// or https://");
         }
         return trimmed;
+    }
+
+    private static boolean isPlaceholder(String val) {
+        String lower = val.trim().toLowerCase(Locale.ROOT);
+        return lower.equals("n/a") || lower.equals("na") || lower.equals("none")
+                || lower.equals("nil") || lower.equals("-") || lower.equals("--")
+                || lower.equals("null") || lower.equals("no") || lower.equals("n.a.")
+                || lower.equals("n/a.");
     }
 
     private static String blankToNull(String value) {
