@@ -279,7 +279,20 @@ public class AdminBackendService {
             Long teamId = teamIdByUser.get(u.getId());
             String teamName = teamId != null ? teamNameById.getOrDefault(teamId, "") : "";
 
-            String eligibility = u.isEmailVerified() ? "eligible" : "unverified";
+            // There is no not_student outcome here: the event's studentEmailDomain is
+            // configured as null (open to students from any university - see
+            // EVENT_CONFIG.site.studentEmailDomain), so no domain exists to check an
+            // address against. incomplete_profile is new: a verified participant who is
+            // still missing a resume, LinkedIn or GitHub link - gaps that used to be
+            // visible only at the moment a registration was screened, now visible for as
+            // long as the gap exists, including one an admin approved with a field left
+            // blank from the registration review queue.
+            boolean hasGap = u.getResumeUrl() == null || u.getResumeUrl().isBlank()
+                    || u.getLinkedinUrl() == null || u.getLinkedinUrl().isBlank()
+                    || u.getGithubUrl() == null || u.getGithubUrl().isBlank();
+            String eligibility = !u.isEmailVerified() ? "unverified"
+                    : hasGap ? "incomplete_profile"
+                    : "eligible";
 
             list.add(new AdminParticipantDto(
                     u.getId(),
