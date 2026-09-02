@@ -50,6 +50,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
+		<!-- Boot 4's per-technology split means -webmvc alone does not bring Jackson;
+		     needed for the registration_reviews jsonb payload (raw member data plus a
+		     free-form issues list), which is genuinely structured, unlike audit_log's
+		     hand-built one-line JSON. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-json</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-websocket</artifactId>
