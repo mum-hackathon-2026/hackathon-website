@@ -1,6 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, InjectionToken, computed, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { decryptStorageValue, encryptStorageValue } from './storage-crypto';
 
 export type Role = 'participant' | 'judge' | 'admin';
 
@@ -13,28 +14,27 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export interface AuthUser {
-  /** Mirrors `users.id`, which team_members.user_id and teams.created_by reference. */
-  readonly id: number;
-  readonly name: string;
-  readonly email: string;
-  readonly initials: string;
-  readonly role: Role;
-  readonly token?: string;
+  id: number;
+  name: string;
+  email: string;
+  initials: string;
+  role: Role;
+  token?: string;
 }
 
 export const DEMO_USERS: Record<Role, AuthUser> = {
   participant: {
     id: 1,
-    name: 'Priya Menon',
-    email: 'pmenon@student.monash.edu',
-    initials: 'PM',
+    name: 'Ahmad bin Razak',
+    email: 'ahmad.razak@student.monash.edu',
+    initials: 'AR',
     role: 'participant',
   },
   judge: {
     id: 2,
-    name: 'Dr. Sofia Lindqvist',
-    email: 's.lindqvist@monash.edu',
-    initials: 'SL',
+    name: 'Dr. Sarah Chen',
+    email: 'sarah.chen@monash.edu',
+    initials: 'SC',
     role: 'judge',
   },
   admin: {
@@ -90,7 +90,7 @@ export const SESSION_STORAGE = new InjectionToken<Storage | null>('SESSION_STORA
   providedIn: 'root',
   factory: () => {
     try {
-      return globalThis.localStorage ?? null;
+      return globalThis.sessionStorage ?? globalThis.localStorage ?? null;
     } catch {
       return null; // Private browsing, or storage disabled.
     }
@@ -153,7 +153,9 @@ function restoreSession(storage: Storage | null): AuthUser | null {
   if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(raw) as Partial<StoredSession>;
+    const decrypted = decryptStorageValue(raw);
+    if (!decrypted) return null;
+    const parsed = JSON.parse(decrypted) as Partial<StoredSession>;
     if (parsed.user && isRole(parsed.user.role)) {
       return parsed.user;
     }
@@ -291,9 +293,9 @@ export class AuthService {
         return;
       }
       const session: StoredSession = { user };
-      this.storage.setItem(STORAGE_KEY, JSON.stringify(session));
+      this.storage.setItem(STORAGE_KEY, encryptStorageValue(JSON.stringify(session)));
       if (user.token) {
-        this.storage.setItem(JWT_STORAGE_KEY, user.token);
+        this.storage.setItem(JWT_STORAGE_KEY, encryptStorageValue(user.token));
       }
     } catch {
       // Storage full or unavailable

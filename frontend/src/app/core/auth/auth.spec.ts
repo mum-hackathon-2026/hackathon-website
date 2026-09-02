@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { API_BASE_URL, AuthService, SESSION_STORAGE } from './auth';
+import { decryptStorageValue } from './storage-crypto';
 
 /** Minimal in-memory Storage — jsdom's opaque origin has no localStorage. */
 function memoryStorage(seed: Record<string, string> = {}): Storage {
@@ -304,7 +305,10 @@ describe('AuthService.signInWithGoogle', () => {
         await signInWith();
         TestBed.flushEffects();
 
-        expect(storage.getItem('hackathon.jwt-token')).toBe('header.payload.signature');
+        expect(storage.getItem('hackathon.jwt-token')).toMatch(/^enc:v1:/);
+        expect(decryptStorageValue(storage.getItem('hackathon.jwt-token'))).toBe(
+          'header.payload.signature',
+        );
       });
 
       it('restores the real session across a reload, token and all', async () => {
