@@ -1,0 +1,341 @@
+<p class="lede">{{ summary() }}</p>
+
+@if (notice()) {
+  <div class="alert alert--success" role="status">
+    {{ notice() }}
+  </div>
+}
+@if (error()) {
+  <div class="alert alert--danger" role="alert">
+    {{ error() }}
+  </div>
+}
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="review-search">Search reviews</label>
+  <input
+    id="review-search"
+    class="input filters__search"
+    type="search"
+    name="reviewSearch"
+    placeholder="Search team or member name"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  <label class="visually-hidden" for="review-status">Filter by status</label>
+  <select
+    id="review-status"
+    class="input"
+    name="reviewStatus"
+    [ngModel]="statusFilter()"
+    (ngModelChange)="statusFilter.set($event)"
+  >
+    @for (option of statusFilters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
+  @if (filtersActive()) {
+    <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
+  }
+</div>
+
+<!-- ── Cards ──────────────────────────────────────────────────────────────── -->
+
+@if (rows().length === 0) {
+  <p class="empty">Nothing matches that search — every registration this importer has flagged is clear.</p>
+} @else {
+  <div class="reviews">
+    @for (row of rows(); track row.id) {
+      <article class="review-card">
+        <header class="review-card__header">
+          <div>
+            <span class="review-card__status" [class]="'review-card__status--' + row.status">
+              {{ statusLabels[row.status] }}
+            </span>
+            <h3 class="review-card__title">{{ row.teamName }}</h3>
+          </div>
+          <span class="review-card__meta">
+            {{ row.members.length }} member{{ row.members.length === 1 ? '' : 's' }}
+          </span>
+        </header>
+
+        <ul class="review-card__issues">
+          @for (issue of row.issues; track issue) {
+            <li>{{ issue }}</li>
+          }
+        </ul>
+
+        @if (row.adminNote) {
+          <p class="review-card__note"><strong>Admin note:</strong> {{ row.adminNote }}</p>
+        }
+
+        <div class="scroller">
+          <table class="grid">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Phone</th>
+                <th scope="col">Major</th>
+                <th scope="col">Resume</th>
+                <th scope="col">LinkedIn</th>
+                <th scope="col">GitHub</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (member of row.members; track member.block) {
+                <tr>
+                  <td>{{ member.fullName || '—' }}</td>
+                  <td [class.review-card__cell--missing]="!member.email">{{ member.email || 'missing' }}</td>
+                  <td [class.review-card__cell--missing]="!member.phone">{{ member.phone || 'missing' }}</td>
+                  <td>{{ member.major || '—' }}</td>
+                  <td [class.review-card__cell--missing]="!member.resumeUrl">{{ member.resumeUrl || 'missing' }}</td>
+                  <td [class.review-card__cell--missing]="!member.linkedinUrl">{{ member.linkedinUrl || 'missing' }}</td>
+                  <td [class.review-card__cell--missing]="!member.githubUrl">{{ member.githubUrl || 'missing' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="review-card__actions">
+          @if (row.status === 'awaiting_review' || row.status === 'needs_fix') {
+            <button type="button" class="btn-save" (click)="openApprove(row)">Approve</button>
+            <button type="button" class="btn-edit" (click)="openRequestFix(row)">Needs fix</button>
+            <button type="button" class="btn-cancel" (click)="openReject(row)">Reject</button>
+          } @else {
+            <span class="review-card__decided">
+              {{ statusLabels[row.status] }}
+              @if (row.reviewedByName) {
+                by {{ row.reviewedByName }}
+              }
+            </span>
+            @if (row.status !== 'approved') {
+              <button type="button" class="link-button" (click)="reopen(row)">Reopen</button>
+            }
+          }
+        </div>
+      </article>
+    }
+  </div>
+}
+
+<!-- ── Approve / edit modal ──────────────────────────────────────────────── -->
+
+@if (approving(); as row) {
+  <div class="modal-backdrop" (click)="closeApprove()">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-approve-title">
+      <div class="modal-header">
+        <div>
+          <span class="modal-eyebrow">Approve registration</span>
+          <h2 id="modal-approve-title" class="modal-title">{{ row.teamName }}</h2>
+        </div>
+        <button type="button" class="modal-close" (click)="closeApprove()" aria-label="Close dialog">×</button>
+      </div>
+
+      <p class="modal-hint">
+        Correct anything below before approving — a bad link or a name collision will block
+        the import until it's fixed here.
+      </p>
+
+      @if (approveError()) {
+        <div class="alert alert--danger" role="alert">
+          {{ approveError() }}
+        </div>
+      }
+
+      <form class="modal-form" (ngSubmit)="confirmApprove()">
+        <div class="form-group">
+          <label for="approve-team-name" class="form-label">Team name</label>
+          <input
+            id="approve-team-name"
+            class="input form-input"
+            type="text"
+            required
+            [ngModel]="approveTeamName()"
+            (ngModelChange)="approveTeamName.set($event)"
+            name="approveTeamName"
+          />
+        </div>
+
+        @for (member of approveMembers(); track $index) {
+          <fieldset class="member-fieldset">
+            <legend>Member {{ $index + 1 }}</legend>
+            <div class="form-grid">
+              <div class="form-group">
+                <label [for]="'approve-name-' + $index" class="form-label">Full name</label>
+                <input
+                  [id]="'approve-name-' + $index"
+                  class="input form-input"
+                  type="text"
+                  [ngModel]="member.fullName"
+                  (ngModelChange)="updateMember($index, 'fullName', $event)"
+                  [name]="'fullName' + $index"
+                />
+              </div>
+              <div class="form-group">
+                <label [for]="'approve-email-' + $index" class="form-label">Email</label>
+                <input
+                  [id]="'approve-email-' + $index"
+                  class="input form-input"
+                  type="email"
+                  [ngModel]="member.email"
+                  (ngModelChange)="updateMember($index, 'email', $event)"
+                  [name]="'email' + $index"
+                />
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label [for]="'approve-phone-' + $index" class="form-label">Phone</label>
+                <input
+                  [id]="'approve-phone-' + $index"
+                  class="input form-input"
+                  type="tel"
+                  [ngModel]="member.phone"
+                  (ngModelChange)="updateMember($index, 'phone', $event)"
+                  [name]="'phone' + $index"
+                />
+              </div>
+              <div class="form-group">
+                <label [for]="'approve-major-' + $index" class="form-label">Major (not saved)</label>
+                <input
+                  [id]="'approve-major-' + $index"
+                  class="input form-input"
+                  type="text"
+                  [ngModel]="member.major"
+                  (ngModelChange)="updateMember($index, 'major', $event)"
+                  [name]="'major' + $index"
+                  disabled
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label [for]="'approve-resume-' + $index" class="form-label">Resume URL</label>
+              <input
+                [id]="'approve-resume-' + $index"
+                class="input form-input"
+                type="url"
+                placeholder="https://drive.google.com/..."
+                [ngModel]="member.resumeUrl"
+                (ngModelChange)="updateMember($index, 'resumeUrl', $event)"
+                [name]="'resumeUrl' + $index"
+              />
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label [for]="'approve-linkedin-' + $index" class="form-label">LinkedIn URL</label>
+                <input
+                  [id]="'approve-linkedin-' + $index"
+                  class="input form-input"
+                  type="url"
+                  placeholder="https://linkedin.com/in/..."
+                  [ngModel]="member.linkedinUrl"
+                  (ngModelChange)="updateMember($index, 'linkedinUrl', $event)"
+                  [name]="'linkedinUrl' + $index"
+                />
+              </div>
+              <div class="form-group">
+                <label [for]="'approve-github-' + $index" class="form-label">GitHub URL</label>
+                <input
+                  [id]="'approve-github-' + $index"
+                  class="input form-input"
+                  type="url"
+                  placeholder="https://github.com/..."
+                  [ngModel]="member.githubUrl"
+                  (ngModelChange)="updateMember($index, 'githubUrl', $event)"
+                  [name]="'githubUrl' + $index"
+                />
+              </div>
+            </div>
+          </fieldset>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeApprove()" [disabled]="isSaving()">
+            Cancel
+          </button>
+          <button type="submit" class="btn-save" [disabled]="isSaving()">
+            {{ isSaving() ? 'Approving...' : 'Approve & import' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ── Needs-fix note ─────────────────────────────────────────────────────── -->
+
+@if (requestingFix(); as row) {
+  <div class="modal-backdrop" (click)="requestingFix.set(null)">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-fix-title">
+      <div class="modal-header">
+        <div>
+          <span class="modal-eyebrow">Send back for a fix</span>
+          <h2 id="modal-fix-title" class="modal-title">{{ row.teamName }}</h2>
+        </div>
+        <button type="button" class="modal-close" (click)="requestingFix.set(null)" aria-label="Close dialog">×</button>
+      </div>
+      <p class="modal-hint">
+        This data isn't complete yet — the team stays out of the event, and this refreshes
+        automatically once the sheet changes.
+      </p>
+      <div class="form-group">
+        <label for="fix-note" class="form-label">Note (optional)</label>
+        <textarea
+          id="fix-note"
+          class="input form-input"
+          rows="3"
+          [ngModel]="fixNote()"
+          (ngModelChange)="fixNote.set($event)"
+          name="fixNote"
+        ></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="requestingFix.set(null)">Cancel</button>
+        <button type="button" class="btn-edit" (click)="confirmRequestFix()">Send back</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Reject confirmation ────────────────────────────────────────────────── -->
+
+@if (rejecting(); as row) {
+  <div class="modal-backdrop" (click)="rejecting.set(null)">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-reject-title">
+      <div class="modal-header">
+        <div>
+          <span class="modal-eyebrow">Reject registration</span>
+          <h2 id="modal-reject-title" class="modal-title">{{ row.teamName }}</h2>
+        </div>
+        <button type="button" class="modal-close" (click)="rejecting.set(null)" aria-label="Close dialog">×</button>
+      </div>
+      <div class="form-group">
+        <label for="reject-note" class="form-label">Note (optional)</label>
+        <textarea
+          id="reject-note"
+          class="input form-input"
+          rows="3"
+          [ngModel]="rejectNote()"
+          (ngModelChange)="rejectNote.set($event)"
+          name="rejectNote"
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="'Reject ' + row.teamName + '?'"
+    body="They stay out of the event and this will not reappear on its own. This isn't fixable by re-running the import — the team would have to register again."
+    confirmLabel="Reject"
+    [danger]="true"
+    (confirmed)="confirmReject()"
+    (cancelled)="rejecting.set(null)"
+  ></app-confirm-dialog>
+}
