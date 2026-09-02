@@ -41,7 +41,8 @@ class RegistrationWebhookControllerTest {
         WebhookSecretValidator validator = new WebhookSecretValidator(new WebhookProperties("expected_secret_123"));
 
         FormRegistrationImporter.ImportSummary summary = new FormRegistrationImporter.ImportSummary(
-                true, 2, 1, 1, 0, 0, List.of("line 2 IMPORTED: participant@example.com JOINCODE1", "line 3 SKIPPED")
+                true, 2, 1, 1, 0, 0, 0, 0,
+                List.of("line 2 IMPORTED: participant@example.com JOINCODE1", "line 3 SKIPPED")
         );
         when(service.syncFromSheets(anyBoolean())).thenReturn(summary);
 
@@ -56,8 +57,8 @@ class RegistrationWebhookControllerTest {
                 .andExpect(jsonPath("$.totalRows").value(2))
                 .andExpect(jsonPath("$.imported").value(1))
                 .andExpect(jsonPath("$.skipped").value(1))
-                .andExpect(jsonPath("$.rejected").value(0))
-                .andExpect(jsonPath("$.pending").value(0))
+                .andExpect(jsonPath("$.review").value(0))
+                .andExpect(jsonPath("$.errors").value(0))
                 .andExpect(jsonPath("$.logMessages").doesNotExist());
     }
 
@@ -67,7 +68,7 @@ class RegistrationWebhookControllerTest {
         WebhookSecretValidator validator = new WebhookSecretValidator(new WebhookProperties("expected_secret_123"));
 
         FormRegistrationImporter.ImportSummary summary = new FormRegistrationImporter.ImportSummary(
-                true, 1, 1, 0, 0, 0, List.of("line 2 IMPORTED")
+                true, 1, 1, 0, 0, 0, 0, 0, List.of("line 2 IMPORTED")
         );
         when(service.syncFromSheets(anyBoolean())).thenReturn(summary);
 
