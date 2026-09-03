@@ -21,9 +21,9 @@ import java.util.List;
  * Reads the {@code Authorization: Bearer <token>} header, validates the JWT,
  * loads the user from the database, and populates the Spring Security context.
  *
- * <p>If the header is absent or the token is invalid the filter silently
- * continues — Spring Security will reject the request later if the endpoint
- * requires authentication.
+ * <p>If the header is absent, the token is invalid, or the token has been revoked
+ * ({@link TokenRevocationService}) the filter silently continues — Spring Security
+ * will reject the request later if the endpoint requires authentication.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -33,10 +33,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final TokenRevocationService tokenRevocationService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository,
+                                    TokenRevocationService tokenRevocationService) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     @Override
@@ -55,7 +58,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = header.substring(BEARER_PREFIX.length());
 
         try {
-            Long userId = jwtService.getUserIdFromToken(token);
+            var claims = jwtService.validateToken(token);
+
+            if (tokenRevocationService.isRevoked(claims.getId())) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            Long userId = Long.parseLong(claims.getSubject());
             var userOpt = userRepository.findById(userId);
 
             if (userOpt.isPresent()) {
