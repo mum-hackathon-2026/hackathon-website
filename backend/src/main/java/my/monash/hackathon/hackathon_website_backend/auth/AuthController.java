@@ -1,5 +1,7 @@
 package my.monash.hackathon.hackathon_website_backend.auth;
 
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import my.monash.hackathon.hackathon_website_backend.user.User;
 import my.monash.hackathon.hackathon_website_backend.user.UserRepository;
@@ -38,15 +40,18 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService;
+    private final TokenRevocationService tokenRevocationService;
 
     public AuthController(GoogleTokenVerifier googleTokenVerifier,
                           JwtService jwtService,
                           UserRepository userRepository,
-                          my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService) {
+                          my.monash.hackathon.hackathon_website_backend.webhook.RegistrationImportService registrationImportService,
+                          TokenRevocationService tokenRevocationService) {
         this.googleTokenVerifier = googleTokenVerifier;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.registrationImportService = registrationImportService;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     /**
@@ -151,5 +156,35 @@ public class AuthController {
                 user.getFullName(),
                 user.getRole()
         ));
+    }
+
+    /**
+     * Revokes the presented bearer token, so a copy of it made before logout stops
+     * working immediately instead of drifting on until it naturally expires.
+     *
+     * <p>Deliberately tolerant: a missing, already-expired, or already-tampered token
+     * has nothing left to revoke, and none of those are the caller's problem to see —
+     * the frontend calls this best-effort as part of local sign-out. Only a
+     * structurally well-formed, still-live token results in a row being written.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return ResponseEntity.noContent().build();
+        }
+
+        String token = header.substring("Bearer ".length());
+        try {
+            var claims = jwtService.validateToken(token);
+            tokenRevocationService.revoke(
+                    claims.getId(),
+                    Long.parseLong(claims.getSubject()),
+                    claims.getExpiration().toInstant());
+        } catch (JwtException | NumberFormatException e) {
+            log.debug("Logout presented an already-invalid token: {}", e.getMessage());
+        }
+
+        return ResponseEntity.noContent().build();
     }
 }

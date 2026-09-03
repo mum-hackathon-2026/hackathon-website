@@ -280,8 +280,30 @@ export class AuthService {
     }
   }
 
+  /**
+   * Signs the local session out immediately, and best-effort revokes the token on the
+   * backend so a copy made before this call stops working too.
+   *
+   * The revocation is not awaited — local sign-out must not hang on a network round
+   * trip — and its failure is not surfaced: the backend being unreachable here is not
+   * this user's problem, and the token still expires on its own regardless. Without
+   * this call the JWT was otherwise valid for the rest of its lifetime (up to
+   * app.jwt.expiration-ms) even after the app forgot it, so a copied bearer token kept
+   * working past logout.
+   */
   signOut(): void {
+    const token = this.token();
     this.currentUser.set(null);
+
+    if (token) {
+      firstValueFrom(
+        this.http.post(`${this.apiBaseUrl}/api/auth/logout`, null, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ).catch(() => {
+        // Best-effort: network failure or backend unavailable is not fatal here.
+      });
+    }
   }
 
   private persist(user: AuthUser | null): void {

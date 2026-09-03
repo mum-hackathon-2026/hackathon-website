@@ -347,6 +347,10 @@ describe('AuthService.signInWithGoogle', () => {
 
         expect(storage.getItem('hackathon.jwt-token')).toBeNull();
         expect(storage.getItem('hackathon.demo-auth')).toBeNull();
+
+        // Best-effort server-side revocation, fired with the token that is being
+        // cleared locally — see AuthService.signOut.
+        http.expectOne(`${API}/api/auth/logout`).flush(null);
       });
 
       it('signs in even where storage is unavailable', async () => {
@@ -603,6 +607,9 @@ describe('AuthService session revalidation', () => {
       expect(restored.isSignedIn()).toBe(false);
       expect(restored.user()).toBeNull();
       expect(restored.token()).toBeNull();
+
+      // signOut() also best-effort revokes the token it just cleared locally.
+      http.expectOne(`${API}/api/auth/logout`).flush(null);
     });
 
     // 403 is the user: the row is gone, or no longer admitted. Under V2 a
@@ -614,6 +621,8 @@ describe('AuthService session revalidation', () => {
       await restored.sessionCheck;
 
       expect(restored.isSignedIn()).toBe(false);
+
+      http.expectOne(`${API}/api/auth/logout`).flush(null);
     });
 
     it('clears storage too, so the next reload does not restore it again', async () => {
@@ -639,6 +648,8 @@ describe('AuthService session revalidation', () => {
 
       expect(storage.getItem('hackathon.demo-auth')).toBeNull();
       expect(storage.getItem('hackathon.jwt-token')).toBeNull();
+
+      http.expectOne(`${API}/api/auth/logout`).flush(null);
     });
   });
 
@@ -750,6 +761,9 @@ describe('AuthService session revalidation', () => {
       await restored.sessionCheck;
 
       expect(restored.isSignedIn()).toBe(false);
+
+      // Best-effort server-side revocation, fired alongside the local sign-out.
+      http.expectOne(`${API}/api/auth/logout`).flush(null);
     });
   });
 });
