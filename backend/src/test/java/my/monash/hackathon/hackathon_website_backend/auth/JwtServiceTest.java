@@ -42,4 +42,23 @@ class JwtServiceTest {
         assertThat(claims.get("role")).isEqualTo("participant");
         assertThat(claims.get("name")).isEqualTo("Alice Smith");
     }
+
+    // The jti exists solely to let TokenRevocationService revoke one token by id at
+    // logout — every token needs one, and no two tokens may collide on it, or logging
+    // out of one session would silently revoke another.
+    @Test
+    void givesEveryTokenAUniqueId() {
+        JwtService service = new JwtService(new JwtProperties(VALID_SECRET, 3600000));
+        User user = new User("sub-123", "alice@example.com", "Alice Smith");
+
+        String first = service.generateToken(user);
+        String second = service.generateToken(user);
+
+        String firstJti = service.validateToken(first).getId();
+        String secondJti = service.validateToken(second).getId();
+
+        assertThat(firstJti).isNotBlank();
+        assertThat(secondJti).isNotBlank();
+        assertThat(firstJti).isNotEqualTo(secondJti);
+    }
 }

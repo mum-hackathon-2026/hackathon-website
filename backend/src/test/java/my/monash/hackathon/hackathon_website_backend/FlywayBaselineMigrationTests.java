@@ -38,6 +38,7 @@ class FlywayBaselineMigrationTests {
             "judging_criteria",
             "notifications_log",
             "registration_reviews",
+            "revoked_tokens",
             "scores",
             "submissions",
             "team_members",
@@ -66,8 +67,8 @@ class FlywayBaselineMigrationTests {
 
         MigrateResult result = flyway.migrate();
 
-        assertThat(result.migrationsExecuted).isEqualTo(11);
-        assertThat(result.targetSchemaVersion).isEqualTo("11");
+        assertThat(result.migrationsExecuted).isEqualTo(12);
+        assertThat(result.targetSchemaVersion).isEqualTo("12");
 
         Map<String, Object> baselineRow = jdbcTemplate.queryForMap(
                 "select version, description, success from flyway_schema_history where version = ?",
@@ -167,6 +168,15 @@ class FlywayBaselineMigrationTests {
                 .as("V11 must be recorded as successfully applied")
                 .isEqualTo(Boolean.TRUE);
         assertThat(registrationReviewsRow.get("description")).isEqualTo("registration reviews");
+
+        Map<String, Object> revokedTokensRow = jdbcTemplate.queryForMap(
+                "select version, description, success from flyway_schema_history where version = ?",
+                "12");
+
+        assertThat(revokedTokensRow.get("success"))
+                .as("V12 must be recorded as successfully applied")
+                .isEqualTo(Boolean.TRUE);
+        assertThat(revokedTokensRow.get("description")).isEqualTo("revoked tokens");
 
         List<String> actualTables = jdbcTemplate.queryForList(
                 """

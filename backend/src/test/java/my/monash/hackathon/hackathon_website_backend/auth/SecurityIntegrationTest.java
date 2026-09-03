@@ -118,6 +118,48 @@ class SecurityIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    // A copied token must stop working the moment its owner signs out, rather than
+    // drifting on until its natural exp — see TokenRevocationService.
+    @Test
+    void logoutRevokesTheTokenSoItCanNoLongerAuthenticate() throws Exception {
+        User admin = new User("sub-admin", "admin@example.com", "Admin Person");
+        admin.setRole("admin");
+        setUserId(admin, 404L);
+
+        when(userRepository.findById(404L)).thenReturn(Optional.of(admin));
+        when(adminService.getOverview()).thenReturn(new AdminOverviewDto(
+                new AdminStatsDto(1, 1, 0, 0, 0, 1, 1, 100, 0, 1, 1, 0),
+                List.of()
+        ));
+
+        String token = jwtService.generateToken(admin);
+
+        mockMvc.perform(get("/api/admin/overview")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/admin/overview")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void logoutWithNoBearerTokenIsANoOp() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void logoutWithAnAlreadyInvalidTokenIsANoOp() throws Exception {
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", "Bearer invalid.token.payload"))
+                .andExpect(status().isNoContent());
+    }
+
     @Test
     void judgeEndpointsRejectParticipantToken() throws Exception {
         User participant = new User("sub-part", "participant@example.com", "Participant Person");
