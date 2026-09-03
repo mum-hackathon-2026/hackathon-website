@@ -59,8 +59,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             var claims = jwtService.validateToken(token);
+            String jti = claims.getId();
 
-            if (tokenRevocationService.isRevoked(claims.getId())) {
+            // A token carrying no jti predates server-side revocation, so logout could
+            // never revoke it and it would stay usable for the rest of its lifetime
+            // (24h in production). Fail closed and treat it as unauthenticated: the
+            // cost is one forced re-login when this deploys, which is cheaper than
+            // honouring a token nobody can take away.
+            if (jti == null || jti.isBlank() || tokenRevocationService.isRevoked(jti)) {
                 filterChain.doFilter(request, response);
                 return;
             }
