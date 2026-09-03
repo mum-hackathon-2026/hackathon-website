@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * Issues and validates JWT session tokens.
@@ -17,6 +18,10 @@ import java.util.Date;
  * <p>Tokens are HMAC-SHA256-signed and carry the user's id, email, role, and
  * display name as claims. The signing key and expiration come from
  * {@link JwtProperties}.
+ *
+ * <p>Each token also carries a random {@code jti}, which exists solely so a single
+ * token can be revoked by id at logout ({@link TokenRevocationService}) without keeping
+ * the full token text anywhere.
  */
 @Service
 public class JwtService {
@@ -47,6 +52,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(String.valueOf(user.getId()))
+                .id(UUID.randomUUID().toString())
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole())
                 .claim("name", user.getFullName())

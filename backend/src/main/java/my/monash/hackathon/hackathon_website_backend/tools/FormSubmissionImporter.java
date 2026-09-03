@@ -1,5 +1,7 @@
 package my.monash.hackathon.hackathon_website_backend.tools;
 
+import tools.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +34,9 @@ public final class FormSubmissionImporter {
     private static final String DEFAULT_URL = "jdbc:postgresql://localhost:5433/hackathon_db";
     private static final String DEFAULT_USER = "hackathon_app";
     private static final String DEFAULT_PASSWORD = "dev_app_local";
+
+    /** Serialises the audit_log.details jsonb payload; see writeAudit. */
+    private static final ObjectMapper AUDIT_JSON = new ObjectMapper();
 
     static final int EXIT_OK = 0;
     static final int EXIT_REJECTIONS = 1;
@@ -285,8 +290,13 @@ public final class FormSubmissionImporter {
             } else {
                 statement.setNull(2, Types.BIGINT);
             }
-            String safeMsg = details != null ? details.replace("\\", "\\\\").replace("\"", "\\\"") : "";
-            statement.setString(3, "{\"message\":\"" + safeMsg + "\"}");
+            // Built with a serialiser, not concatenation. `details` embeds form-supplied
+            // text (team name, project title), and hand-escaping only quotes and
+            // backslashes still lets a raw newline or other control character through —
+            // which Postgres rejects as invalid jsonb, aborting the whole import
+            // transaction. FormRegistrationImporter already does it this way.
+            statement.setString(3, AUDIT_JSON.writeValueAsString(
+                    Map.of("message", details != null ? details : "")));
             statement.executeUpdate();
         } catch (SQLException ignored) {}
     }
