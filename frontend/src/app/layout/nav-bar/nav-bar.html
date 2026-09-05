@@ -1,12 +1,14 @@
 <header class="nav" [class.nav--hidden]="navHidden()">
   <div class="nav__inner">
     <a class="nav__brand" routerLink="/" (click)="closeAll()">
-      <svg class="nav__logo" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <rect x="2" y="2" width="7" height="7" rx="1" fill="#4285F4" />
-        <rect x="11" y="2" width="7" height="7" rx="1" fill="#EA4335" />
-        <rect x="2" y="11" width="7" height="7" rx="1" fill="#34A853" />
-        <rect x="11" y="11" width="7" height="7" rx="1" fill="#FBBC04" />
-      </svg>
+      <img
+        class="nav__logo"
+        src="/logos/hackathon-logo.png"
+        alt=""
+        width="28"
+        height="28"
+        aria-hidden="true"
+      />
       <span class="nav__brand-name">Averis X Monash Hackathon</span>
     </a>
 

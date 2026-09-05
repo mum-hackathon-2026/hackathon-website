@@ -83,13 +83,17 @@
 }
 
 .nav__logo {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .nav__brand:hover .nav__logo {
-  transform: rotate(12deg) scale(1.1);
+  transform: rotate(8deg) scale(1.08);
 }
 
 .nav__brand-name {
