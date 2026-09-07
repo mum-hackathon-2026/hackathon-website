@@ -1,5 +1,5 @@
 # Averis X Monash Hackathon 2026 - Production robots.txt
-# https://monash-hackathon-2026.web.app/
+# https://averisxmonashhackathon2026.my/
 
 # ── Block AI Data Harvesting & Commercial Scraping Bots ──────────────────────
 User-agent: GPTBot
@@ -32,4 +32,4 @@ Disallow: /admin/
 Disallow: /api/
 
 # Sitemap location
-Sitemap: https://monash-hackathon-2026.web.app/sitemap.xml
+Sitemap: https://averisxmonashhackathon2026.my/sitemap.xml

@@ -5,35 +5,35 @@
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
   <!-- Homepage -->
   <url>
-    <loc>https://monash-hackathon-2026.web.app/</loc>
+    <loc>https://averisxmonashhackathon2026.my/</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <!-- Event Timeline -->
   <url>
-    <loc>https://monash-hackathon-2026.web.app/timeline</loc>
+    <loc>https://averisxmonashhackathon2026.my/timeline</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <!-- Results & Winners -->
   <url>
-    <loc>https://monash-hackathon-2026.web.app/results</loc>
+    <loc>https://averisxmonashhackathon2026.my/results</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <!-- Organizers & Committee -->
   <url>
-    <loc>https://monash-hackathon-2026.web.app/organizers</loc>
+    <loc>https://averisxmonashhackathon2026.my/organizers</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <!-- Sign In -->
   <url>
-    <loc>https://monash-hackathon-2026.web.app/sign-in</loc>
+    <loc>https://averisxmonashhackathon2026.my/sign-in</loc>
     <lastmod>2026-08-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
