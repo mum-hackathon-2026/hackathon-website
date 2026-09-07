@@ -71,8 +71,15 @@ describe('MySubmission', () => {
     expect(host().querySelector('a[href="/participant/team"]')).toBeTruthy();
   });
 
-  it('links to the submission form immediately when user has a team', async () => {
+  it('locks submissions before the problem statement is released', async () => {
     await setUp(DURING_REGISTRATION);
+
+    expect(text()).toContain("Submissions aren't open yet");
+    expect(formLink()).toBeNull();
+  });
+
+  it('reveals the submission form link once the problem statement countdown hits zero', async () => {
+    await setUp(DURING_SUBMISSION);
 
     expect(formLink()?.getAttribute('href')).toBe(
       DEFAULT_EVENT_CONFIG.site.projectSubmissionFormUrl,

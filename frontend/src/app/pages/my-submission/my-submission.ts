@@ -52,9 +52,18 @@ export class MySubmission implements OnInit {
   protected readonly submission = this.submissions.submission;
   protected readonly isSubmitted = this.submissions.isSubmitted;
 
-  /** Always treat submissions as open for now (date check removed). */
-  protected readonly isOpen = computed(() => true);
-  protected readonly isBeforeWindow = computed(() => false);
+  /**
+   * Submissions open once the problem statement is released (when the countdown hits 0 / registration closes),
+   * and remain open until the submission deadline passes.
+   */
+  protected readonly isBeforeWindow = computed(() => {
+    const phase = this.phaseService.phase();
+    return phase === 'before-registration' || phase === 'registration';
+  });
+
+  protected readonly isOpen = computed(() => {
+    return this.phaseService.phase() === 'submission';
+  });
 
   /** Time left to submit, sharing PhaseService's clock rather than starting another. */
   protected readonly countdown = computed(() => {
