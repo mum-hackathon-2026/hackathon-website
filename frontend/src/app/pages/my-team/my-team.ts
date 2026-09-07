@@ -37,12 +37,14 @@ export class MyTeam {
     'https://docs.google.com/document/d/1YrnEANXCxypIKwONAr6QrcLnVW35FtwR66sJn_8M5dc/edit?usp=sharing';
 
   /**
-   * Locked once registration has closed. Derived from the phase rather than a
-   * flag, so it follows the same dates as the homepage and timeline.
+   * The Problem Statement is released once registration closes (when the countdown hits 0).
+   * The Info Pack becomes visible only from that point onward.
    */
-  protected readonly isLocked = computed(
+  protected readonly isProblemStatementReleased = computed(
     () => this.phase.phase() !== 'before-registration' && this.phase.phase() !== 'registration',
   );
+
+  protected readonly isLocked = this.isProblemStatementReleased;
 
   protected readonly registrationClosesAt = this.settings.registrationClosesAt;
   protected readonly maxTeamSize = this.settings.maxTeamSize;

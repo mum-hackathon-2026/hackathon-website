@@ -139,6 +139,33 @@ describe('MyTeam', () => {
     expect(host().querySelector('.my-team__name')?.textContent?.trim()).toBe('Locked Out');
     expect(host().querySelector('.my-team__members')).toBeTruthy();
   });
+
+  it('hides the info pack card before the problem statement is released', async () => {
+    await setUp(DURING_REGISTRATION);
+    await teams.createTeam('Early Birds');
+    await fixture.whenStable();
+
+    expect(host().querySelector('.my-team__info-pack-card')).toBeNull();
+  });
+
+  it('reveals the info pack card once the problem statement countdown hits zero', async () => {
+    await setUp(DURING_REGISTRATION);
+    await teams.createTeam('Ready Builders');
+    await fixture.whenStable();
+
+    expect(host().querySelector('.my-team__info-pack-card')).toBeNull();
+
+    // Advance time past problem statement release
+    vi.setSystemTime(new Date(DURING_SUBMISSION));
+    await vi.advanceTimersByTimeAsync(1100);
+    await fixture.whenStable();
+
+    const card = host().querySelector('.my-team__info-pack-card');
+    expect(card).toBeTruthy();
+    const link = card?.querySelector<HTMLAnchorElement>('a.my-team__info-pack-btn');
+    expect(link?.href).toContain('docs.google.com/document');
+    expect(link?.target).toBe('_blank');
+  });
 });
 
 describe('MyTeam route', () => {
