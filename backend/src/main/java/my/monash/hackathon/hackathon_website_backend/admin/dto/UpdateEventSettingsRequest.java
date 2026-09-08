@@ -6,6 +6,7 @@ public record UpdateEventSettingsRequest(
         String eventName,
         OffsetDateTime registrationOpensAt,
         OffsetDateTime registrationClosesAt,
+        OffsetDateTime problemStatementReleasedAt,
         OffsetDateTime submissionDeadlineAt,
         OffsetDateTime resultsPublishedAt,
         Boolean judgingOpen,

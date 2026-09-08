@@ -78,6 +78,7 @@ export class EventSettingsService {
   readonly eventName = computed(() => this.current().eventName);
   readonly registrationOpensAt = computed(() => this.current().registrationOpensAt);
   readonly registrationClosesAt = computed(() => this.current().registrationClosesAt);
+  readonly problemStatementReleasedAt = computed(() => this.current().problemStatementReleasedAt ?? null);
   readonly submissionDeadlineAt = computed(() => this.current().submissionDeadlineAt);
   readonly resultsPublishedAt = computed(() => this.current().resultsPublishedAt);
   readonly finalPitchDateAt = computed(() => this.current().finalPitchDateAt);
@@ -130,6 +131,9 @@ export class EventSettingsService {
       registrationClosesAt: data.registrationClosesAt
         ? new Date(data.registrationClosesAt)
         : (current.registrationClosesAt ?? this.config.settings.registrationClosesAt),
+      problemStatementReleasedAt: data.problemStatementReleasedAt
+        ? new Date(data.problemStatementReleasedAt)
+        : (current.problemStatementReleasedAt ?? this.config.settings.problemStatementReleasedAt ?? null),
       submissionDeadlineAt: data.submissionDeadlineAt
         ? new Date(data.submissionDeadlineAt)
         : (current.submissionDeadlineAt ?? this.config.settings.submissionDeadlineAt),

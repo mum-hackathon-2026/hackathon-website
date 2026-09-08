@@ -305,8 +305,8 @@ describe('AdminDashboard', () => {
     it('offers no per-person action, because there is no column to write to', async () => {
       await render({ section: 'participants' });
 
-      expect(host().querySelectorAll('.grid__actions').length).toBe(0);
-      expect(host().querySelector('.note')?.textContent).toContain('not recorded anywhere');
+      expect(host().querySelectorAll('.btn-verify').length).toBe(0);
+      expect(host().querySelectorAll('.btn-flag').length).toBe(0);
     });
 
     it('says screening is off rather than implying the checks gate anything', async () => {

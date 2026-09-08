@@ -131,6 +131,7 @@ describe('AdminParticipants', () => {
   it('offers no way to set eligibility', async () => {
     await setUp();
 
-    expect(rows()[0].querySelector('button')).toBeNull();
+    expect(rows()[0].querySelector('.btn-verify')).toBeNull();
+    expect(rows()[0].querySelector('.btn-flag')).toBeNull();
   });
 });

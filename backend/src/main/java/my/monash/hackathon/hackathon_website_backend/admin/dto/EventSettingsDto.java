@@ -7,6 +7,7 @@ public record EventSettingsDto(
         String eventName,
         OffsetDateTime registrationOpensAt,
         OffsetDateTime registrationClosesAt,
+        OffsetDateTime problemStatementReleasedAt,
         OffsetDateTime submissionDeadlineAt,
         OffsetDateTime resultsPublishedAt,
         boolean judgingOpen,

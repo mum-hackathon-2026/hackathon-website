@@ -18,6 +18,7 @@ interface SettingsDraft {
   eventName: string;
   registrationOpensAt: string;
   registrationClosesAt: string;
+  problemStatementReleasedAt: string;
   submissionDeadlineAt: string;
   resultsPublishedAt: string;
   finalPitchDateAt: string;
@@ -152,6 +153,7 @@ export class AdminSettings {
       eventName: draft.eventName,
       registrationOpensAt: fromInput(draft.registrationOpensAt),
       registrationClosesAt: fromInput(draft.registrationClosesAt),
+      problemStatementReleasedAt: fromInput(draft.problemStatementReleasedAt),
       submissionDeadlineAt: fromInput(draft.submissionDeadlineAt),
       resultsPublishedAt: fromInput(draft.resultsPublishedAt),
       finalPitchDateAt: fromInput(draft.finalPitchDateAt),
@@ -190,6 +192,7 @@ function toDraft(settings: EventSettings): SettingsDraft {
     eventName: settings.eventName,
     registrationOpensAt: toInput(settings.registrationOpensAt),
     registrationClosesAt: toInput(settings.registrationClosesAt),
+    problemStatementReleasedAt: toInput(settings.problemStatementReleasedAt),
     submissionDeadlineAt: toInput(settings.submissionDeadlineAt),
     resultsPublishedAt: toInput(settings.resultsPublishedAt),
     finalPitchDateAt: toInput(settings.finalPitchDateAt),

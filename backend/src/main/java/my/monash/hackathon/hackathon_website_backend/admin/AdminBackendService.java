@@ -728,6 +728,9 @@ public class AdminBackendService {
         if (request.registrationClosesAt() != null) {
             settings.setRegistrationClosesAt(request.registrationClosesAt());
         }
+        if (request.problemStatementReleasedAt() != null) {
+            settings.setProblemStatementReleasedAt(request.problemStatementReleasedAt());
+        }
         if (request.submissionDeadlineAt() != null) {
             settings.setSubmissionDeadlineAt(request.submissionDeadlineAt());
         }
@@ -763,6 +766,7 @@ public class AdminBackendService {
                 s.getEventName(),
                 s.getRegistrationOpensAt(),
                 s.getRegistrationClosesAt(),
+                s.getProblemStatementReleasedAt(),
                 s.getSubmissionDeadlineAt(),
                 s.getResultsPublishedAt(),
                 s.isJudgingOpen(),

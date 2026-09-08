@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -46,6 +47,7 @@ public class TokenRevocationService {
      * working on its own. Runs hourly; the exact cadence is not load-bearing.
      */
     @Scheduled(fixedDelay = 3_600_000, initialDelay = 3_600_000)
+    @Transactional
     public void sweepExpired() {
         long removed = repository.deleteByExpiresAtBefore(OffsetDateTime.now(ZoneOffset.UTC));
         if (removed > 0) {

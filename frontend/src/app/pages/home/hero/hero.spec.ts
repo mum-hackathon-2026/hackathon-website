@@ -62,11 +62,11 @@ describe('Hero', () => {
     expect(countdownValues(host)).toEqual(['01', '00', '00', '30']);
   });
 
-  it('switches to the problem statement release countdown once registration opens', async () => {
+  it('switches to the registration close countdown once registration opens', async () => {
     const host = await renderAt(DURING_REGISTRATION);
 
     expect(host.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
-      'Problem statement release in',
+      'Registration closes in',
     );
     expect(host.querySelector('.hero__cta')?.textContent).toContain('Register your team');
   });
@@ -103,7 +103,7 @@ describe('Hero', () => {
 
     const later = await renderAt(fromRegistrationOpen(HOUR_MS));
     expect(later.querySelector('.hero__countdown-caption')?.textContent?.trim()).toBe(
-      'Problem statement release in',
+      'Registration closes in',
     );
   });
 

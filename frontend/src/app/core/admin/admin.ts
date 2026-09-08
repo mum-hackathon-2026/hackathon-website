@@ -398,6 +398,7 @@ const SETTING_LABELS = (key: keyof EventSettingsPatch): string =>
     eventName: 'name',
     registrationOpensAt: 'registration opens',
     registrationClosesAt: 'registration closes',
+    problemStatementReleasedAt: 'problem statement release',
     submissionDeadlineAt: 'submission deadline',
     resultsPublishedAt: 'results published',
     finalPitchDateAt: 'grand finals pitch date',
@@ -2271,6 +2272,9 @@ export class AdminService {
             : null,
           registrationClosesAt: patch.registrationClosesAt
             ? patch.registrationClosesAt.toISOString()
+            : null,
+          problemStatementReleasedAt: patch.problemStatementReleasedAt
+            ? patch.problemStatementReleasedAt.toISOString()
             : null,
           submissionDeadlineAt: patch.submissionDeadlineAt
             ? patch.submissionDeadlineAt.toISOString()

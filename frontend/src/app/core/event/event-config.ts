@@ -19,6 +19,7 @@ export interface EventSettings {
   readonly eventName: string;
   readonly registrationOpensAt: Date | null;
   readonly registrationClosesAt: Date | null;
+  readonly problemStatementReleasedAt: Date | null;
   readonly submissionDeadlineAt: Date | null;
   /** V1 models judging as a boolean an admin flips, not a date window. */
   readonly judgingOpen: boolean;
@@ -98,6 +99,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     // becomes unreachable. The open date is a placeholder.
     registrationOpensAt: new Date('2026-09-01T09:00:00+08:00'),
     registrationClosesAt: new Date('2026-09-18T18:00:00+08:00'),
+    problemStatementReleasedAt: new Date('2026-09-18T18:00:00+08:00'),
     // Proposal: submissions due 22 September, 12:00, then the committee checks
     // eligibility.
     submissionDeadlineAt: new Date('2026-09-22T12:00:00+08:00'),

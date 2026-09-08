@@ -61,6 +61,24 @@
           [ngModel]="draft().registrationClosesAt"
           (ngModelChange)="update('registrationClosesAt', $event)"
         />
+        <p class="field__hint">
+          Closes team registration. After this point, no new teams can register.
+        </p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="problem-release">Problem statement release <span>MYT</span></label>
+        <input
+          id="problem-release"
+          class="input"
+          type="datetime-local"
+          name="problemStatementReleasedAt"
+          [ngModel]="draft().problemStatementReleasedAt"
+          (ngModelChange)="update('problemStatementReleasedAt', $event)"
+        />
+        <p class="field__hint">
+          Releases the problem statement, displays the participant info pack, and opens project submissions.
+        </p>
       </div>
 
       <div class="field">

@@ -53,12 +53,16 @@ export class MySubmission implements OnInit {
   protected readonly isSubmitted = this.submissions.isSubmitted;
 
   /**
-   * Submissions open once the problem statement is released (when the countdown hits 0 / registration closes),
+   * Submissions open once the problem statement is released (when the countdown hits 0),
    * and remain open until the submission deadline passes.
    */
   protected readonly isBeforeWindow = computed(() => {
     const phase = this.phaseService.phase();
-    return phase === 'before-registration' || phase === 'registration';
+    return (
+      phase === 'before-registration' ||
+      phase === 'registration' ||
+      phase === 'registration-closed'
+    );
   });
 
   protected readonly isOpen = computed(() => {

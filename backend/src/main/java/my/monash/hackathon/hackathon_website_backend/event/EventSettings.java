@@ -47,6 +47,9 @@ public class EventSettings {
     @Column(name = "registration_closes_at")
     private OffsetDateTime registrationClosesAt;
 
+    @Column(name = "problem_statement_released_at")
+    private OffsetDateTime problemStatementReleasedAt;
+
     @Column(name = "submission_deadline_at")
     private OffsetDateTime submissionDeadlineAt;
 
@@ -133,6 +136,14 @@ public class EventSettings {
 
     public void setRegistrationClosesAt(OffsetDateTime registrationClosesAt) {
         this.registrationClosesAt = registrationClosesAt;
+    }
+
+    public OffsetDateTime getProblemStatementReleasedAt() {
+        return problemStatementReleasedAt;
+    }
+
+    public void setProblemStatementReleasedAt(OffsetDateTime problemStatementReleasedAt) {
+        this.problemStatementReleasedAt = problemStatementReleasedAt;
     }
 
     public OffsetDateTime getSubmissionDeadlineAt() {

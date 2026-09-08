@@ -39,6 +39,7 @@ public class EventSettingsController {
                     settings.eventName(),
                     settings.registrationOpensAt(),
                     settings.registrationClosesAt(),
+                    settings.problemStatementReleasedAt(),
                     settings.submissionDeadlineAt(),
                     settings.resultsPublishedAt(),
                     settings.judgingOpen(),

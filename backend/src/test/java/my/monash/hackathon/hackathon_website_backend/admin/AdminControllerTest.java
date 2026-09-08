@@ -148,7 +148,7 @@ class AdminControllerTest {
     @Test
     void getSettingsReturnsEventSettings() throws Exception {
         var settingsDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.EventSettingsDto(
-                1L, "Averis Hackathon 2026", null, null, null, null, true, 2, 4, false, 3, "Admin User"
+                1L, "Averis Hackathon 2026", null, null, null, null, null, true, 2, 4, false, 3, "Admin User"
         );
         when(adminService.getSettings()).thenReturn(settingsDto);
 
@@ -164,7 +164,7 @@ class AdminControllerTest {
     @Test
     void updateSettingsReturnsUpdatedSettings() throws Exception {
         var updated = new my.monash.hackathon.hackathon_website_backend.admin.dto.EventSettingsDto(
-                1L, "Updated Hackathon Name", null, null, null, null, false, 1, 5, true, 2, "Admin User"
+                1L, "Updated Hackathon Name", null, null, null, null, null, false, 1, 5, true, 2, "Admin User"
         );
         when(adminService.updateSettings(any(), any())).thenReturn(updated);
 

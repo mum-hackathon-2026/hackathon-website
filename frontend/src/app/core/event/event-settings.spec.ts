@@ -153,8 +153,11 @@ describe('EventSettingsService', () => {
 
       expect(phase.phase()).toBe('registration');
 
-      // Close registration in the past; the phase must follow.
-      settings.update({ registrationClosesAt: CLOSES_BEFORE_NOW });
+      // Close registration and release problem statement in the past; the phase must follow.
+      settings.update({
+        registrationClosesAt: CLOSES_BEFORE_NOW,
+        problemStatementReleasedAt: CLOSES_BEFORE_NOW,
+      });
 
       expect(phase.phase()).toBe('submission');
     });
@@ -175,9 +178,12 @@ describe('EventSettingsService', () => {
       const settings = serviceWith();
       const phase = TestBed.inject(PhaseService);
 
-      expect(phase.nextMilestone()?.label).toBe('Problem statement release');
+      expect(phase.nextMilestone()?.label).toBe('Registration closes');
 
-      settings.update({ registrationClosesAt: CLOSES_BEFORE_NOW });
+      settings.update({
+        registrationClosesAt: CLOSES_BEFORE_NOW,
+        problemStatementReleasedAt: CLOSES_BEFORE_NOW,
+      });
 
       expect(phase.nextMilestone()?.label).toBe('Submissions close');
     });

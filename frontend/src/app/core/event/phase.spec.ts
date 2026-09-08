@@ -6,7 +6,8 @@ const BASE: EventConfig = {
   settings: {
     eventName: 'Test Hackathon',
     registrationOpensAt: new Date('2026-09-21T09:00:00+08:00'),
-    registrationClosesAt: new Date('2026-09-25T23:59:00+08:00'),
+    registrationClosesAt: new Date('2026-09-25T12:00:00+08:00'),
+    problemStatementReleasedAt: new Date('2026-09-25T18:00:00+08:00'),
     submissionDeadlineAt: new Date('2026-10-09T23:59:00+08:00'),
     judgingOpen: false,
     resultsPublishedAt: new Date('2026-10-19T10:00:00+08:00'),
@@ -61,10 +62,16 @@ describe('PhaseService', () => {
   it('is in registration between open and close', () => {
     const phase = serviceAt('2026-09-23T12:00:00+08:00');
     expect(phase.phase()).toBe('registration');
+    expect(phase.nextMilestone()?.label).toBe('Registration closes');
+  });
+
+  it('is in registration-closed between registration close and problem statement release', () => {
+    const phase = serviceAt('2026-09-25T15:00:00+08:00');
+    expect(phase.phase()).toBe('registration-closed');
     expect(phase.nextMilestone()?.label).toBe('Problem statement release');
   });
 
-  it('moves to submission once registration closes', () => {
+  it('moves to submission once problem statement is released', () => {
     const phase = serviceAt('2026-09-30T12:00:00+08:00');
     expect(phase.phase()).toBe('submission');
     expect(phase.nextMilestone()?.label).toBe('Submissions close');

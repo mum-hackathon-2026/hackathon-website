@@ -12,6 +12,7 @@ import { EventSettingsService } from './event-settings';
 export type EventPhase =
   | 'before-registration'
   | 'registration'
+  | 'registration-closed'
   | 'submission'
   /** Submissions closed, results not yet published. */
   | 'judging'
@@ -37,14 +38,21 @@ export class PhaseService {
   readonly now = this.clock.asReadonly();
 
   readonly phase = computed<EventPhase>(() => {
-    const { registrationOpensAt, registrationClosesAt, submissionDeadlineAt, resultsPublishedAt } =
-      this.settings.settings();
+    const {
+      registrationOpensAt,
+      registrationClosesAt,
+      problemStatementReleasedAt,
+      submissionDeadlineAt,
+      resultsPublishedAt,
+    } = this.settings.settings();
     const now = this.now();
 
     // Latest milestone reached wins, so a null date simply defers to the one before it.
     if (resultsPublishedAt && now >= resultsPublishedAt.getTime()) return 'results';
     if (submissionDeadlineAt && now >= submissionDeadlineAt.getTime()) return 'judging';
-    if (registrationClosesAt && now >= registrationClosesAt.getTime()) return 'submission';
+    const problemRelease = problemStatementReleasedAt ?? registrationClosesAt;
+    if (problemRelease && now >= problemRelease.getTime()) return 'submission';
+    if (registrationClosesAt && now >= registrationClosesAt.getTime()) return 'registration-closed';
     if (registrationOpensAt && now >= registrationOpensAt.getTime()) return 'registration';
     return 'before-registration';
   });
@@ -53,14 +61,24 @@ export class PhaseService {
   readonly judgingOpen = this.settings.judgingOpen;
 
   readonly nextMilestone = computed<Milestone | null>(() => {
-    const { registrationOpensAt, registrationClosesAt, submissionDeadlineAt, resultsPublishedAt } =
-      this.settings.settings();
+    const {
+      registrationOpensAt,
+      registrationClosesAt,
+      problemStatementReleasedAt,
+      submissionDeadlineAt,
+      resultsPublishedAt,
+    } = this.settings.settings();
 
     switch (this.phase()) {
       case 'before-registration':
         return milestone('Registration opens', registrationOpensAt);
       case 'registration':
-        return milestone('Problem statement release', registrationClosesAt);
+        return milestone('Registration closes', registrationClosesAt);
+      case 'registration-closed':
+        return milestone(
+          'Problem statement release',
+          problemStatementReleasedAt ?? registrationClosesAt,
+        );
       case 'submission':
         return milestone('Submissions close', submissionDeadlineAt);
       case 'judging':

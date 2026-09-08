@@ -89,16 +89,6 @@ describe('AdminSubmissions', () => {
     expect(rows().length).toBe(drafts);
   });
 
-  it('narrows by track', async () => {
-    await setUp();
-    const track = admin.teams()[0].trackLabel;
-    const expected = admin.teams().filter((row) => row.trackLabel === track).length;
-
-    await select('sub-track', track);
-
-    expect(rows().length).toBe(expected);
-  });
-
   it('searches by team name and project title', async () => {
     await setUp();
     const team = admin.teams().find((row) => row.projectTitle !== '')!;

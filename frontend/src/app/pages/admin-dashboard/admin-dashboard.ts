@@ -103,6 +103,8 @@ export class AdminDashboard {
         return 'Before registration';
       case 'registration':
         return 'Registration open';
+      case 'registration-closed':
+        return 'Registration closed';
       case 'submission':
         return 'Submissions open';
       case 'judging':

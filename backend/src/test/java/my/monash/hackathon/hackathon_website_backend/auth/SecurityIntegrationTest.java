@@ -235,7 +235,7 @@ class SecurityIntegrationTest {
     @Test
     void publicEventSettingsDoNotNameTheOrganiserWhoEditedThem() throws Exception {
         when(adminService.getSettings()).thenReturn(new EventSettingsDto(
-                1L, "Averis Hackathon 2026", null, null, null, null,
+                1L, "Averis Hackathon 2026", null, null, null, null, null,
                 false, 2, 5, true, 3, "Shariq Nauman"));
 
         mockMvc.perform(get("/api/event/settings"))
@@ -252,7 +252,7 @@ class SecurityIntegrationTest {
 
         when(userRepository.findById(606L)).thenReturn(Optional.of(participant));
         when(adminService.getSettings()).thenReturn(new EventSettingsDto(
-                1L, "Averis Hackathon 2026", null, null, null, null,
+                1L, "Averis Hackathon 2026", null, null, null, null, null,
                 false, 2, 5, true, 3, "Shariq Nauman"));
 
         String token = jwtService.generateToken(participant);

@@ -37,14 +37,18 @@ export class MyTeam {
     'https://docs.google.com/document/d/1YrnEANXCxypIKwONAr6QrcLnVW35FtwR66sJn_8M5dc/edit?usp=sharing';
 
   /**
-   * The Problem Statement is released once registration closes (when the countdown hits 0).
+   * The Problem Statement is released at problemStatementReleasedAt.
    * The Info Pack becomes visible only from that point onward.
    */
-  protected readonly isProblemStatementReleased = computed(
-    () => this.phase.phase() !== 'before-registration' && this.phase.phase() !== 'registration',
-  );
+  protected readonly isProblemStatementReleased = computed(() => {
+    const phase = this.phase.phase();
+    return phase === 'submission' || phase === 'judging' || phase === 'results';
+  });
 
-  protected readonly isLocked = this.isProblemStatementReleased;
+  protected readonly isLocked = computed(() => {
+    const phase = this.phase.phase();
+    return phase !== 'before-registration' && phase !== 'registration';
+  });
 
   protected readonly registrationClosesAt = this.settings.registrationClosesAt;
   protected readonly maxTeamSize = this.settings.maxTeamSize;

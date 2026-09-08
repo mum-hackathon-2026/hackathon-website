@@ -9,6 +9,7 @@ const CONFIG: EventConfig = {
     eventName: 'Test Hackathon',
     registrationOpensAt: new Date('2026-09-21T09:00:00+08:00'),
     registrationClosesAt: new Date('2026-09-25T23:59:00+08:00'),
+    problemStatementReleasedAt: new Date('2026-09-25T23:59:00+08:00'),
     submissionDeadlineAt: new Date('2026-10-09T23:59:00+08:00'),
     judgingOpen: false,
     resultsPublishedAt: new Date('2026-10-19T10:00:00+08:00'),
