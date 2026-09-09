@@ -33,19 +33,33 @@ final class GoogleSheetsReader {
 
     static CsvReader.Sheet read(String sheetId, String tabName, Path credentialsPath)
             throws SheetsException {
-        if (credentialsPath == null || !Files.exists(credentialsPath) || !Files.isReadable(credentialsPath)) {
-            throw new SheetsException(SheetsException.Reason.MISSING_CREDENTIALS,
-                    "Credentials missing: file not found or unreadable at '"
-                            + (credentialsPath == null ? "null" : credentialsPath.toAbsolutePath()) + "'");
-        }
-
         GoogleCredentials credentials;
-        try (InputStream in = new FileInputStream(credentialsPath.toFile())) {
-            credentials = GoogleCredentials.fromStream(in)
-                    .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS_READONLY));
-        } catch (IOException | IllegalArgumentException e) {
-            throw new SheetsException(SheetsException.Reason.INVALID_CREDENTIALS,
-                    "Credentials invalid in '" + credentialsPath.toAbsolutePath() + "': " + e.getMessage());
+        if (credentialsPath != null && Files.exists(credentialsPath) && Files.isReadable(credentialsPath)) {
+            try (InputStream in = new FileInputStream(credentialsPath.toFile())) {
+                credentials = GoogleCredentials.fromStream(in)
+                        .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS_READONLY));
+            } catch (IOException | IllegalArgumentException e) {
+                throw new SheetsException(SheetsException.Reason.INVALID_CREDENTIALS,
+                        "Credentials invalid in '" + credentialsPath.toAbsolutePath() + "': " + e.getMessage());
+            }
+        } else if (Files.exists(Path.of("/secrets/sheets-key.json"))) {
+            try (InputStream in = new FileInputStream("/secrets/sheets-key.json")) {
+                credentials = GoogleCredentials.fromStream(in)
+                        .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS_READONLY));
+            } catch (IOException | IllegalArgumentException e) {
+                throw new SheetsException(SheetsException.Reason.INVALID_CREDENTIALS,
+                        "Credentials invalid in '/secrets/sheets-key.json': " + e.getMessage());
+            }
+        } else {
+            try {
+                credentials = GoogleCredentials.getApplicationDefault()
+                        .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS_READONLY));
+            } catch (IOException e) {
+                throw new SheetsException(SheetsException.Reason.MISSING_CREDENTIALS,
+                        "Credentials missing: file not found at '"
+                                + (credentialsPath == null ? "null" : credentialsPath.toAbsolutePath())
+                                + "' and Application Default Credentials failed: " + e.getMessage());
+            }
         }
 
         Sheets service;

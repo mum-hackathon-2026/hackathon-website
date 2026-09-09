@@ -67,7 +67,7 @@ public class RegistrationImportService {
                         summary.errors());
             }
         } catch (Exception e) {
-            log.debug("Scheduled sync poll check: {}", e.getMessage());
+            log.warn("Scheduled sync poll check error: {}", e.getMessage(), e);
         }
     }
 
@@ -85,12 +85,15 @@ public class RegistrationImportService {
                 return p;
             }
         }
+        if (Files.exists(Path.of("/secrets/sheets-key.json"))) {
+            return Path.of("/secrets/sheets-key.json");
+        }
         if (Files.exists(Path.of("backend", "credentials", "sheets-key.json"))) {
             return Path.of("backend", "credentials", "sheets-key.json");
         }
         if (Files.exists(Path.of("credentials", "sheets-key.json"))) {
             return Path.of("credentials", "sheets-key.json");
         }
-        return Path.of("backend", "credentials", "sheets-key.json");
+        return Path.of("/secrets/sheets-key.json");
     }
 }

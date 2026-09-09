@@ -80,12 +80,15 @@ public class SubmissionImportService {
                 return p;
             }
         }
+        if (Files.exists(Path.of("/secrets/sheets-key.json"))) {
+            return Path.of("/secrets/sheets-key.json");
+        }
         if (Files.exists(Path.of("backend", "credentials", "sheets-key.json"))) {
             return Path.of("backend", "credentials", "sheets-key.json");
         }
         if (Files.exists(Path.of("credentials", "sheets-key.json"))) {
             return Path.of("credentials", "sheets-key.json");
         }
-        return Path.of("backend", "credentials", "sheets-key.json");
+        return Path.of("/secrets/sheets-key.json");
     }
 }
