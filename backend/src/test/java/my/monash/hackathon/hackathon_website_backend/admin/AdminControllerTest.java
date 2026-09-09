@@ -302,4 +302,11 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ok").value(true));
     }
+
+    @Test
+    void deleteParticipantSucceeds() throws Exception {
+        mockMvc.perform(delete("/api/admin/participants/10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true));
+    }
 }

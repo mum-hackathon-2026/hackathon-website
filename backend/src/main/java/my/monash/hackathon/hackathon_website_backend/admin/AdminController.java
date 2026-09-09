@@ -117,6 +117,18 @@ public class AdminController {
         }
     }
 
+    @DeleteMapping("/participants/{userId}")
+    public ResponseEntity<?> deleteParticipant(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            adminService.deleteParticipant(userId, currentUser);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/judges")
     public ResponseEntity<List<AdminJudgeDto>> getJudges() {
         return ResponseEntity.ok(adminService.getJudges());

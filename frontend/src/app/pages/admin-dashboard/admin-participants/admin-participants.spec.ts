@@ -134,4 +134,16 @@ describe('AdminParticipants', () => {
     expect(rows()[0].querySelector('.btn-verify')).toBeNull();
     expect(rows()[0].querySelector('.btn-flag')).toBeNull();
   });
+
+  it('allows opening delete confirmation for a participant', async () => {
+    await setUp();
+    const initialCount = rows().length;
+    const deleteBtn = rows()[0].querySelector<HTMLButtonElement>('.link-button--danger')!;
+    expect(deleteBtn).not.toBeNull();
+    deleteBtn.click();
+    await fixture.whenStable();
+
+    const dialog = host().querySelector('app-confirm-dialog');
+    expect(dialog).not.toBeNull();
+  });
 });

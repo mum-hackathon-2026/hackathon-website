@@ -1,4 +1,4 @@
-﻿<p class="lede">{{ summary() }}</p>
+<p class="lede">{{ summary() }}</p>
 
 @if (successMessage()) {
   <div class="alert alert--success" role="status">
@@ -107,6 +107,14 @@
                 [attr.aria-label]="'Edit participant ' + row.fullName"
               >
                 Edit
+              </button>
+              <button
+                type="button"
+                class="link-button link-button--danger"
+                (click)="promptDelete(row)"
+                [attr.aria-label]="'Delete participant ' + row.fullName"
+              >
+                Delete
               </button>
             </td>
           </tr>
@@ -244,4 +252,16 @@
       </form>
     </div>
   </div>
+}
+
+@if (deleting(); as user) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="'Delete participant ' + (user.fullName || user.email) + '?'"
+    body="This will permanently remove this participant from the system. If they are part of a team, their team membership will also be removed. This action cannot be undone."
+    confirmLabel="Delete participant"
+    [danger]="true"
+    (confirmed)="confirmDelete()"
+    (cancelled)="deleting.set(null)"
+  />
 }

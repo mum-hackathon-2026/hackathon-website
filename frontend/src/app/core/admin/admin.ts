@@ -2549,6 +2549,29 @@ export class AdminService {
     });
   }
 
+  deleteParticipant(userId: number): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.delete(`${this.apiBaseUrl}/api/admin/participants/${userId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          );
+          await this.refreshAll();
+          this.log('participant', 'Admin deleted participant', `User #${userId}`);
+          return { ok: true };
+        } catch (err: any) {
+          return { ok: false, error: err?.error?.error || err?.error?.message || 'Failed to delete participant.' };
+        }
+      }
+
+      this.log('participant', 'Admin deleted participant', `User #${userId}`);
+      return { ok: true };
+    });
+  }
+
   // ── Registration reviews ────────────────────────────────────────────────
   //
   // No offline fallback for any of the four methods below, matching

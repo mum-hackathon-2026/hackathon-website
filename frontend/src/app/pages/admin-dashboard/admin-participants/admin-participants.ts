@@ -1,4 +1,4 @@
-﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AdminParticipantRow,
@@ -9,12 +9,14 @@ import {
 import { EVENT_CONFIG } from '../../../core/event/event-config';
 import { EventSettingsService } from '../../../core/event/event-settings';
 
+import { ConfirmDialog } from '../../../layout/confirm-dialog/confirm-dialog';
+
 type EligibilityFilter = EligibilityState | 'all';
 type TeamFilter = string;
 
 @Component({
   selector: 'app-admin-participants',
-  imports: [FormsModule],
+  imports: [ConfirmDialog, FormsModule],
   templateUrl: './admin-participants.html',
   styleUrl: './admin-participants.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +47,10 @@ export class AdminParticipants {
   protected readonly formLinkedinUrl = signal('');
   protected readonly formResumeUrl = signal('');
   protected readonly formRole = signal('participant');
+
+  // -- Delete Participant State --
+  protected readonly deleting = signal<AdminParticipantRow | null>(null);
+  protected readonly isDeleting = signal(false);
 
   protected readonly eligibilityFilters: readonly { id: EligibilityFilter; label: string }[] = [
     { id: 'all', label: 'All eligibility' },
@@ -140,6 +146,29 @@ export class AdminParticipants {
       setTimeout(() => this.successMessage.set(null), 4000);
     } else {
       this.errorMessage.set(res.error || 'Failed to save participant.');
+    }
+  }
+
+  protected promptDelete(row: AdminParticipantRow): void {
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.deleting.set(row);
+  }
+
+  protected async confirmDelete(): Promise<void> {
+    const target = this.deleting();
+    if (!target) return;
+
+    this.isDeleting.set(true);
+    const res = await this.admin.deleteParticipant(target.userId);
+    this.isDeleting.set(false);
+    this.deleting.set(null);
+
+    if (res.ok) {
+      this.successMessage.set(`Participant "${target.fullName || target.email}" was removed successfully.`);
+      setTimeout(() => this.successMessage.set(null), 4000);
+    } else {
+      this.errorMessage.set(res.error || 'Failed to delete participant.');
     }
   }
 }

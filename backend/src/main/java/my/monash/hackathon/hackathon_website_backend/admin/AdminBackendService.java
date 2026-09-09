@@ -633,6 +633,27 @@ public class AdminBackendService {
         );
     }
 
+    public void deleteParticipant(Long userId, User actor) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + userId));
+
+        if ("admin".equalsIgnoreCase(user.getRole())) {
+            throw new IllegalArgumentException("Cannot delete an administrator from the participants list.");
+        }
+
+        String userName = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        String userEmail = user.getEmail();
+
+        teamMemberRepository.findAll().stream()
+                .filter(tm -> tm.getUserId().equals(userId))
+                .forEach(teamMemberRepository::delete);
+
+        userRepository.delete(user);
+
+        logAudit(actor, "Participant deleted", "participant", userId,
+                "{\"name\":\"" + userName + "\",\"email\":\"" + userEmail + "\"}");
+    }
+
     public void removeAdmin(Long userId, User actor) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
@@ -650,10 +671,12 @@ public class AdminBackendService {
             throw new IllegalArgumentException("Cannot remove the only administrator.");
         }
 
-        user.setRole("participant");
-        userRepository.save(user);
-        logAudit(actor, "Administrator role revoked", "admin", user.getId(),
-                "{\"name\":\"" + user.getFullName() + "\",\"email\":\"" + user.getEmail() + "\"}");
+        String adminName = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        String adminEmail = user.getEmail();
+
+        userRepository.delete(user);
+        logAudit(actor, "Administrator removed", "admin", userId,
+                "{\"name\":\"" + adminName + "\",\"email\":\"" + adminEmail + "\"}");
     }
 
     @Transactional(readOnly = true)
