@@ -131,7 +131,7 @@ public final class FormRegistrationImporter {
             where tm.team_id = ?
             """;
 
-    private static final String FIND_USER_BY_EMAIL = "select id from users where email = ?";
+    private static final String FIND_USER_BY_EMAIL = "select id from users where lower(email) = lower(?)";
 
     private static final String FIND_TEAM_OF_USER = """
             select t.name
@@ -615,7 +615,7 @@ public final class FormRegistrationImporter {
             return toReview(connection, row, team.teamName(), screeningReasons, limits, dryRun);
         }
 
-        return insertTeam(connection, team, label, dryRun);
+        return insertTeam(connection, team, row, label, limits, dryRun);
     }
 
     /**
@@ -724,7 +724,7 @@ public final class FormRegistrationImporter {
         return objectMapper.writeValueAsString(payload);
     }
 
-    private Outcome insertTeam(Connection connection, TeamRow team, String label, boolean dryRun) {
+    private Outcome insertTeam(Connection connection, TeamRow team, CsvReader.Row row, String label, TeamRow.SizeLimits limits, boolean dryRun) {
         try {
             List<Long> userIds = new ArrayList<>();
             for (TeamRow.Member member : team.members()) {
@@ -754,7 +754,8 @@ public final class FormRegistrationImporter {
 
         } catch (SQLException e) {
             rollbackQuietly(connection);
-            return Outcome.of(Status.ERROR, label + " - " + readable(e));
+            String explanation = readable(e);
+            return toReview(connection, row, team.teamName(), List.of(explanation), limits, dryRun);
         }
     }
 
@@ -768,7 +769,7 @@ public final class FormRegistrationImporter {
     private long insertUser(Connection connection, TeamRow.Member member) throws SQLException {
         try (PreparedStatement statement =
                 connection.prepareStatement(INSERT_USER, Statement.RETURN_GENERATED_KEYS)) {
-            statement.setString(1, member.email());
+            statement.setString(1, member.email().trim().toLowerCase(Locale.ROOT));
             statement.setString(2, member.fullName());
             setNullable(statement, 3, member.phone());
             setNullable(statement, 4, member.resumeUrl());
@@ -859,7 +860,7 @@ public final class FormRegistrationImporter {
 
     private Optional<Long> findUserByEmail(Connection connection, String email) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(FIND_USER_BY_EMAIL)) {
-            statement.setString(1, email);
+            statement.setString(1, email.trim().toLowerCase(Locale.ROOT));
             try (ResultSet results = statement.executeQuery()) {
                 return results.next() ? Optional.of(results.getLong(1)) : Optional.empty();
             }
