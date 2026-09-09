@@ -319,6 +319,20 @@ type WireAdminAssignment = Omit<AdminAssignment, 'assignedAt' | 'completedAt'> &
 type WireAdminAssignmentRow = Omit<AdminAssignmentRow, 'judges'> & {
   readonly judges: readonly WireAdminAssignment[];
 };
+export interface AdminUser {
+  readonly id: number;
+  readonly fullName: string;
+  readonly email: string;
+  readonly role: string;
+  readonly createdAt: Date | null;
+  readonly lastLoginAt: Date | null;
+}
+
+type WireAdminUser = Omit<AdminUser, 'createdAt' | 'lastLoginAt'> & {
+  readonly createdAt: string | null;
+  readonly lastLoginAt: string | null;
+};
+
 type WireRegistrationReview = Omit<RegistrationReview, 'reviewedAt' | 'createdAt' | 'updatedAt'> & {
   readonly reviewedAt: string | null;
   readonly createdAt: string;
@@ -389,6 +403,7 @@ export type SectionId =
   | 'judging'
   | 'results'
   | 'finalists'
+  | 'admins'
   | 'settings'
   | 'audit';
 
@@ -459,6 +474,7 @@ export const SECTIONS: readonly { readonly id: SectionId; readonly label: string
   { id: 'judging', label: 'Judging Progress' },
   { id: 'results', label: 'Results & Publication' },
   { id: 'finalists', label: 'Grand Finalists' },
+  { id: 'admins', label: 'Administrators' },
   { id: 'settings', label: 'Event Settings' },
   { id: 'audit', label: 'Audit Log' },
 ];
@@ -749,6 +765,17 @@ const JUDGE_SEED: readonly SeedJudge[] = [
   { userId: 13, name: 'Dr. Wei Ling Tan', email: 'w.tan@monash.edu' },
   { userId: 14, name: 'Nadia Rahman', email: 'n.rahman@monash.edu' },
   { userId: 15, name: 'Dr. Tomas Novak', email: 't.novak@monash.edu' },
+];
+
+const ADMIN_SEED: readonly AdminUser[] = [
+  {
+    id: 1,
+    fullName: 'Xian Yao',
+    email: 'leexy37@gmail.com',
+    role: 'admin',
+    createdAt: new Date('2026-08-01T00:00:00+08:00'),
+    lastLoginAt: new Date(),
+  },
 ];
 
 /**
@@ -1163,6 +1190,7 @@ export class AdminService {
   private readonly liveStats = signal<AdminStats | null>(null);
   private readonly liveResults = signal<readonly AdminResultRow[] | null>(null);
   private readonly liveRegistrationReviews = signal<readonly RegistrationReview[] | null>(null);
+  private readonly liveAdmins = signal<readonly AdminUser[] | null>(null);
 
   /** Mutable so the Teams section's actions land somewhere. Resets on reload. */
   private readonly rows = signal<readonly SeedTeam[]>(SEED);
@@ -1177,6 +1205,9 @@ export class AdminService {
   /** Mutable so the sections' actions land here too — see `log()`. */
   private readonly auditRows = signal<readonly AuditEntry[]>(AUDIT_SEED);
   readonly audit = computed(() => this.liveAudit() ?? this.auditRows());
+
+  private readonly demoAdmins = signal<readonly AdminUser[]>(ADMIN_SEED);
+  readonly admins = computed<readonly AdminUser[]>(() => this.liveAdmins() ?? this.demoAdmins());
 
   /**
    * `users.role` changes an organiser has made, keyed by `users.id`.
@@ -1202,6 +1233,7 @@ export class AdminService {
         this.liveStats.set(null);
         this.liveResults.set(null);
         this.liveRegistrationReviews.set(null);
+        this.liveAdmins.set(null);
       }
     });
   }
@@ -1217,7 +1249,7 @@ export class AdminService {
     // signal below would then keep its previous value forever - which, for an
     // already-authenticated admin session, reads as "all my data just disappeared".
     // Destructuring the settled array (rather than .map()-ing it first) is what keeps
-    // each position's own type instead of collapsing all eight into one wide union.
+    // each position's own type instead of collapsing all into one wide union.
     const [
       overviewR,
       teamsR,
@@ -1227,6 +1259,7 @@ export class AdminService {
       auditR,
       resultsR,
       registrationReviewsR,
+      adminsR,
     ] = await Promise.allSettled([
       firstValueFrom(
         this.http.get<{ stats: AdminStats; recentAudit: readonly WireAuditEntry[] }>(
@@ -1265,6 +1298,9 @@ export class AdminService {
           { headers },
         ),
       ),
+      firstValueFrom(
+        this.http.get<readonly WireAdminUser[]>(`${this.apiBaseUrl}/api/admin/admins`, { headers }),
+      ),
     ]);
 
     const overview = valueOf(overviewR);
@@ -1275,6 +1311,7 @@ export class AdminService {
     const audit = valueOf(auditR);
     const results = valueOf(resultsR);
     const registrationReviews = valueOf(registrationReviewsR);
+    const admins = valueOf(adminsR);
 
     try {
       if (overview?.stats) {
@@ -1330,6 +1367,15 @@ export class AdminService {
             reviewedAt: r.reviewedAt ? new Date(r.reviewedAt) : null,
             createdAt: new Date(r.createdAt),
             updatedAt: new Date(r.updatedAt),
+          })),
+        );
+      }
+      if (admins) {
+        this.liveAdmins.set(
+          admins.map((a) => ({
+            ...a,
+            createdAt: a.createdAt ? new Date(a.createdAt) : null,
+            lastLoginAt: a.lastLoginAt ? new Date(a.lastLoginAt) : null,
           })),
         );
       }
@@ -1998,6 +2044,98 @@ export class AdminService {
 
       this.setRole(userId, 'participant');
       this.log('judge', 'Removed from judging panel', judge.name);
+      return { ok: true };
+    });
+  }
+
+  registerAdmin(fullName: string, email: string): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const trimmedName = fullName.trim();
+      const trimmedEmail = email.trim().toLowerCase();
+      if (!trimmedName) return { ok: false, error: 'Full name is required.' };
+      if (!trimmedEmail) return { ok: false, error: 'Email address is required.' };
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${this.apiBaseUrl}/api/admin/admins`,
+              { fullName: trimmedName, email: trimmedEmail },
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          );
+          void this.refreshAll();
+        } catch (err: any) {
+          const message = err?.error?.error || err?.message || 'Failed to register admin.';
+          return { ok: false, error: message };
+        }
+      }
+
+      const id = Date.now();
+      const newAdmin: AdminUser = {
+        id,
+        fullName: trimmedName,
+        email: trimmedEmail,
+        role: 'admin',
+        createdAt: new Date(),
+        lastLoginAt: null,
+      };
+      this.demoAdmins.update((list) => [newAdmin, ...list.filter((a) => a.email !== trimmedEmail)]);
+      this.log('settings', 'Added administrator', `${trimmedName} (${trimmedEmail})`);
+      return { ok: true };
+    });
+  }
+
+  removeAdmin(userId: number): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const admin = this.admins().find((a) => a.id === userId);
+      if (!admin) return { ok: false, error: 'Administrator not found.' };
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.delete(`${this.apiBaseUrl}/api/admin/admins/${userId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          );
+          void this.refreshAll();
+        } catch (err: any) {
+          const message = err?.error?.error || err?.message || 'Failed to remove admin.';
+          return { ok: false, error: message };
+        }
+      }
+
+      this.demoAdmins.update((list) => list.filter((a) => a.id !== userId));
+      this.log('settings', 'Removed administrator', `${admin.fullName} (${admin.email})`);
+      return { ok: true };
+    });
+  }
+
+  deleteTeam(teamId: number): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const team = this.teams().find((t) => t.teamId === teamId);
+      const teamName = team ? team.teamName : `Team #${teamId}`;
+
+      const token = this.auth.token();
+      if (this.http && token && this.auth.user()?.role === 'admin') {
+        try {
+          await firstValueFrom(
+            this.http.delete(`${this.apiBaseUrl}/api/admin/teams/${teamId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          );
+          void this.refreshAll();
+        } catch (err: any) {
+          const message = err?.error?.error || err?.message || 'Failed to delete team.';
+          return { ok: false, error: message };
+        }
+      }
+
+      this.rows.update((list) => list.filter((t) => t.teamId !== teamId));
+      this.liveTeams.update((list) => (list ? list.filter((t) => t.teamId !== teamId) : null));
+      this.log('team', 'Team deleted', teamName);
       return { ok: true };
     });
   }

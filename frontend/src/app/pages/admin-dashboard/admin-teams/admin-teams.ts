@@ -59,6 +59,8 @@ export class AdminTeams {
 
   /** The team awaiting confirmation, and which way. */
   protected readonly confirming = signal<{ team: AdminTeamRow; to: TeamStatus } | null>(null);
+  /** The team awaiting deletion confirmation. */
+  protected readonly deleting = signal<AdminTeamRow | null>(null);
   /** The team being renamed, if any. */
   protected readonly renaming = signal<AdminTeamRow | null>(null);
   protected readonly draftName = signal('');
@@ -109,6 +111,10 @@ export class AdminTeams {
     this.confirming.set({ team, to });
   }
 
+  protected askDelete(team: AdminTeamRow): void {
+    this.deleting.set(team);
+  }
+
   protected startRename(team: AdminTeamRow): void {
     this.renaming.set(team);
     this.draftName.set(team.teamName);
@@ -122,6 +128,15 @@ export class AdminTeams {
     const { team, to } = pendingChange;
     const result = await this.admin.setTeamStatus(team.teamId, to);
     this.report(result, `${team.teamName} is now ${TEAM_STATUS_LABELS[to].toLowerCase()}.`);
+  }
+
+  protected async confirmDelete(): Promise<void> {
+    const team = this.deleting();
+    this.deleting.set(null);
+    if (!team) return;
+
+    const result = await this.admin.deleteTeam(team.teamId);
+    this.report(result, `${team.teamName} was deleted from the database.`);
   }
 
   protected async saveName(): Promise<void> {

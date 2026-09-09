@@ -6,6 +6,7 @@ import { AdminService, SECTIONS, SectionId, isSectionId } from '../../core/admin
 import { EVENT_CONFIG } from '../../core/event/event-config';
 import { EventSettingsService } from '../../core/event/event-settings';
 import { PhaseService } from '../../core/event/phase';
+import { AdminAdmins } from './admin-admins/admin-admins';
 import { AdminAssignments } from './admin-assignments/admin-assignments';
 import { AdminAudit } from './admin-audit/admin-audit';
 import { AdminFinalists } from './admin-finalists/admin-finalists';
@@ -35,6 +36,7 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
 @Component({
   selector: 'app-admin-dashboard',
   imports: [
+    AdminAdmins,
     AdminAssignments,
     AdminAudit,
     AdminFinalists,

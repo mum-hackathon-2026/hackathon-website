@@ -217,12 +217,14 @@ describe('AdminDashboard', () => {
       expect(host().querySelector('.empty')?.textContent).toContain('No teams match');
     });
 
-    it('offers no actions on a team that is already settled', async () => {
+    it('offers delete action on a team that is already settled', async () => {
       await render({ section: 'teams' });
       await setInput('#team-status', 'withdrawn');
 
       expect(host().querySelector('.grid__settled')?.textContent).toBe('Withdrawn');
-      expect(host().querySelectorAll('.grid__actions .link-button').length).toBe(0);
+      const buttons = host().querySelectorAll('.grid__actions .link-button');
+      expect(buttons.length).toBe(1);
+      expect(buttons[0].textContent?.trim()).toBe('Delete');
     });
 
     it('withdraws a team once the confirmation is accepted', async () => {

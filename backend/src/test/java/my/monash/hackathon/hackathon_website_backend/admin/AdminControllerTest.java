@@ -258,4 +258,48 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.fullName").value("John Doe"))
                 .andExpect(jsonPath("$.phone").value("019999999"));
     }
+
+    @Test
+    void deleteTeamSucceeds() throws Exception {
+        mockMvc.perform(delete("/api/admin/teams/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true));
+    }
+
+    @Test
+    void getAdminsReturnsAdminList() throws Exception {
+        var adminDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminUserDto(
+                1L, "Admin User", "admin@example.com", "admin", null, null
+        );
+        when(adminService.getAdmins()).thenReturn(List.of(adminDto));
+
+        mockMvc.perform(get("/api/admin/admins"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].fullName").value("Admin User"))
+                .andExpect(jsonPath("$[0].email").value("admin@example.com"));
+    }
+
+    @Test
+    void registerAdminSucceeds() throws Exception {
+        var adminDto = new my.monash.hackathon.hackathon_website_backend.admin.dto.AdminUserDto(
+                2L, "New Admin", "newadmin@gmail.com", "admin", null, null
+        );
+        when(adminService.registerAdmin(any(), any())).thenReturn(adminDto);
+
+        mockMvc.perform(post("/api/admin/admins")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fullName\":\"New Admin\",\"email\":\"newadmin@gmail.com\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(2))
+                .andExpect(jsonPath("$.fullName").value("New Admin"))
+                .andExpect(jsonPath("$.email").value("newadmin@gmail.com"));
+    }
+
+    @Test
+    void removeAdminSucceeds() throws Exception {
+        mockMvc.perform(delete("/api/admin/admins/2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true));
+    }
 }

@@ -1,0 +1,154 @@
+<p class="lede">{{ summary() }}</p>
+
+@if (error(); as message) {
+  <p class="banner banner--error" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="banner banner--notice" role="status">{{ message }}</p>
+}
+
+<!-- ── Register Admin Panel ────────────────────────────────────────────────── -->
+
+<section class="panel" aria-labelledby="add-admin-heading">
+  <div class="panel__header">
+    <h2 class="panel__title" id="add-admin-heading">Grant Administrator Access</h2>
+  </div>
+
+  <form class="assign assign--grid" (ngSubmit)="register()">
+    <div class="assign__field">
+      <label class="assign__label" for="admin-name-input">Full name</label>
+      <input
+        id="admin-name-input"
+        class="input"
+        type="text"
+        name="adminFullName"
+        placeholder="e.g. Xian Yao"
+        [ngModel]="fullName()"
+        (ngModelChange)="fullName.set($event)"
+        required
+      />
+    </div>
+
+    <div class="assign__field">
+      <label class="assign__label" for="admin-email-input">Gmail / Email address</label>
+      <input
+        id="admin-email-input"
+        class="input"
+        type="email"
+        name="adminEmail"
+        placeholder="e.g. leexy37@gmail.com"
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+        required
+      />
+    </div>
+
+    <div class="assign__action">
+      <button
+        type="submit"
+        class="button button--primary"
+        [disabled]="pending() || !fullName().trim() || !email().trim()"
+      >
+        Add Administrator
+      </button>
+    </div>
+  </form>
+
+  <p class="assign__hint">
+    Adding an administrator immediately records their account in the database. When they click
+    "Sign in with Google" using this email, they will automatically receive full administrator access
+    without needing any redeployment.
+  </p>
+</section>
+
+<!-- ── Search & Filter ─────────────────────────────────────────────────────── -->
+
+<div class="filters">
+  <label class="visually-hidden" for="admin-search">Search administrators</label>
+  <input
+    id="admin-search"
+    class="input filters__search"
+    type="search"
+    name="adminSearch"
+    placeholder="Search administrator name or email"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+
+  @if (search().trim() !== '') {
+    <button type="button" class="link-button" (click)="search.set('')">Clear search</button>
+  }
+</div>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+
+@if (rows().length === 0) {
+  <p class="empty">No administrators match that search.</p>
+} @else {
+  <div class="scroller">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th scope="col">Administrator</th>
+          <th scope="col">Role</th>
+          <th scope="col">Registered</th>
+          <th scope="col">Last Login</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td>
+              <span class="grid__team">{{ row.fullName }}</span>
+              <span class="grid__email">{{ row.email }}</span>
+            </td>
+            <td>
+              <span class="badge badge--info">{{ row.role | uppercase }}</span>
+            </td>
+            <td>
+              @if (row.createdAt) {
+                {{ row.createdAt | date: 'dd MMM yyyy, HH:mm' }}
+              } @else {
+                <span class="grid__none">—</span>
+              }
+            </td>
+            <td>
+              @if (row.lastLoginAt) {
+                {{ row.lastLoginAt | date: 'dd MMM yyyy, HH:mm' }}
+              } @else {
+                <span class="grid__none">Never logged in</span>
+              }
+            </td>
+            <td class="grid__actions">
+              @if (currentUser()?.email?.toLowerCase() === row.email.toLowerCase()) {
+                <span class="grid__settled">(You)</span>
+              } @else {
+                <button
+                  type="button"
+                  class="link-button link-button--danger"
+                  [disabled]="pending()"
+                  (click)="askRemove(row)"
+                >
+                  Revoke
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (confirming(); as target) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="'Revoke administrator access for ' + target.fullName + '?'"
+    body="They will no longer have access to the Admin Dashboard or organizer privileges. Their account role will be returned to participant."
+    confirmLabel="Revoke access"
+    [danger]="true"
+    (confirmed)="confirmRemove()"
+    (cancelled)="confirming.set(null)"
+  />
+}

@@ -164,14 +164,28 @@ describe('AdminTeams', () => {
     expect(admin.teams().find((row) => row.teamId === team.teamId)!.status).toBe(team.status);
   });
 
-  it('offers no actions on a team that has already settled', async () => {
+  it('offers delete action on a team that has already settled', async () => {
     await setUp();
     const settled = admin
       .teams()
       .find((row) => row.status === 'withdrawn' || row.status === 'disqualified')!;
 
-    expect(rowFor(settled.teamName).querySelector('button')).toBeNull();
+    const deleteBtn = rowFor(settled.teamName).querySelector('button');
+    expect(deleteBtn?.textContent?.trim()).toBe('Delete');
     expect(rowFor(settled.teamName).querySelector('.grid__settled')).toBeTruthy();
+  });
+
+  it('deletes a team when confirmed', async () => {
+    await setUp();
+    const team = liveTeam();
+
+    action(team.teamName, 'Delete').click();
+    await fixture.whenStable();
+
+    host().querySelector<HTMLButtonElement>('dialog .button--primary')!.click();
+    await fixture.whenStable();
+
+    expect(admin.teams().find((row) => row.teamId === team.teamId)).toBeUndefined();
   });
 
   it('narrows by status', async () => {

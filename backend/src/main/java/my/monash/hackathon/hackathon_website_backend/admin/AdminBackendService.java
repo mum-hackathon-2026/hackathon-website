@@ -8,10 +8,12 @@ import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminResultDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminStatsDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminSubmissionDetailDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminTeamDto;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminUserDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AuditLogDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.BatchRegisterJudgesRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.CreateAssignmentRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.EventSettingsDto;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterAdminRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterJudgeRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateEventSettingsRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateParticipantRequest;
@@ -259,6 +261,35 @@ public class AdminBackendService {
 
         teamRepository.save(team);
         return getTeams().stream().filter(t -> t.teamId() == teamId).findFirst().orElseThrow();
+    }
+
+    public void deleteTeam(Long teamId, User actor) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found with id: " + teamId));
+        String teamName = team.getName();
+
+        // 1. Delete assignments & scores
+        List<Assignment> assignments = assignmentRepository.findByTeamId(teamId);
+        for (Assignment assignment : assignments) {
+            List<Score> scores = scoreRepository.findByAssignmentId(assignment.getId());
+            scoreRepository.deleteAll(scores);
+        }
+        assignmentRepository.deleteAll(assignments);
+
+        // 2. Delete team result if present
+        teamResultRepository.findById(teamId).ifPresent(teamResultRepository::delete);
+
+        // 3. Delete submission if present
+        submissionRepository.findById(teamId).ifPresent(submissionRepository::delete);
+
+        // 4. Delete team members
+        List<TeamMember> members = teamMemberRepository.findByTeamId(teamId);
+        teamMemberRepository.deleteAll(members);
+
+        // 5. Delete the team itself
+        teamRepository.delete(team);
+
+        logAudit(actor, "Team deleted", "team", teamId, "{\"name\":\"" + teamName + "\"}");
     }
 
     @Transactional(readOnly = true)
@@ -548,6 +579,81 @@ public class AdminBackendService {
         user.setRole("participant");
         userRepository.save(user);
         logAudit(actor, "Judge removed from panel", "judge", user.getId(), "{\"name\":\"" + user.getFullName() + "\"}");
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminUserDto> getAdmins() {
+        return userRepository.findByRole("admin").stream()
+                .map(u -> new AdminUserDto(
+                        u.getId(),
+                        u.getFullName() != null ? u.getFullName() : u.getEmail(),
+                        u.getEmail(),
+                        u.getRole(),
+                        u.getCreatedAt(),
+                        u.getLastLoginAt()
+                ))
+                .toList();
+    }
+
+    public AdminUserDto registerAdmin(RegisterAdminRequest request, User actor) {
+        if (request == null || request.email() == null || request.email().isBlank()) {
+            throw new IllegalArgumentException("Email is required for admin registration.");
+        }
+        if (request.fullName() == null || request.fullName().isBlank()) {
+            throw new IllegalArgumentException("Full name is required for admin registration.");
+        }
+
+        String email = request.email().trim().toLowerCase();
+        String fullName = request.fullName().trim();
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user != null) {
+            user.setFullName(fullName);
+            user.setRole("admin");
+            user.setEmailVerified(true);
+            user = userRepository.save(user);
+            logAudit(actor, "Added administrator", "admin", user.getId(),
+                    "{\"name\":\"" + user.getFullName() + "\",\"email\":\"" + user.getEmail() + "\"}");
+        } else {
+            user = new User(null, email, fullName);
+            user.setRole("admin");
+            user.setEmailVerified(true);
+            user = userRepository.save(user);
+            logAudit(actor, "Added administrator", "admin", user.getId(),
+                    "{\"name\":\"" + user.getFullName() + "\",\"email\":\"" + user.getEmail() + "\"}");
+        }
+
+        return new AdminUserDto(
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getRole(),
+                user.getCreatedAt(),
+                user.getLastLoginAt()
+        );
+    }
+
+    public void removeAdmin(Long userId, User actor) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+        if (!"admin".equalsIgnoreCase(user.getRole())) {
+            throw new IllegalArgumentException("User is not an administrator.");
+        }
+
+        if (actor != null && user.getId().equals(actor.getId())) {
+            throw new IllegalArgumentException("You cannot revoke your own administrator access.");
+        }
+
+        List<User> admins = userRepository.findByRole("admin");
+        if (admins.size() <= 1) {
+            throw new IllegalArgumentException("Cannot remove the only administrator.");
+        }
+
+        user.setRole("participant");
+        userRepository.save(user);
+        logAudit(actor, "Administrator role revoked", "admin", user.getId(),
+                "{\"name\":\"" + user.getFullName() + "\",\"email\":\"" + user.getEmail() + "\"}");
     }
 
     @Transactional(readOnly = true)

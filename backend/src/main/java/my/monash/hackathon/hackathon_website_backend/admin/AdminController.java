@@ -7,9 +7,11 @@ import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminOverviewDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminParticipantDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminSubmissionDetailDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminTeamDto;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.AdminUserDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.AuditLogDto;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.BatchRegisterJudgesRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.CreateAssignmentRequest;
+import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterAdminRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.RegisterJudgeRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateParticipantRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.UpdateSubmissionRequest;
@@ -57,6 +59,18 @@ public class AdminController {
         try {
             var updated = adminService.updateTeam(teamId, request, currentUser);
             return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/teams/{teamId}")
+    public ResponseEntity<?> deleteTeam(
+            @PathVariable Long teamId,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            adminService.deleteTeam(teamId, currentUser);
+            return ResponseEntity.ok(Map.of("ok", true));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -150,6 +164,35 @@ public class AdminController {
             @AuthenticationPrincipal User currentUser) {
         try {
             adminService.demoteJudge(userId, currentUser);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/admins")
+    public ResponseEntity<List<AdminUserDto>> getAdmins() {
+        return ResponseEntity.ok(adminService.getAdmins());
+    }
+
+    @PostMapping("/admins")
+    public ResponseEntity<?> registerAdmin(
+            @Valid @RequestBody RegisterAdminRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            var admin = adminService.registerAdmin(request, currentUser);
+            return ResponseEntity.ok(admin);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/admins/{userId}")
+    public ResponseEntity<?> removeAdmin(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            adminService.removeAdmin(userId, currentUser);
             return ResponseEntity.ok(Map.of("ok", true));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
