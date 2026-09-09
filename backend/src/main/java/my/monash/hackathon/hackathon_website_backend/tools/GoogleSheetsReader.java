@@ -85,13 +85,58 @@ final class GoogleSheetsReader {
                     .setValueRenderOption("UNFORMATTED_VALUE")
                     .execute();
         } catch (GoogleJsonResponseException e) {
-            if (e.getStatusCode() == 403 || e.getStatusCode() == 404
+            if (e.getStatusCode() == 400 && e.getMessage() != null && e.getMessage().contains("Unable to parse range")) {
+                try {
+                    var spreadsheet = service.spreadsheets().get(sheetId).execute();
+                    var sheetsList = spreadsheet.getSheets();
+                    String matchedTab = null;
+                    if (sheetsList != null && !sheetsList.isEmpty()) {
+                        for (var s : sheetsList) {
+                            String title = s.getProperties().getTitle();
+                            if (title.equalsIgnoreCase(targetTab)) {
+                                matchedTab = title;
+                                break;
+                            }
+                        }
+                        if (matchedTab == null && sheetsList.size() == 1) {
+                            matchedTab = sheetsList.getFirst().getProperties().getTitle();
+                        } else if (matchedTab == null) {
+                            for (var s : sheetsList) {
+                                String title = s.getProperties().getTitle();
+                                if (title.toLowerCase().contains("response") || title.toLowerCase().contains("form")) {
+                                    matchedTab = title;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (matchedTab != null && !matchedTab.equals(targetTab)) {
+                        String newRange = "'" + matchedTab.replace("'", "''") + "'";
+                        response = service.spreadsheets().values()
+                                .get(sheetId, newRange)
+                                .setValueRenderOption("UNFORMATTED_VALUE")
+                                .execute();
+                    } else {
+                        List<String> availableTabs = sheetsList != null
+                                ? sheetsList.stream().map(s -> s.getProperties().getTitle()).toList()
+                                : List.of();
+                        throw new SheetsException(SheetsException.Reason.UNREACHABLE,
+                                "Sheet tab '" + targetTab + "' not found. Available tabs in spreadsheet: " + availableTabs);
+                    }
+                } catch (SheetsException se) {
+                    throw se;
+                } catch (Exception ex) {
+                    throw new SheetsException(SheetsException.Reason.UNREACHABLE,
+                            "Could not resolve sheet tab '" + targetTab + "': " + ex.getMessage());
+                }
+            } else if (e.getStatusCode() == 403 || e.getStatusCode() == 404
                     || (e.getMessage() != null && e.getMessage().toLowerCase().contains("permission"))) {
                 throw new SheetsException(SheetsException.Reason.UNREACHABLE,
                         "Sheet unreachable: sheet not shared with the service account (or does not exist). Ensure the sheet is shared with the service account email as Viewer.");
+            } else {
+                throw new SheetsException(SheetsException.Reason.UNREACHABLE,
+                        "Sheet unreachable: Google Sheets API returned HTTP " + e.getStatusCode() + ": " + e.getMessage());
             }
-            throw new SheetsException(SheetsException.Reason.UNREACHABLE,
-                    "Sheet unreachable: Google Sheets API returned HTTP " + e.getStatusCode() + ": " + e.getMessage());
         } catch (IOException e) {
             throw new SheetsException(SheetsException.Reason.UNREACHABLE,
                     "Sheet unreachable: could not reach Google Sheets API for sheet '" + sheetId + "': " + e.getMessage());
