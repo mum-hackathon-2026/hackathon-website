@@ -150,9 +150,10 @@ final class TeamRow {
 
     /** The values collected per person, with the header spellings each will match. */
     enum Field {
-        NAME("Name", "name", "fullname", "fullnamefirstfamilyname"),
-        EMAIL("Email", "email", "emailaddress"),
-        PHONE("Phone", "phone", "phonenumber", "contactnumber", "mobile", "phonewhatsappnumber"),
+        NAME("Name", "name", "fullname", "fullnamefirstfamilyname", "fullnamefirstandfamilyname", "namefirstfamilyname"),
+        EMAIL("Email", "email", "emailaddress", "emailaddresspersonalemail", "emailaddresspersonal",
+                "emailpersonalemail", "personalemail", "emailpersonal"),
+        PHONE("Phone", "phone", "phonenumber", "contactnumber", "mobile", "phonewhatsappnumber", "whatsappnumber"),
         // Feeds the IT course check and nothing else - there is no users.major column. The
         // aliases are wide on purpose: this question is titled differently on every form
         // ("Major", "Course", "Field of Study", "Degree Programme"), and a spelling that
@@ -160,7 +161,7 @@ final class TeamRow {
         MAJOR("Major", "major", "fieldofstudy", "majorfieldofstudy", "majororfieldofstudy",
                 "fieldofstudymajor", "course", "courseofstudy", "majorcourse", "degree",
                 "degreeprogramme", "degreeprogram", "programme", "program", "studyfield"),
-        RESUME("Resume", "resume", "resumeurl", "resumelink", "cv", "cvlink", "resumecvpdf"),
+        RESUME("Resume", "resume", "resumeurl", "resumelink", "cv", "cvlink", "resumecvpdf", "resumecv", "resumepdf"),
         LINKEDIN("LinkedIn", "linkedin", "linkedinurl", "linkedinlink", "linkedinprofile", "linkedinprofileurl"),
         // The person's own account. Nothing here matches a "project"/"repo" spelling on
         // purpose — submissions.github_url is a different column with a different meaning,
