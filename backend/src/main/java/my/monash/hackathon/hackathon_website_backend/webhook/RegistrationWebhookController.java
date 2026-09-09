@@ -59,7 +59,8 @@ public class RegistrationWebhookController {
                     // Teams sent to the admin review queue. They are not in the database;
                     // an admin decides on them from the Registration Reviews dashboard.
                     "review", summary.review(),
-                    "errors", summary.errors()
+                    "errors", summary.errors(),
+                    "logMessages", summary.logMessages()
             ));
         } catch (Exception e) {
             log.error("Failed to process Google Form submission webhook", e);

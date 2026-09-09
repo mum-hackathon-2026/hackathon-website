@@ -216,10 +216,11 @@ public final class FormRegistrationImporter {
                     List.of("STOPPING: " + e.getMessage()));
         }
 
-        if (!reportColumnMapping(sheet, limits)) {
-            return new ImportSummary(false, sheet.rows().size(), 0, 0, 0, 0, 0, sheet.rows().size(),
-                    List.of("Column mapping failed - incomplete member block, a missing "
-                            + "Major column, or a disallowed repository question"));
+        List<String> mappingLogs = new ArrayList<>();
+        if (!reportColumnMapping(sheet, limits, mappingLogs)) {
+            List<String> combined = new ArrayList<>(mappingLogs);
+            combined.add("Sheet headers present: " + sheet.headersByNormalisedName().values());
+            return new ImportSummary(false, sheet.rows().size(), 0, 0, 0, 0, 0, sheet.rows().size(), combined);
         }
         if (sheet.rows().isEmpty()) {
             return new ImportSummary(true, 0, 0, 0, 0, 0, 0, 0, List.of("The sheet has no data rows"));
@@ -910,6 +911,10 @@ public final class FormRegistrationImporter {
      * continue if any member block mapped only part of itself or contains a disallowed repository question.
      */
     private static boolean reportColumnMapping(CsvReader.Sheet sheet, TeamRow.SizeLimits limits) {
+        return reportColumnMapping(sheet, limits, new ArrayList<>());
+    }
+
+    private static boolean reportColumnMapping(CsvReader.Sheet sheet, TeamRow.SizeLimits limits, List<String> logMessages) {
         System.out.println("Column mapping");
         System.out.println("-".repeat(78));
 
@@ -927,10 +932,12 @@ public final class FormRegistrationImporter {
         for (int block = 1; block <= limits.max(); block++) {
             String disallowedHeader = findDisallowedGithubHeader(sheet, block);
             if (disallowedHeader != null) {
-                System.out.println();
-                System.out.println("STOPPING: GitHub question is titled '" + disallowedHeader
+                String msg = "STOPPING: GitHub question is titled '" + disallowedHeader
                         + "'. A project repository must not be imported into users.github_url. Rename the form question to 'Member "
-                        + block + ": GitHub Profile URL'.");
+                        + block + ": GitHub Profile URL'.";
+                System.out.println();
+                System.out.println(msg);
+                logMessages.add(msg);
                 return false;
             }
         }
@@ -971,16 +978,22 @@ public final class FormRegistrationImporter {
         System.out.println();
 
         if (teamNameHeader == null) {
-            System.out.println("STOPPING: no team name column. Expected a header matching one of "
-                    + TeamRow.teamNameHeaders() + " once case and punctuation are ignored.");
+            String msg = "STOPPING: no team name column. Expected a header matching one of "
+                    + TeamRow.teamNameHeaders() + " once case and punctuation are ignored.";
+            System.out.println(msg);
+            logMessages.add(msg);
             return false;
         }
         if (!hasAnyMajorColumn(sheet, limits)) {
             reportMissingMajorColumn();
+            logMessages.add("STOPPING: the sheet has no Major column for any member");
             return false;
         }
         if (!incompleteBlocks.isEmpty()) {
             reportIncompleteBlocks(incompleteBlocks);
+            for (Map.Entry<Integer, List<String>> entry : incompleteBlocks.entrySet()) {
+                logMessages.add("Incomplete block " + entry.getKey() + ": missing columns for " + entry.getValue());
+            }
             return false;
         }
         return true;
