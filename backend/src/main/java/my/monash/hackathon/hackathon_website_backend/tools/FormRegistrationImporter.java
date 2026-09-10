@@ -108,8 +108,6 @@ public final class FormRegistrationImporter {
                 source_line = excluded.source_line,
                 status = 'awaiting_review',
                 updated_at = now()
-            where registration_reviews.status in ('awaiting_review', 'needs_fix')
-               or not exists (select 1 from teams t where t.name = registration_reviews.team_name)
             """;
 
     private static final String FIND_REVIEW_STATUS_BY_TEAM_NAME =
@@ -566,10 +564,11 @@ public final class FormRegistrationImporter {
                 return Outcome.of(Status.ALREADY_PRESENT, label + " - already imported (team "
                         + existingTeamId.get() + ", same " + describeSize(csvEmails.size()) + ")");
             }
-            return toReview(connection, row, team.teamName(), List.of("a different team already "
-                    + "has this name (team " + existingTeamId.get() + ", members "
-                    + String.join(", ", existingEmails) + "). Two teams cannot share a name; "
-                    + "one of them has to rename."), limits, dryRun);
+            List<String> issues = new ArrayList<>();
+            issues.add("Team '" + team.teamName() + "' is already registered (Team #" + existingTeamId.get()
+                    + " with members: " + String.join(", ", existingEmails) + "). Approving this review will update the team to this new roster (" + String.join(", ", csvEmails) + ").");
+            issues.addAll(EligibilityScreening.screen(team));
+            return toReview(connection, row, team.teamName(), issues, limits, dryRun);
         }
 
         Integer claimedOn = teamNamesSeen.get(team.teamName());

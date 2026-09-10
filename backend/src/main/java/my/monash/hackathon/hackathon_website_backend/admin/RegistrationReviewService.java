@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.ApproveRegistrationReviewRequest;
 import my.monash.hackathon.hackathon_website_backend.admin.dto.RegistrationReviewDto;
@@ -126,7 +127,9 @@ public class RegistrationReviewService {
         }
 
         List<String> emailsSeen = new ArrayList<>();
-        List<User> newUsers = new ArrayList<>();
+        Optional<Team> existingTeamOpt = teamRepository.findByName(teamName);
+        List<User> finalUsers = new ArrayList<>();
+
         for (RegistrationReviewMemberDto member : members) {
             String fullName = member.fullName() == null ? "" : member.fullName().trim();
             if (fullName.isEmpty()) {
@@ -152,35 +155,69 @@ public class RegistrationReviewService {
             String resumeUrl = validatedUrlOrNull(member.resumeUrl(), fullName, "resume");
             String linkedinUrl = validatedUrlOrNull(member.linkedinUrl(), fullName, "LinkedIn");
             String githubUrl = validatedUrlOrNull(member.githubUrl(), fullName, "GitHub");
-
-            if (userRepository.findByEmail(email).isPresent()) {
-                throw new IllegalArgumentException(email + " is already registered. Either "
-                        + "they registered twice, or this collides with an existing account.");
-            }
-
-            User user = new User(null, email, fullName);
             String phone = member.phone() == null || member.phone().isBlank()
                     ? null : member.phone().trim();
-            user.setPhone(phone);
-            user.setResumeUrl(resumeUrl);
-            user.setLinkedinUrl(linkedinUrl);
-            user.setGithubUrl(githubUrl);
-            newUsers.add(user);
+
+            Optional<User> existingUser = userRepository.findByEmail(email);
+            if (existingUser.isPresent()) {
+                User u = existingUser.get();
+                if ("admin".equalsIgnoreCase(u.getRole()) || "judge".equalsIgnoreCase(u.getRole())) {
+                    throw new IllegalArgumentException(email + " is an " + u.getRole() + " account. A participant cannot use this email.");
+                }
+                Optional<TeamMember> currentMembership = teamMemberRepository.findById(u.getId());
+                if (currentMembership.isPresent() && (existingTeamOpt.isEmpty() || !currentMembership.get().getTeam().getId().equals(existingTeamOpt.get().getId()))) {
+                    throw new IllegalArgumentException(email + " is already on team '"
+                            + currentMembership.get().getTeam().getName() + "'. A person cannot be on two different teams.");
+                }
+                u.setFullName(fullName);
+                u.setPhone(phone);
+                u.setResumeUrl(resumeUrl);
+                u.setLinkedinUrl(linkedinUrl);
+                u.setGithubUrl(githubUrl);
+                finalUsers.add(userRepository.save(u));
+            } else {
+                User user = new User(null, email, fullName);
+                user.setPhone(phone);
+                user.setResumeUrl(resumeUrl);
+                user.setLinkedinUrl(linkedinUrl);
+                user.setGithubUrl(githubUrl);
+                finalUsers.add(userRepository.save(user));
+            }
         }
 
-        if (teamRepository.findByName(teamName).isPresent()) {
-            throw new IllegalArgumentException("A team named '" + teamName
-                    + "' already exists - rename this team before approving it.");
-        }
+        Team team;
+        if (existingTeamOpt.isPresent()) {
+            team = existingTeamOpt.get();
+            List<TeamMember> currentMembers = teamMemberRepository.findByTeamId(team.getId());
+            java.util.Set<Long> finalUserIds = finalUsers.stream().map(User::getId).collect(java.util.stream.Collectors.toSet());
 
-        List<User> savedUsers = userRepository.saveAll(newUsers);
+            // Remove members that are no longer on this team
+            for (TeamMember tm : currentMembers) {
+                if (!finalUserIds.contains(tm.getUserId())) {
+                    teamMemberRepository.delete(tm);
+                    userRepository.findById(tm.getUserId()).ifPresent(u -> {
+                        if ("participant".equalsIgnoreCase(u.getRole())) {
+                            userRepository.delete(u);
+                        }
+                    });
+                }
+            }
 
-        Team team = new Team(teamName, mintJoinCode(), savedUsers.get(0));
-        team.setStatus("complete");
-        team = teamRepository.save(team);
+            // Add new members
+            java.util.Set<Long> existingMemberUserIds = currentMembers.stream().map(TeamMember::getUserId).collect(java.util.stream.Collectors.toSet());
+            for (User user : finalUsers) {
+                if (!existingMemberUserIds.contains(user.getId())) {
+                    teamMemberRepository.save(new TeamMember(user, team));
+                }
+            }
+        } else {
+            team = new Team(teamName, mintJoinCode(), finalUsers.get(0));
+            team.setStatus("complete");
+            team = teamRepository.save(team);
 
-        for (User user : savedUsers) {
-            teamMemberRepository.save(new TeamMember(user, team));
+            for (User user : finalUsers) {
+                teamMemberRepository.save(new TeamMember(user, team));
+            }
         }
 
         review.setStatus("approved");
@@ -189,7 +226,7 @@ public class RegistrationReviewService {
         review = reviewRepository.save(review);
 
         logAudit(actor, "Registration approved", "team", team.getId(),
-                "{\"teamName\":\"" + escape(teamName) + "\",\"members\":" + savedUsers.size() + "}");
+                "{\"teamName\":\"" + escape(teamName) + "\",\"members\":" + finalUsers.size() + "}");
 
         return toDto(review);
     }
