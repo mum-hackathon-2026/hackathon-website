@@ -68,6 +68,7 @@ public class AdminBackendService {
     private final TeamResultRepository teamResultRepository;
     private final AuditLogRepository auditLogRepository;
     private final EventSettingsRepository eventSettingsRepository;
+    private final RegistrationReviewRepository registrationReviewRepository;
 
     public AdminBackendService(
             TeamRepository teamRepository,
@@ -78,7 +79,8 @@ public class AdminBackendService {
             ScoreRepository scoreRepository,
             TeamResultRepository teamResultRepository,
             AuditLogRepository auditLogRepository,
-            EventSettingsRepository eventSettingsRepository) {
+            EventSettingsRepository eventSettingsRepository,
+            RegistrationReviewRepository registrationReviewRepository) {
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.userRepository = userRepository;
@@ -88,6 +90,7 @@ public class AdminBackendService {
         this.teamResultRepository = teamResultRepository;
         this.auditLogRepository = auditLogRepository;
         this.eventSettingsRepository = eventSettingsRepository;
+        this.registrationReviewRepository = registrationReviewRepository;
     }
 
     @Transactional(readOnly = true)
@@ -298,6 +301,10 @@ public class AdminBackendService {
                 }
             });
         }
+
+        // 7. Delete registration review if present
+        registrationReviewRepository.findByTeamName(teamName)
+                .ifPresent(registrationReviewRepository::delete);
 
         logAudit(actor, "Team deleted", "team", teamId, "{\"name\":\"" + teamName + "\"}");
     }

@@ -109,6 +109,7 @@ public final class FormRegistrationImporter {
                 status = 'awaiting_review',
                 updated_at = now()
             where registration_reviews.status in ('awaiting_review', 'needs_fix')
+               or not exists (select 1 from teams t where t.name = registration_reviews.team_name)
             """;
 
     private static final String FIND_REVIEW_STATUS_BY_TEAM_NAME =
