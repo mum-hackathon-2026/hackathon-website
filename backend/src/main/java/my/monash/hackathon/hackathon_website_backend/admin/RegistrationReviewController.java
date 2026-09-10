@@ -76,4 +76,16 @@ public class RegistrationReviewController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+        try {
+            reviewService.deleteReview(id, currentUser);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

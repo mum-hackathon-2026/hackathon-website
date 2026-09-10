@@ -224,6 +224,27 @@ final class TeamRow {
     }
 
     /**
+     * True if the row has no team name and no non-blank value in any member field.
+     * Such rows are empty lines (e.g. trailing sheet rows) and must be skipped rather than
+     * treated as invalid submissions.
+     */
+    static boolean isBlankRow(CsvReader.Row row) {
+        String rawTeamName = row.firstPresent(TEAM_NAME_HEADERS);
+        if (rawTeamName != null && !rawTeamName.trim().isEmpty()) {
+            return false;
+        }
+        for (int block = 1; block <= BLOCK_SCAN_LIMIT; block++) {
+            for (Field field : Field.values()) {
+                String val = row.firstPresent(field.aliases(block));
+                if (val != null && !val.trim().isEmpty()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Interprets a row. Throws {@link InvalidRowException} with a readable reason rather
      * than returning a partially-built team — a row the importer cannot fully understand is
      * one a human has to look at.

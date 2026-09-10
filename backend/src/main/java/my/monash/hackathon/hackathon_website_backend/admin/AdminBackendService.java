@@ -284,10 +284,20 @@ public class AdminBackendService {
 
         // 4. Delete team members
         List<TeamMember> members = teamMemberRepository.findByTeamId(teamId);
+        List<Long> memberUserIds = members.stream().map(TeamMember::getUserId).toList();
         teamMemberRepository.deleteAll(members);
 
         // 5. Delete the team itself
         teamRepository.delete(team);
+
+        // 6. Delete participant accounts belonging to this team
+        for (Long uid : memberUserIds) {
+            userRepository.findById(uid).ifPresent(user -> {
+                if ("participant".equalsIgnoreCase(user.getRole())) {
+                    userRepository.delete(user);
+                }
+            });
+        }
 
         logAudit(actor, "Team deleted", "team", teamId, "{\"name\":\"" + teamName + "\"}");
     }

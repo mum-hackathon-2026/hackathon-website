@@ -107,6 +107,7 @@
             <button type="button" class="btn-save" (click)="openApprove(row)">Approve</button>
             <button type="button" class="btn-edit" (click)="openRequestFix(row)">Needs fix</button>
             <button type="button" class="btn-cancel" (click)="openReject(row)">Reject</button>
+            <button type="button" class="link-button link-button--danger" (click)="promptDelete(row)">Delete</button>
           } @else {
             <span class="review-card__decided">
               {{ statusLabels[row.status] }}
@@ -117,6 +118,7 @@
             @if (row.status !== 'approved') {
               <button type="button" class="link-button" (click)="reopen(row)">Reopen</button>
             }
+            <button type="button" class="link-button link-button--danger" (click)="promptDelete(row)">Delete</button>
           }
         </div>
       </article>
@@ -337,5 +339,19 @@
     [danger]="true"
     (confirmed)="confirmReject()"
     (cancelled)="rejecting.set(null)"
+  ></app-confirm-dialog>
+}
+
+<!-- ── Delete confirmation ────────────────────────────────────────────────── -->
+
+@if (deleting(); as row) {
+  <app-confirm-dialog
+    [open]="true"
+    [heading]="'Delete registration review for ' + row.teamName + '?'"
+    body="This will permanently remove this registration review card. If this team was rejected or untitled, it will no longer show up."
+    confirmLabel="Delete"
+    [danger]="true"
+    (confirmed)="confirmDelete()"
+    (cancelled)="cancelDelete()"
   ></app-confirm-dialog>
 }

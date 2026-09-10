@@ -66,6 +66,10 @@ export class AdminRegistrationReviews {
   protected readonly requestingFix = signal<RegistrationReview | null>(null);
   protected readonly fixNote = signal('');
 
+  // ── Delete confirmation ────────────────────────────────────────────────
+  protected readonly deleting = signal<RegistrationReview | null>(null);
+  protected readonly isDeleting = signal(false);
+
   // ── Approve / edit form ────────────────────────────────────────────────
   protected readonly approving = signal<RegistrationReview | null>(null);
   protected readonly approveTeamName = signal('');
@@ -219,6 +223,30 @@ export class AdminRegistrationReviews {
   protected async reopen(row: RegistrationReview): Promise<void> {
     const result = await this.admin.reopenRegistration(row.id, row.teamName);
     this.report(result, `${row.teamName} reopened for review.`);
+  }
+
+  // ── Delete ──────────────────────────────────────────────────────────────
+
+  protected promptDelete(row: RegistrationReview): void {
+    this.deleting.set(row);
+  }
+
+  protected cancelDelete(): void {
+    this.deleting.set(null);
+  }
+
+  protected async confirmDelete(): Promise<void> {
+    const row = this.deleting();
+    if (!row) return;
+
+    this.isDeleting.set(true);
+    try {
+      const result = await this.admin.deleteRegistrationReview(row.id, row.teamName);
+      this.deleting.set(null);
+      this.report(result, `Registration review for "${row.teamName}" was removed.`);
+    } finally {
+      this.isDeleting.set(false);
+    }
   }
 
   private report(result: { ok: boolean; error?: string }, success: string): void {

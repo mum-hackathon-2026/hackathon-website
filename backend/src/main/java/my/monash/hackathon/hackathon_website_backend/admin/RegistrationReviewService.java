@@ -240,6 +240,16 @@ public class RegistrationReviewService {
         return toDto(review);
     }
 
+    public void deleteReview(Long id, User actor) {
+        RegistrationReview review = reviewRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Registration review not found with id: " + id));
+        String teamName = review.getTeamName();
+        reviewRepository.delete(review);
+        logAudit(actor, "Registration review deleted", "registration_review", id,
+                "{\"teamName\":\"" + escape(teamName) + "\"}");
+    }
+
     private RegistrationReview requireDecidable(Long id) {
         RegistrationReview review = reviewRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(

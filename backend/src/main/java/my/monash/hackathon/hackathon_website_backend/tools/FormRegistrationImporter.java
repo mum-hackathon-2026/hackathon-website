@@ -523,6 +523,10 @@ public final class FormRegistrationImporter {
      */
     private Outcome processRow(Connection connection, CsvReader.Row row,
                                TeamRow.SizeLimits limits, boolean dryRun) {
+        if (TeamRow.isBlankRow(row)) {
+            return Outcome.of(Status.ALREADY_PRESENT, "(blank row, line " + row.lineNumber() + ") - skipped");
+        }
+
         TeamRow team;
         try {
             team = TeamRow.from(row, limits);

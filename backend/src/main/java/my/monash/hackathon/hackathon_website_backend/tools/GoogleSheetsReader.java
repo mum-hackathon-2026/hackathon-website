@@ -34,13 +34,18 @@ final class GoogleSheetsReader {
     static CsvReader.Sheet read(String sheetId, String tabName, Path credentialsPath)
             throws SheetsException {
         GoogleCredentials credentials;
-        if (credentialsPath != null && Files.exists(credentialsPath) && Files.isReadable(credentialsPath)) {
-            try (InputStream in = new FileInputStream(credentialsPath.toFile())) {
-                credentials = GoogleCredentials.fromStream(in)
-                        .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS_READONLY));
-            } catch (IOException | IllegalArgumentException e) {
-                throw new SheetsException(SheetsException.Reason.INVALID_CREDENTIALS,
-                        "Credentials invalid in '" + credentialsPath.toAbsolutePath() + "': " + e.getMessage());
+        if (credentialsPath != null) {
+            if (Files.exists(credentialsPath) && Files.isReadable(credentialsPath)) {
+                try (InputStream in = new FileInputStream(credentialsPath.toFile())) {
+                    credentials = GoogleCredentials.fromStream(in)
+                            .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS_READONLY));
+                } catch (IOException | IllegalArgumentException e) {
+                    throw new SheetsException(SheetsException.Reason.INVALID_CREDENTIALS,
+                            "Credentials invalid in '" + credentialsPath.toAbsolutePath() + "': " + e.getMessage());
+                }
+            } else {
+                throw new SheetsException(SheetsException.Reason.MISSING_CREDENTIALS,
+                        "Credentials missing: file not found at '" + credentialsPath.toAbsolutePath() + "'");
             }
         } else if (Files.exists(Path.of("/secrets/sheets-key.json"))) {
             try (InputStream in = new FileInputStream("/secrets/sheets-key.json")) {
@@ -56,9 +61,7 @@ final class GoogleSheetsReader {
                         .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS_READONLY));
             } catch (IOException e) {
                 throw new SheetsException(SheetsException.Reason.MISSING_CREDENTIALS,
-                        "Credentials missing: file not found at '"
-                                + (credentialsPath == null ? "null" : credentialsPath.toAbsolutePath())
-                                + "' and Application Default Credentials failed: " + e.getMessage());
+                        "Credentials missing: file not found at '/secrets/sheets-key.json' and Application Default Credentials failed: " + e.getMessage());
             }
         }
 
@@ -189,17 +192,24 @@ final class GoogleSheetsReader {
             }
 
             Map<String, String> byHeader = new LinkedHashMap<>();
+            boolean hasAnyValue = false;
             for (int col = 0; col < headerStrings.size(); col++) {
                 String header = headerStrings.get(col);
                 if (!header.isEmpty()) {
                     String normalised = CsvReader.normalise(header);
                     if (!normalised.isEmpty()) {
                         String cellVal = col < rowValues.size() ? formatCellValue(rowValues.get(col)) : "";
+                        if (!cellVal.isBlank()) {
+                            hasAnyValue = true;
+                        }
                         if (!cellVal.isEmpty() || !byHeader.containsKey(normalised)) {
                             byHeader.put(normalised, cellVal);
                         }
                     }
                 }
+            }
+            if (!hasAnyValue) {
+                continue;
             }
             rows.add(new CsvReader.Row(lineNumber, byHeader));
         }
