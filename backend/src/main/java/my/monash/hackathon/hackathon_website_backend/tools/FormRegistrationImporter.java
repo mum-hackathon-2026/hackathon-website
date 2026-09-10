@@ -108,6 +108,8 @@ public final class FormRegistrationImporter {
                 source_line = excluded.source_line,
                 status = 'awaiting_review',
                 updated_at = now()
+            where registration_reviews.status in ('awaiting_review', 'needs_fix')
+               or not exists (select 1 from teams t where t.name = registration_reviews.team_name)
             """;
 
     private static final String FIND_REVIEW_STATUS_BY_TEAM_NAME =
@@ -531,6 +533,19 @@ public final class FormRegistrationImporter {
             team = TeamRow.from(row, limits);
         } catch (TeamRow.InvalidRowException e) {
             String teamName = extractTeamNameForReview(row);
+            try {
+                Optional<Long> existingTeamId = findTeamByName(connection, teamName);
+                if (existingTeamId.isPresent()) {
+                    List<String> rawEmails = extractRawEmails(row);
+                    Set<String> existingEmails = findTeamMemberEmails(connection, existingTeamId.get());
+                    if (!rawEmails.isEmpty() && existingEmails.equals(new LinkedHashSet<>(rawEmails))) {
+                        return Outcome.of(Status.ALREADY_PRESENT, "'" + teamName + "' - already imported (team "
+                                + existingTeamId.get() + ", same " + describeSize(existingEmails.size()) + ")");
+                    }
+                }
+            } catch (SQLException ignored) {
+            }
+
             // TeamRow.from already prefixes most of its own messages with 'teamName' - see
             // its catch-and-rethrow around membersOf. toReview adds that same prefix itself
             // when it reports the outcome, so strip it here rather than showing it twice.
@@ -632,6 +647,17 @@ public final class FormRegistrationImporter {
         String raw = row.firstPresent(TeamRow.teamNameHeaders());
         String trimmed = raw == null ? "" : raw.trim();
         return trimmed.isEmpty() ? "(untitled team, line " + row.lineNumber() + ")" : trimmed;
+    }
+
+    private static List<String> extractRawEmails(CsvReader.Row row) {
+        List<String> emails = new ArrayList<>();
+        for (int block = 1; block <= TeamRow.MAX_TEAM_SIZE; block++) {
+            String rawEmail = row.firstPresent(TeamRow.Field.EMAIL.aliases(block));
+            if (rawEmail != null && !rawEmail.trim().isEmpty()) {
+                emails.add(rawEmail.trim().toLowerCase(Locale.ROOT));
+            }
+        }
+        return emails;
     }
 
     /**
