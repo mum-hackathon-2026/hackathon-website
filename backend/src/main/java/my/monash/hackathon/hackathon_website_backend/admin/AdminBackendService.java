@@ -69,6 +69,7 @@ public class AdminBackendService {
     private final AuditLogRepository auditLogRepository;
     private final EventSettingsRepository eventSettingsRepository;
     private final RegistrationReviewRepository registrationReviewRepository;
+    private final TombstonedRegistrationRepository tombstonedRegistrationRepository;
 
     public AdminBackendService(
             TeamRepository teamRepository,
@@ -80,7 +81,8 @@ public class AdminBackendService {
             TeamResultRepository teamResultRepository,
             AuditLogRepository auditLogRepository,
             EventSettingsRepository eventSettingsRepository,
-            RegistrationReviewRepository registrationReviewRepository) {
+            RegistrationReviewRepository registrationReviewRepository,
+            TombstonedRegistrationRepository tombstonedRegistrationRepository) {
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.userRepository = userRepository;
@@ -91,6 +93,7 @@ public class AdminBackendService {
         this.auditLogRepository = auditLogRepository;
         this.eventSettingsRepository = eventSettingsRepository;
         this.registrationReviewRepository = registrationReviewRepository;
+        this.tombstonedRegistrationRepository = tombstonedRegistrationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -293,9 +296,13 @@ public class AdminBackendService {
         // 5. Delete the team itself
         teamRepository.delete(team);
 
-        // 6. Delete participant accounts belonging to this team
+        // 6. Delete participant accounts belonging to this team and record their emails
+        List<String> memberEmails = new ArrayList<>();
         for (Long uid : memberUserIds) {
             userRepository.findById(uid).ifPresent(user -> {
+                if (user.getEmail() != null && !user.getEmail().isBlank()) {
+                    memberEmails.add(user.getEmail().trim().toLowerCase());
+                }
                 if ("participant".equalsIgnoreCase(user.getRole())) {
                     userRepository.delete(user);
                 }
@@ -305,6 +312,14 @@ public class AdminBackendService {
         // 7. Delete registration review if present
         registrationReviewRepository.findByTeamName(teamName)
                 .ifPresent(registrationReviewRepository::delete);
+
+        // 8. Tombstone team name & member emails so Google Sheets sync never re-imports them
+        if (teamName != null && !teamName.isBlank()) {
+            tombstonedRegistrationRepository.save(new TombstonedRegistration(teamName.trim(), null, "Deleted team from admin dashboard", actor));
+        }
+        for (String email : memberEmails) {
+            tombstonedRegistrationRepository.save(new TombstonedRegistration(null, email, "Member of deleted team '" + teamName + "'", actor));
+        }
 
         logAudit(actor, "Team deleted", "team", teamId, "{\"name\":\"" + teamName + "\"}");
     }
@@ -666,6 +681,10 @@ public class AdminBackendService {
                 .forEach(teamMemberRepository::delete);
 
         userRepository.delete(user);
+
+        if (userEmail != null && !userEmail.isBlank()) {
+            tombstonedRegistrationRepository.save(new TombstonedRegistration(null, userEmail.trim().toLowerCase(), "Deleted participant from admin dashboard", actor));
+        }
 
         logAudit(actor, "Participant deleted", "participant", userId,
                 "{\"name\":\"" + userName + "\",\"email\":\"" + userEmail + "\"}");

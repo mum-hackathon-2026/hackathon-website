@@ -528,6 +528,14 @@ public final class FormRegistrationImporter {
             return Outcome.of(Status.ALREADY_PRESENT, "(blank row, line " + row.lineNumber() + ") - skipped");
         }
 
+        String rawTeamName = extractTeamNameForReview(row);
+        List<String> rawEmails = extractRawEmails(row);
+
+        Optional<String> tombstone = findTombstoneReason(connection, rawTeamName, rawEmails);
+        if (tombstone.isPresent()) {
+            return Outcome.of(Status.ALREADY_PRESENT, "'" + rawTeamName + "' - skipped (" + tombstone.get() + ")");
+        }
+
         TeamRow team;
         try {
             team = TeamRow.from(row, limits);
@@ -536,7 +544,6 @@ public final class FormRegistrationImporter {
             try {
                 Optional<Long> existingTeamId = findTeamByName(connection, teamName);
                 if (existingTeamId.isPresent()) {
-                    List<String> rawEmails = extractRawEmails(row);
                     Set<String> existingEmails = findTeamMemberEmails(connection, existingTeamId.get());
                     if (!rawEmails.isEmpty() && existingEmails.equals(new LinkedHashSet<>(rawEmails))) {
                         return Outcome.of(Status.ALREADY_PRESENT, "'" + teamName + "' - already imported (team "
@@ -658,6 +665,36 @@ public final class FormRegistrationImporter {
             }
         }
         return emails;
+    }
+
+    private static Optional<String> findTombstoneReason(Connection connection, String teamName, List<String> emails) {
+        if ((teamName == null || teamName.isBlank()) && (emails == null || emails.isEmpty())) {
+            return Optional.empty();
+        }
+        String normalizedTeamName = (teamName == null) ? "" : teamName.trim();
+        String[] emailArray = (emails == null) ? new String[0] : emails.stream()
+                .filter(e -> e != null && !e.isBlank())
+                .map(e -> e.trim().toLowerCase(Locale.ROOT))
+                .toArray(String[]::new);
+
+        String sql = """
+                select reason, team_name, email from tombstoned_registrations
+                where (team_name is not null and lower(trim(team_name)) = lower(?))
+                   or (email is not null and lower(trim(email)) = any(?))
+                limit 1
+                """;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, normalizedTeamName);
+            stmt.setArray(2, connection.createArrayOf("text", emailArray));
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String reason = rs.getString("reason");
+                    return Optional.ofNullable(reason != null && !reason.isBlank() ? reason : "marked as deleted/ignored by admin");
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+        return Optional.empty();
     }
 
     /**

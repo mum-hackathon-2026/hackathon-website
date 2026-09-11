@@ -70,6 +70,7 @@ public class RegistrationReviewService {
     private final EventSettingsRepository eventSettingsRepository;
     private final AuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
+    private final TombstonedRegistrationRepository tombstonedRegistrationRepository;
     private final SecureRandom random = new SecureRandom();
 
     public RegistrationReviewService(
@@ -79,7 +80,8 @@ public class RegistrationReviewService {
             TeamMemberRepository teamMemberRepository,
             EventSettingsRepository eventSettingsRepository,
             AuditLogRepository auditLogRepository,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            TombstonedRegistrationRepository tombstonedRegistrationRepository) {
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
@@ -87,6 +89,7 @@ public class RegistrationReviewService {
         this.eventSettingsRepository = eventSettingsRepository;
         this.auditLogRepository = auditLogRepository;
         this.objectMapper = objectMapper;
+        this.tombstonedRegistrationRepository = tombstonedRegistrationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -282,6 +285,21 @@ public class RegistrationReviewService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Registration review not found with id: " + id));
         String teamName = review.getTeamName();
+
+        if (teamName != null && !teamName.isBlank()) {
+            tombstonedRegistrationRepository.save(new TombstonedRegistration(teamName.trim(), null, "Deleted review from admin dashboard", actor));
+        }
+
+        try {
+            RegistrationReviewDto dto = toDto(review);
+            for (RegistrationReviewMemberDto member : dto.members()) {
+                if (member.email() != null && !member.email().isBlank()) {
+                    tombstonedRegistrationRepository.save(new TombstonedRegistration(null, member.email().trim().toLowerCase(), "Member of deleted review '" + teamName + "'", actor));
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
         reviewRepository.delete(review);
         logAudit(actor, "Registration review deleted", "registration_review", id,
                 "{\"teamName\":\"" + escape(teamName) + "\"}");
