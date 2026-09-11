@@ -285,19 +285,21 @@ public class RegistrationReviewService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Registration review not found with id: " + id));
         String teamName = review.getTeamName();
-
-        if (teamName != null && !teamName.isBlank()) {
-            tombstonedRegistrationRepository.save(new TombstonedRegistration(teamName.trim(), null, "Deleted review from admin dashboard", actor));
-        }
+        List<String> memberEmails = new ArrayList<>();
 
         try {
             RegistrationReviewDto dto = toDto(review);
             for (RegistrationReviewMemberDto member : dto.members()) {
                 if (member.email() != null && !member.email().isBlank()) {
-                    tombstonedRegistrationRepository.save(new TombstonedRegistration(null, member.email().trim().toLowerCase(), "Member of deleted review '" + teamName + "'", actor));
+                    memberEmails.add(member.email().trim().toLowerCase(Locale.ROOT));
                 }
             }
         } catch (Exception ignored) {
+        }
+
+        String roster = AdminBackendService.canonicalRoster(memberEmails);
+        if (teamName != null && !teamName.isBlank()) {
+            tombstonedRegistrationRepository.save(new TombstonedRegistration(teamName.trim(), roster, "Deleted review '" + teamName + "' from admin dashboard", actor));
         }
 
         reviewRepository.delete(review);

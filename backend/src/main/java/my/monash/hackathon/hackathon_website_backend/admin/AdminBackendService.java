@@ -313,15 +313,25 @@ public class AdminBackendService {
         registrationReviewRepository.findByTeamName(teamName)
                 .ifPresent(registrationReviewRepository::delete);
 
-        // 8. Tombstone team name & member emails so Google Sheets sync never re-imports them
+        // 8. Tombstone (team name + member emails) so Google Sheets sync skips this exact deleted registration
+        String roster = canonicalRoster(memberEmails);
         if (teamName != null && !teamName.isBlank()) {
-            tombstonedRegistrationRepository.save(new TombstonedRegistration(teamName.trim(), null, "Deleted team from admin dashboard", actor));
-        }
-        for (String email : memberEmails) {
-            tombstonedRegistrationRepository.save(new TombstonedRegistration(null, email, "Member of deleted team '" + teamName + "'", actor));
+            tombstonedRegistrationRepository.save(new TombstonedRegistration(teamName.trim(), roster, "Deleted team '" + teamName + "' from admin dashboard", actor));
         }
 
         logAudit(actor, "Team deleted", "team", teamId, "{\"name\":\"" + teamName + "\"}");
+    }
+
+    public static String canonicalRoster(java.util.Collection<String> emails) {
+        if (emails == null || emails.isEmpty()) {
+            return "";
+        }
+        return emails.stream()
+                .filter(e -> e != null && !e.isBlank())
+                .map(e -> e.trim().toLowerCase(java.util.Locale.ROOT))
+                .distinct()
+                .sorted()
+                .collect(Collectors.joining(","));
     }
 
     @Transactional(readOnly = true)
@@ -681,10 +691,6 @@ public class AdminBackendService {
                 .forEach(teamMemberRepository::delete);
 
         userRepository.delete(user);
-
-        if (userEmail != null && !userEmail.isBlank()) {
-            tombstonedRegistrationRepository.save(new TombstonedRegistration(null, userEmail.trim().toLowerCase(), "Deleted participant from admin dashboard", actor));
-        }
 
         logAudit(actor, "Participant deleted", "participant", userId,
                 "{\"name\":\"" + userName + "\",\"email\":\"" + userEmail + "\"}");

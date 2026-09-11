@@ -25,6 +25,9 @@ public class TombstonedRegistration {
     @Column(name = "team_name")
     private String teamName;
 
+    @Column(name = "member_emails")
+    private String memberEmails;
+
     @Column(name = "email")
     private String email;
 
@@ -41,9 +44,9 @@ public class TombstonedRegistration {
 
     public TombstonedRegistration() {}
 
-    public TombstonedRegistration(String teamName, String email, String reason, User createdBy) {
+    public TombstonedRegistration(String teamName, String memberEmails, String reason, User createdBy) {
         this.teamName = teamName;
-        this.email = email;
+        this.memberEmails = memberEmails;
         this.reason = reason;
         this.createdBy = createdBy;
     }
@@ -58,6 +61,14 @@ public class TombstonedRegistration {
 
     public void setTeamName(String teamName) {
         this.teamName = teamName;
+    }
+
+    public String getMemberEmails() {
+        return memberEmails;
+    }
+
+    public void setMemberEmails(String memberEmails) {
+        this.memberEmails = memberEmails;
     }
 
     public String getEmail() {

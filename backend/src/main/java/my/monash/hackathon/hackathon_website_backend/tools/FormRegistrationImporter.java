@@ -530,8 +530,9 @@ public final class FormRegistrationImporter {
 
         String rawTeamName = extractTeamNameForReview(row);
         List<String> rawEmails = extractRawEmails(row);
+        String roster = canonicalRoster(rawEmails);
 
-        Optional<String> tombstone = findTombstoneReason(connection, rawTeamName, rawEmails);
+        Optional<String> tombstone = findTombstoneReason(connection, rawTeamName, roster);
         if (tombstone.isPresent()) {
             return Outcome.of(Status.ALREADY_PRESENT, "'" + rawTeamName + "' - skipped (" + tombstone.get() + ")");
         }
@@ -667,25 +668,34 @@ public final class FormRegistrationImporter {
         return emails;
     }
 
-    private static Optional<String> findTombstoneReason(Connection connection, String teamName, List<String> emails) {
-        if ((teamName == null || teamName.isBlank()) && (emails == null || emails.isEmpty())) {
-            return Optional.empty();
+    private static String canonicalRoster(List<String> emails) {
+        if (emails == null || emails.isEmpty()) {
+            return "";
         }
-        String normalizedTeamName = (teamName == null) ? "" : teamName.trim();
-        String[] emailArray = (emails == null) ? new String[0] : emails.stream()
+        return emails.stream()
                 .filter(e -> e != null && !e.isBlank())
                 .map(e -> e.trim().toLowerCase(Locale.ROOT))
-                .toArray(String[]::new);
+                .distinct()
+                .sorted()
+                .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private static Optional<String> findTombstoneReason(Connection connection, String teamName, String roster) {
+        if (teamName == null || teamName.isBlank()) {
+            return Optional.empty();
+        }
+        String normalizedTeamName = teamName.trim();
+        String normalizedRoster = roster == null ? "" : roster.trim();
 
         String sql = """
-                select reason, team_name, email from tombstoned_registrations
-                where (team_name is not null and lower(trim(team_name)) = lower(?))
-                   or (email is not null and lower(trim(email)) = any(?))
+                select reason from tombstoned_registrations
+                where lower(trim(team_name)) = lower(?)
+                  and (member_emails = ? or member_emails is null or member_emails = '')
                 limit 1
                 """;
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, normalizedTeamName);
-            stmt.setArray(2, connection.createArrayOf("text", emailArray));
+            stmt.setString(2, normalizedRoster);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     String reason = rs.getString("reason");
