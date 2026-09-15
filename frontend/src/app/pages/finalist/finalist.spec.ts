@@ -49,7 +49,7 @@ describe('Finalist', () => {
 
     const formLink = host.querySelector<HTMLAnchorElement>('.btn-form');
     expect(formLink).toBeTruthy();
-    expect(formLink?.href).toContain('docs.google.com/forms');
+    expect(formLink?.href).toContain('forms.gle/FXa6f6rfCqBEZ9ux7');
 
     const rubricLink = host.querySelector<HTMLAnchorElement>('.btn-rubric');
     expect(rubricLink).toBeTruthy();

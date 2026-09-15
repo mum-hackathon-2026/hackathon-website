@@ -41,7 +41,7 @@ export class Finalist implements AfterViewInit, OnDestroy {
 
   /** Configured Google Form URL for finalist squad onboarding */
   protected readonly finalistFormUrl =
-    'https://docs.google.com/forms/d/e/1FAIpQLSe9oEyyvjOTli1A7su7lXpIlJKCMy861rFHSReNaGwus8w3KQ/viewform';
+    'https://forms.gle/FXa6f6rfCqBEZ9ux7';
 
   /** Official Grand Finals Judging Criteria Google Sheets */
   protected readonly finalistCriteriaSheetUrl =
