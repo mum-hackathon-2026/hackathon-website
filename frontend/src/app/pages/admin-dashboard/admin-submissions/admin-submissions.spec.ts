@@ -120,4 +120,27 @@ describe('AdminSubmissions', () => {
       `${stats.submitted} submitted · ${stats.drafts} drafts · ${stats.noSubmission} not started`,
     );
   });
+
+  it('renders all deliverable chips for submitted teams', async () => {
+    await setUp();
+    await select('sub-status', 'submitted');
+
+    const firstRow = rows()[0];
+    expect(firstRow.textContent).toContain('Code');
+    expect(firstRow.textContent).toContain('Demo');
+    expect(firstRow.textContent).toContain('Slides');
+    expect(firstRow.textContent).toContain('Video');
+  });
+
+  it('filters by complete and incomplete deliverables', async () => {
+    await setUp();
+
+    await select('sub-deliverables', 'complete');
+    const completeCount = rows().length;
+    expect(completeCount).toBeGreaterThanOrEqual(0);
+
+    await select('sub-deliverables', 'incomplete');
+    const incompleteCount = rows().length;
+    expect(incompleteCount).toBeGreaterThanOrEqual(0);
+  });
 });

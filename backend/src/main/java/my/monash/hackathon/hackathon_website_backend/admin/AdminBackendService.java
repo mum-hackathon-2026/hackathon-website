@@ -186,6 +186,8 @@ public class AdminBackendService {
             String trackLabel = submission != null && submission.getTrackLabel() != null ? submission.getTrackLabel() : "General";
             String githubUrl = submission != null && submission.getGithubUrl() != null ? submission.getGithubUrl() : "";
             String deployedUrl = submission != null && submission.getDeployedUrl() != null ? submission.getDeployedUrl() : "";
+            String slideDeckUrl = submission != null && submission.getSlideDeckUrl() != null ? submission.getSlideDeckUrl() : "";
+            String videoDemoUrl = submission != null && submission.getVideoDemoUrl() != null ? submission.getVideoDemoUrl() : "";
             OffsetDateTime submittedAt = submission != null ? submission.getSubmittedAt() : null;
 
             List<String> attention = new ArrayList<>();
@@ -221,6 +223,8 @@ public class AdminBackendService {
                     attention,
                     githubUrl,
                     deployedUrl,
+                    slideDeckUrl,
+                    videoDemoUrl,
                     submittedAt
             ));
         }

@@ -79,7 +79,7 @@ export class MilestoneService {
         end: null,
         accent: 'red',
         description:
-          'Send your repository link, project brief, video demo and demo URL through the submission form.',
+          'Send your repository link, slide deck, video demo and demo URL through the submission form.',
         guidance: 'The form accepts updates right up to the deadline, so submit early and revise.',
       },
       s.submissionDeadlineAt &&

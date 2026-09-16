@@ -17,5 +17,7 @@ public record AdminTeamDto(
         List<String> attention,
         String githubUrl,
         String deployedUrl,
+        String slideDeckUrl,
+        String videoDemoUrl,
         OffsetDateTime submittedAt
 ) {}

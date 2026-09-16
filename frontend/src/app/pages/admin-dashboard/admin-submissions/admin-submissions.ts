@@ -1,11 +1,19 @@
-﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminSubmissionDetail, AdminTeamRow } from '../../../core/admin/admin';
 import { MYT_OFFSET } from '../../../core/event/event-config';
 import { SubmissionStatus } from '../../../core/submission/submission';
 
-type StatusFilter = SubmissionStatus | 'none' | 'all';
+export type StatusFilter = SubmissionStatus | 'none' | 'all';
+export type DeliverablesFilter =
+  | 'all'
+  | 'complete'
+  | 'incomplete'
+  | 'missing_code'
+  | 'missing_demo'
+  | 'missing_slides'
+  | 'missing_video';
 
 const STATUS_LABELS: Record<SubmissionStatus, string> = {
   draft: 'Draft',
@@ -29,6 +37,7 @@ export class AdminSubmissions {
 
   protected readonly search = signal('');
   protected readonly statusFilter = signal<StatusFilter>('all');
+  protected readonly deliverablesFilter = signal<DeliverablesFilter>('all');
 
   protected readonly statusFilters: readonly { id: StatusFilter; label: string }[] = [
     { id: 'all', label: 'All statuses' },
@@ -37,6 +46,16 @@ export class AdminSubmissions {
     { id: 'withdrawn', label: 'Withdrawn' },
     { id: 'disqualified', label: 'Disqualified' },
     { id: 'none', label: 'No submission' },
+  ];
+
+  protected readonly deliverableFilters: readonly { id: DeliverablesFilter; label: string }[] = [
+    { id: 'all', label: 'All deliverables' },
+    { id: 'complete', label: 'Complete (All 4 present)' },
+    { id: 'incomplete', label: 'Incomplete (Missing links)' },
+    { id: 'missing_code', label: 'Missing Code repo' },
+    { id: 'missing_demo', label: 'Missing Live demo' },
+    { id: 'missing_slides', label: 'Missing Slide deck' },
+    { id: 'missing_video', label: 'Missing Video demo' },
   ];
 
   // -- Edit Submission Modal State --
@@ -59,10 +78,28 @@ export class AdminSubmissions {
   protected readonly rows = computed<readonly AdminTeamRow[]>(() => {
     const term = this.search().trim().toLowerCase();
     const status = this.statusFilter();
+    const deliv = this.deliverablesFilter();
 
     return this.admin.teams().filter((row) => {
       if (status === 'none' && row.submissionStatus !== null) return false;
       if (status !== 'all' && status !== 'none' && row.submissionStatus !== status) return false;
+
+      const hasSubmission = row.submissionStatus !== null;
+      const codeOk = Boolean(row.githubUrl?.trim());
+      const demoOk = Boolean(row.deployedUrl?.trim());
+      const slidesOk = Boolean(row.slideDeckUrl?.trim());
+      const videoOk = Boolean(row.videoDemoUrl?.trim());
+      const count = (codeOk ? 1 : 0) + (demoOk ? 1 : 0) + (slidesOk ? 1 : 0) + (videoOk ? 1 : 0);
+      const isComp = hasSubmission && count === 4;
+      const isIncomp = hasSubmission && count < 4;
+
+      if (deliv === 'complete' && !isComp) return false;
+      if (deliv === 'incomplete' && !isIncomp) return false;
+      if (deliv === 'missing_code' && (!hasSubmission || codeOk)) return false;
+      if (deliv === 'missing_demo' && (!hasSubmission || demoOk)) return false;
+      if (deliv === 'missing_slides' && (!hasSubmission || slidesOk)) return false;
+      if (deliv === 'missing_video' && (!hasSubmission || videoOk)) return false;
+
       if (!term) return true;
       return (
         row.teamName.toLowerCase().includes(term) || row.projectTitle.toLowerCase().includes(term)
@@ -71,7 +108,10 @@ export class AdminSubmissions {
   });
 
   protected readonly filtersActive = computed(
-    () => this.search().trim() !== '' || this.statusFilter() !== 'all',
+    () =>
+      this.search().trim() !== '' ||
+      this.statusFilter() !== 'all' ||
+      this.deliverablesFilter() !== 'all',
   );
 
   protected readonly summary = computed(() => {
@@ -79,9 +119,23 @@ export class AdminSubmissions {
     return `${s.submitted} submitted · ${s.drafts} drafts · ${s.noSubmission} not started`;
   });
 
+  protected deliverableCount(row: AdminTeamRow): number {
+    return (
+      (row.githubUrl?.trim() ? 1 : 0) +
+      (row.deployedUrl?.trim() ? 1 : 0) +
+      (row.slideDeckUrl?.trim() ? 1 : 0) +
+      (row.videoDemoUrl?.trim() ? 1 : 0)
+    );
+  }
+
+  protected isComplete(row: AdminTeamRow): boolean {
+    return row.submissionStatus !== null && this.deliverableCount(row) === 4;
+  }
+
   protected clearFilters(): void {
     this.search.set('');
     this.statusFilter.set('all');
+    this.deliverablesFilter.set('all');
   }
 
   protected async openEdit(row: AdminTeamRow): Promise<void> {

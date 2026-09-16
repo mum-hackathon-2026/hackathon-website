@@ -65,6 +65,8 @@ export interface AdminTeamRow {
   /** '' when the team has no submission. `submissions_*_url_check` wants https. */
   readonly githubUrl: string;
   readonly deployedUrl: string;
+  readonly slideDeckUrl: string;
+  readonly videoDemoUrl: string;
   /** Null unless `submissions.status` is 'submitted' — the column's own rule. */
   readonly submittedAt: Date | null;
 }
@@ -1467,6 +1469,8 @@ export class AdminService {
         trackLabel: tracks[team.track] ?? tracks[0],
         githubUrl: hasSubmission ? `https://github.com/mum-hack-2026/${slug}` : '',
         deployedUrl: team.submissionStatus === 'submitted' ? `https://${slug}.vercel.app` : '',
+        slideDeckUrl: team.submissionStatus === 'submitted' ? `https://docs.google.com/presentation/d/${slug}` : '',
+        videoDemoUrl: team.submissionStatus === 'submitted' ? `https://youtube.com/watch?v=${slug}` : '',
         submittedAt: team.submissionStatus === 'submitted' ? SUBMITTED_AT : null,
         reviewsCompleted,
         reviewsExpected,
@@ -2485,8 +2489,8 @@ export class AdminService {
       description: '',
       githubUrl: team.githubUrl,
       deployedUrl: team.deployedUrl,
-      slideDeckUrl: '',
-      videoDemoUrl: '',
+      slideDeckUrl: team.slideDeckUrl,
+      videoDemoUrl: team.videoDemoUrl,
       representativeName: '',
       representativePhone: '',
       representativeEmail: '',

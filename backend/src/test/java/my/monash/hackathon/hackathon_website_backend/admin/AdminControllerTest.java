@@ -73,7 +73,8 @@ class AdminControllerTest {
         var teamDto = new AdminTeamDto(
                 1L, "ByteBuilders", "complete", true, 4,
                 "submitted", "Project AI", "AI Track",
-                3, 3, List.of(), "https://github.com/test", "https://app.test", null
+                3, 3, List.of(), "https://github.com/test", "https://app.test",
+                "https://slides.test", "https://video.test", null
         );
         when(adminService.getTeams()).thenReturn(List.of(teamDto));
 
@@ -89,7 +90,8 @@ class AdminControllerTest {
         var updated = new AdminTeamDto(
                 1L, "ByteBuilders Renamed", "complete", true, 4,
                 "submitted", "Project AI", "AI Track",
-                3, 3, List.of(), "https://github.com/test", "https://app.test", null
+                3, 3, List.of(), "https://github.com/test", "https://app.test",
+                "https://slides.test", "https://video.test", null
         );
         when(adminService.updateTeam(eq(1L), any(), any())).thenReturn(updated);
 

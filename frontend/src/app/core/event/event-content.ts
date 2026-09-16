@@ -56,9 +56,9 @@ export const FAQS: readonly Faq[] = [
   {
     question: 'What should I submit?',
     answer:
-      'A GitHub repository with your code, a video demo of 3 minutes or less, a one-page ' +
-      'project brief, and a live deployment if you have one. We email the full submission ' +
-      'guidelines after you register.',
+      'A GitHub repository containing your project source code, a video demo walkthrough (5 minutes maximum), ' +
+      'a slide deck presentation for your solution, and a live deployment or prototype URL if available. ' +
+      'All deliverables are submitted via the official submission form provided to registered teams.',
   },
   {
     question: 'How are submissions judged?',

@@ -1,4 +1,4 @@
-﻿<p class="lede">{{ summary() }}</p>
+<p class="lede">{{ summary() }}</p>
 
 @if (successMessage()) {
   <div class="alert alert--success" role="status">
@@ -31,6 +31,19 @@
     }
   </select>
 
+  <label class="visually-hidden" for="sub-deliverables">Filter by deliverables</label>
+  <select
+    id="sub-deliverables"
+    class="input"
+    name="subDeliverables"
+    [ngModel]="deliverablesFilter()"
+    (ngModelChange)="deliverablesFilter.set($event)"
+  >
+    @for (option of deliverableFilters; track option.id) {
+      <option [value]="option.id">{{ option.label }}</option>
+    }
+  </select>
+
   @if (filtersActive()) {
     <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
   }
@@ -47,7 +60,7 @@
           <th scope="col">Project</th>
           <th scope="col">Status</th>
           <th scope="col">Submitted</th>
-          <th scope="col">Links</th>
+          <th scope="col">Deliverables</th>
           <th scope="col" class="grid__action-col">Actions</th>
         </tr>
       </thead>
@@ -80,14 +93,76 @@
               }
             </td>
             <td class="grid__links">
-              @if (row.githubUrl) {
-                <a [href]="row.githubUrl" target="_blank" rel="noopener noreferrer">Code</a>
-              }
-              @if (row.deployedUrl) {
-                <a [href]="row.deployedUrl" target="_blank" rel="noopener noreferrer">Demo</a>
-              }
-              @if (!row.githubUrl && !row.deployedUrl) {
+              @if (row.submissionStatus === null) {
                 <span class="grid__none">—</span>
+              } @else {
+                <div class="deliverables-cell">
+                  <div class="deliverable-chips">
+                    @if (row.githubUrl) {
+                      <a
+                        class="chip chip--code"
+                        [href]="row.githubUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="GitHub Repository"
+                      >
+                        Code ↗
+                      </a>
+                    } @else {
+                      <span class="chip chip--missing" title="Missing GitHub Repository">No Code</span>
+                    }
+
+                    @if (row.deployedUrl) {
+                      <a
+                        class="chip chip--demo"
+                        [href]="row.deployedUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Live Demo / Deployment"
+                      >
+                        Demo ↗
+                      </a>
+                    } @else {
+                      <span class="chip chip--missing" title="Missing Live Demo">No Demo</span>
+                    }
+
+                    @if (row.slideDeckUrl) {
+                      <a
+                        class="chip chip--slides"
+                        [href]="row.slideDeckUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Slide Deck / Presentation"
+                      >
+                        Slides ↗
+                      </a>
+                    } @else {
+                      <span class="chip chip--missing" title="Missing Slide Deck">No Slides</span>
+                    }
+
+                    @if (row.videoDemoUrl) {
+                      <a
+                        class="chip chip--video"
+                        [href]="row.videoDemoUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Video Demo (5m max)"
+                      >
+                        Video ↗
+                      </a>
+                    } @else {
+                      <span class="chip chip--missing" title="Missing Video Demo">No Video</span>
+                    }
+                  </div>
+
+                  @if (isComplete(row)) {
+                    <span class="completeness-badge completeness-badge--complete">4/4 Complete</span>
+                  } @else {
+                    <span class="completeness-badge completeness-badge--incomplete">
+                      {{ deliverableCount(row) }}/4 Deliverables
+                    </span>
+                  }
+                </div>
               }
             </td>
             <td class="grid__action-col">
