@@ -39,9 +39,12 @@ export const FAQS: readonly Faq[] = [
   {
     question: 'Who can participate?',
     answer:
-      'Any currently enrolled university student, undergraduate or postgraduate. You do not ' +
-      `have to be at ${site.university}. Register with your university address so we can ` +
-      `confirm you are enrolled. ${teamSizeSentence}`,
+      'This hackathon only accepts Malaysian and international students ' +
+      'that are currently enrolled in a Malaysian university or college. ' +
+      'You do not ' +
+      `have to be at ${site.university}. ` +
+      ' Please register with your personal email address.' +
+      ` ${teamSizeSentence}`,
   },
   {
     question: 'Do I need to know how to code?',
