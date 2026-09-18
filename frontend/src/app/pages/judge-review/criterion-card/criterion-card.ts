@@ -29,11 +29,14 @@ const RUBRIC_DESCRIPTIONS: Record<
     excellent:
       'The core flow works reliably end-to-end and clearly shows that the main technical idea has been built.',
   },
-  'Technology Integration (TBC)': {
-    weak: 'Integration is missing, superficial or disconnected from the solution.',
-    developing: 'Technology is used, but its role is limited or weakly justified.',
-    strong: 'Technology supports an important part of the solution and is integrated clearly.',
-    excellent: 'Technology is integrated deeply and adds clear technical value to the solution.',
+  'Technology Integration': {
+    weak: 'Technology choices are poorly justified or mismatched for the problem; integration is superficial, broken, or primarily cosmetic.',
+    developing:
+      'Technologies are functional within the project, but the integration is basic, relies heavily on boilerplate code, or shows limited technical depth.',
+    strong:
+      'Technologies are well-chosen and effectively integrated; components communicate cleanly and meaningfully contribute to the core solution.',
+    excellent:
+      'Deep, seamless integration of modern or complex technologies; tools are leveraged to their full potential with strong technical craftsmanship.',
   },
   'Technical Feasibility & Validation': {
     weak: 'Major technical risks are untested or ignored.',

@@ -141,7 +141,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     judgingCriteria: [
       { name: 'System Design & Architecture', weight: 15 },
       { name: 'Working Core Prototype', weight: 25 },
-      { name: 'Technology Integration (TBC)', weight: 15 },
+      { name: 'Technology Integration', weight: 15 },
       { name: 'Technical Feasibility & Validation', weight: 15 },
       { name: 'Problem Statement Understanding', weight: 10 },
       { name: 'Innovation & Solution Approach', weight: 10 },
