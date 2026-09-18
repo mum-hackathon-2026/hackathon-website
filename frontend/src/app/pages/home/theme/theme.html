@@ -1,19 +1,87 @@
 <section class="theme" id="criteria">
   <div class="theme__intro">
     <h2 class="theme__title">Theme & Problem Statement</h2>
-    <p class="theme__subtitle">Revealed at the opening ceremony</p>
+    <p class="theme__subtitle">
+      {{ isReleased() ? 'Official challenge brief & requirements' : 'Revealed at the opening ceremony' }}
+    </p>
 
-    <div class="theme__mystery-card">
-      <div class="theme__mystery-icon" aria-hidden="true">?</div>
-      <div class="theme__mystery-content">
-        <span class="theme__mystery-tag">Sealed</span>
-        <p class="theme__blurb">
-          Averis sets one industry problem statement, and it stays sealed until the opening
-          ceremony. There are no tracks to choose between: every team works the same brief.
-          {{ teamSize() }}
-        </p>
+    @if (!isReleased()) {
+      <div class="theme__mystery-card">
+        <div class="theme__mystery-icon" aria-hidden="true">?</div>
+        <div class="theme__mystery-content">
+          <span class="theme__mystery-tag">Sealed</span>
+          <p class="theme__blurb">
+            Averis sets one industry problem statement, and it stays sealed until the opening
+            ceremony. There are no tracks to choose between: every team works the same brief.
+            {{ teamSize() }}
+          </p>
+        </div>
       </div>
-    </div>
+    } @else {
+      <!-- ── Expanded Problem Statement Card ────────────────────────────── -->
+      <div class="theme__problem-card">
+        <div class="theme__problem-header">
+          <div class="theme__problem-badges">
+            <span class="theme__problem-tag">Challenge Released</span>
+            <span class="theme__problem-scope">Open Innovation Track</span>
+          </div>
+          <h3 class="theme__problem-title">Shipping Document Verification</h3>
+          <p class="theme__problem-tagline">From email inbox to discrepancy report</p>
+        </div>
+
+        <p class="theme__problem-summary">
+          Averis receives high volumes of shipping operational emails requiring staff to compare Shipping Instructions (SI) against draft Bills of Lading (BL). Participants must build an automated system to classify emails, extract shipment fields, detect mismatches across 7 key attributes (shipper, consignee, notify party, ports, container count, and gross weight), and escalate complex edge cases to human reviewers.
+        </p>
+
+        <div class="theme__problem-tags">
+          <span class="theme__pill">Email Classification</span>
+          <span class="theme__pill">Document Field Extraction</span>
+          <span class="theme__pill">7-Field Discrepancy Detection</span>
+          <span class="theme__pill">Human-in-the-Loop Escalation</span>
+        </div>
+
+        <div class="theme__problem-action">
+          <a
+            href="/documents/problem-statement.pdf"
+            download="Averis_Hackathon_2026_Problem_Statement.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="theme__download-btn"
+          >
+            <svg
+              class="theme__download-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <div class="theme__download-text">
+              <span class="theme__download-main">Download Problem Statement (PDF)</span>
+              <span class="theme__download-sub">Official Brief · 4 Pages PDF</span>
+            </div>
+            <svg
+              class="theme__download-arrow"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+    }
   </div>
 
   <!-- Score Distribution Visualization Board -->

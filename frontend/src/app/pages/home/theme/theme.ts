@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { EVENT_CONFIG } from '../../../core/event/event-config';
 import { EventSettingsService } from '../../../core/event/event-settings';
+import { PhaseService } from '../../../core/event/phase';
 
 @Component({
   selector: 'app-home-theme',
@@ -11,6 +12,12 @@ import { EventSettingsService } from '../../../core/event/event-settings';
 export class ThemeSection {
   protected readonly config = inject(EVENT_CONFIG);
   private readonly settings = inject(EventSettingsService);
+  private readonly phaseService = inject(PhaseService);
+
+  protected readonly isReleased = computed(() => {
+    const phase = this.phaseService.phase();
+    return phase === 'submission' || phase === 'judging' || phase === 'results';
+  });
 
   /**
    * The criteria as a chart: heaviest first, each with the share of the track

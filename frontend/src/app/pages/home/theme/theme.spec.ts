@@ -144,5 +144,25 @@ describe('ThemeSection', () => {
 
       expect(blurb(fixture)).toContain('Teams can have 2 to 6 members.');
     });
+
+    it('expands with summary and PDF download link when released', async () => {
+      const fixture = await render({
+        registrationOpensAt: new Date(Date.now() - 1000000),
+        registrationClosesAt: new Date(Date.now() - 500000),
+        problemStatementReleasedAt: new Date(Date.now() - 100000),
+        submissionDeadlineAt: new Date(Date.now() + 500000),
+      });
+
+      expect(host(fixture).querySelector('.theme__problem-card')).not.toBeNull();
+      expect(host(fixture).querySelector('.theme__problem-title')?.textContent).toContain(
+        'Shipping Document Verification',
+      );
+      expect(host(fixture).querySelector('.theme__problem-summary')?.textContent).toContain(
+        'Shipping Instructions (SI) against draft Bills of Lading (BL)',
+      );
+      const downloadBtn = host(fixture).querySelector<HTMLAnchorElement>('.theme__download-btn');
+      expect(downloadBtn).not.toBeNull();
+      expect(downloadBtn?.getAttribute('href')).toBe('/documents/problem-statement.pdf');
+    });
   });
 });
