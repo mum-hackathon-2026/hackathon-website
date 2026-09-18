@@ -88,4 +88,14 @@ public class RegistrationReviewController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping
+    public ResponseEntity<?> deleteAll(@AuthenticationPrincipal User currentUser) {
+        try {
+            reviewService.deleteAllReviews(currentUser);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

@@ -307,6 +307,32 @@ public class RegistrationReviewService {
                 "{\"teamName\":\"" + escape(teamName) + "\"}");
     }
 
+    public void deleteAllReviews(User actor) {
+        List<RegistrationReview> allReviews = reviewRepository.findAll();
+        for (RegistrationReview review : allReviews) {
+            String teamName = review.getTeamName();
+            List<String> memberEmails = new ArrayList<>();
+            try {
+                RegistrationReviewDto dto = toDto(review);
+                for (RegistrationReviewMemberDto member : dto.members()) {
+                    if (member.email() != null && !member.email().isBlank()) {
+                        memberEmails.add(member.email().trim().toLowerCase(Locale.ROOT));
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+
+            String roster = AdminBackendService.canonicalRoster(memberEmails);
+            if (teamName != null && !teamName.isBlank()) {
+                tombstonedRegistrationRepository.save(new TombstonedRegistration(
+                        teamName.trim(), roster, "Bulk cleared review '" + teamName + "' from admin dashboard", actor));
+            }
+        }
+        reviewRepository.deleteAll();
+        logAudit(actor, "All registration reviews deleted", "registration_review", null,
+                "{\"deletedCount\":" + allReviews.size() + "}");
+    }
+
     private RegistrationReview requireDecidable(Long id) {
         RegistrationReview review = reviewRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(

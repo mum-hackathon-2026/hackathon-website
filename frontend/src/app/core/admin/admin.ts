@@ -2709,6 +2709,29 @@ export class AdminService {
     });
   }
 
+  /** Permanently deletes all registration reviews from the queue. */
+  clearAllRegistrationReviews(): Promise<AdminActionResult> {
+    return this.run(async () => {
+      const token = this.auth.token();
+      if (!this.http || !token || this.auth.user()?.role !== 'admin') {
+        return { ok: false, error: 'Registration reviews require a live connection.' };
+      }
+      try {
+        await firstValueFrom(
+          this.http.delete(
+            `${this.apiBaseUrl}/api/admin/registration-reviews`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        );
+        await this.refreshAll();
+        this.log('registration', 'All registration reviews cleared', 'Review Queue');
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err?.error?.error || 'Failed to clear all registration reviews.' };
+      }
+    });
+  }
+
   private setRole(userId: number, role: Role): void {
     this.roleOverrides.update((current) => new Map(current).set(userId, role));
   }

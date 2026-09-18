@@ -70,6 +70,10 @@ export class AdminRegistrationReviews {
   protected readonly deleting = signal<RegistrationReview | null>(null);
   protected readonly isDeleting = signal(false);
 
+  // ── Clear all confirmation ─────────────────────────────────────────────
+  protected readonly clearingAll = signal(false);
+  protected readonly isClearingAll = signal(false);
+
   // ── Approve / edit form ────────────────────────────────────────────────
   protected readonly approving = signal<RegistrationReview | null>(null);
   protected readonly approveTeamName = signal('');
@@ -246,6 +250,27 @@ export class AdminRegistrationReviews {
       this.report(result, `Registration review for "${row.teamName}" was removed.`);
     } finally {
       this.isDeleting.set(false);
+    }
+  }
+
+  // ── Clear all ───────────────────────────────────────────────────────────
+
+  protected promptClearAll(): void {
+    this.clearingAll.set(true);
+  }
+
+  protected cancelClearAll(): void {
+    this.clearingAll.set(false);
+  }
+
+  protected async confirmClearAll(): Promise<void> {
+    this.isClearingAll.set(true);
+    try {
+      const result = await this.admin.clearAllRegistrationReviews();
+      this.clearingAll.set(false);
+      this.report(result, 'All registration reviews have been cleared.');
+    } finally {
+      this.isClearingAll.set(false);
     }
   }
 

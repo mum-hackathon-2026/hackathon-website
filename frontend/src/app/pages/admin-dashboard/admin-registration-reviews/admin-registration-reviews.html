@@ -41,6 +41,12 @@
   @if (filtersActive()) {
     <button type="button" class="link-button" (click)="clearFilters()">Clear filters</button>
   }
+
+  @if (rows().length > 0) {
+    <button type="button" class="link-button link-button--danger" (click)="promptClearAll()" style="margin-left: auto;">
+      Clear all reviews
+    </button>
+  }
 </div>
 
 <!-- ── Cards ──────────────────────────────────────────────────────────────── -->
@@ -353,5 +359,19 @@
     [danger]="true"
     (confirmed)="confirmDelete()"
     (cancelled)="cancelDelete()"
+  ></app-confirm-dialog>
+}
+
+<!-- ── Clear all confirmation ────────────────────────────────────────────── -->
+
+@if (clearingAll()) {
+  <app-confirm-dialog
+    [open]="true"
+    heading="Clear all registration reviews?"
+    body="This will permanently delete all registration reviews from the queue and record them so they are not re-imported."
+    confirmLabel="Clear all reviews"
+    [danger]="true"
+    (confirmed)="confirmClearAll()"
+    (cancelled)="cancelClearAll()"
   ></app-confirm-dialog>
 }
