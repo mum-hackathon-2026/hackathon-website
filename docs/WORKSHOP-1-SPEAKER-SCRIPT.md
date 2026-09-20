@@ -6,10 +6,10 @@
 
 ---
 
-## 🎯 Presenter Tips Before You Begin:
-- **Pacing:** Speak with upbeat energy, clarity, and friendly authority. Hackathon participants are excited but often stressed about technical constraints.
-- **Stage Cues:** Use the `Right Arrow` or `Space` key to advance slides. Press `N` if you need to reference quick talking points in the built-in speaker notes drawer.
-- **Audience Check-ins:** Engage participants frequently ("Drop a 1 in the chat if you've ever had a project break on demo day!").
+## 🎯 Presenter Tips:
+- **Tone:** Friendly, conversational, and natural. Keep sentences simple and avoid complex buzzwords.
+- **Stage Navigation:** Press `Right Arrow` or `Space` to advance slides. Press `N` to open/close your speaker notes on screen.
+- **Chat Check-ins:** Feel free to ask participants questions in chat (e.g. *"Drop a thumbs up in the chat if you've already started coding your prototype!"*).
 
 ---
 
@@ -21,9 +21,11 @@
 *(Visual: Averis X Monash Hackathon 2026 Title Cover with MUMTEC, MD, and GDG logos)*
 
 > **[Shariq Nauman]:**  
-> *"Good afternoon everyone! A very warm welcome to all our participants, organizers, mentors, and fellow tech enthusiasts. Welcome to the **Averis X Monash Hackathon 2026**!*  
+> *"Hey everyone! Hope you're all having a great afternoon and that your hackathon projects are coming along nicely.*  
 >  
-> *Today marks the very first technical workshop of the hackathon series. Over the next four days, you are going to brainstorm, build, fine-tune models, and develop incredible solutions to real-world industry problems. But building brilliant code on your local machine is only half the battle. Today, we're here to talk about how you get your solution into the hands of the judges seamlessly."*
+> *It's been about two days since Friday's opening ceremony when you received the problem statement, and with the submission deadline coming up this Tuesday at 12:00 PM—just around 48 hours left—we wanted to run this workshop to make sure deployment doesn't get in your way.*  
+>  
+> *Building your app on your laptop is one thing, but making sure the judges can actually open it on their phones and laptops is what gets you evaluated. So today, we're going to show you how to get your project online, fast and headache-free."*
 
 ---
 
@@ -31,11 +33,11 @@
 *(Visual: Title "Cloud Hosting", Architecture / Live Pipeline / Production cards)*
 
 > **[Shariq Nauman]:**  
-> *"Our session today is **Workshop 1: Cloud Hosting**.*  
+> *"So today's session is all about Cloud Hosting.*  
 >  
-> *The central theme of this workshop is taking your project from `localhost:3000` to a globally accessible, production-grade cloud deployment.  
+> *We're going to keep things very simple and practical. We'll look at how hosting works, how to connect your frontend and backend without running into weird errors, and how to set up automatic deploys so every time you push code to GitHub, your live website updates automatically.*  
 >  
-> Throughout this session, we are going to demystify cloud infrastructure: how modern hosting works, how to structure your frontend and backend architecture so they don't crash under pressure, and how to automate deployments directly from your GitHub repository. By the end of this hour, you will know exactly how to deploy your app in under seven minutes so you can focus 100% on innovating and solving the problem statement."*
+> *By the end of this workshop, you'll see that getting your project deployed takes only a few minutes, so your team can focus on actually building your solution."*
 
 ---
 
@@ -43,19 +45,19 @@
 *(Visual: Polaroid frames with portrait photos of Shariq Nauman and Darren Melvern)*
 
 > **[Shariq Nauman]:**  
-> *"Before we dive into the technical details, let us quickly introduce ourselves!*  
+> *"Before we jump in, a quick intro.*  
 >  
-> *My name is **Shariq Nauman**. I'll be guiding you through the first half of today’s session, breaking down cloud concepts, architectural best practices, secret management, and submission strategies.*  
+> *My name is Shariq Nauman. I'll walk you through the core concepts—like how to structure your app, how to keep your API keys safe, and what mistakes to avoid before submitting.*  
 >  
-> *And joining me today as our co-speaker is my good friend **Darren Melvern**! Darren is our live demo specialist. In the second half of this workshop, he’s going to share his screen, take a real codebase, and deploy it live right before your eyes from scratch so you can see every single click and configuration in real time.*  
+> *And with me is my friend Darren Melvern! Darren is going to do a live demo where he shares his screen, takes a real repository, and deploys it live right in front of you so you can follow along step by step.*  
 >  
-> *Darren, say a quick hello to everyone!"*  
+> *Darren, do you want to say hi real quick?"*  
 >  
 > **[Darren Melvern]:**  
-> *"Hey everyone! Excited to be here today. Looking forward to showing you how painless modern deployment can be."*  
+> *"Hey everyone! Really glad to be here today. I'm excited to show you guys how quick and easy this whole process is."*  
 >  
 > **[Shariq Nauman]:**  
-> *"Awesome! With that, let's jump straight into why we're here."*
+> *"Awesome. Let's get straight into it."*
 
 ---
 
@@ -63,15 +65,13 @@
 *(Visual: The 2-Hour Trap, Judges Aren't on Localhost, The Winning Strategy)*
 
 > **[Shariq Nauman]:**  
-> *"Let’s start with a situation that almost every developer in this room has experienced: **The 'It Works on My Machine' curse**.*  
+> *"We've all been there: you build an app on your laptop, everything looks great, but then it's Tuesday morning at 10:00 AM—just two hours before the 12:00 PM deadline—and someone asks, 'Wait, how do we actually put this online?'*  
 >  
-> *Here is the classic hackathon tragedy: A team works tirelessly building their project. The UI looks stunning on the developer's laptop. The AI model responds quickly. But it’s Tuesday morning at 10:00 AM—two hours before the strict 12:00 PM submission deadline—and someone says, 'Okay, how do we deploy this?'*  
+> *Then people start rushing. Build errors pop up, environment variables go missing, and suddenly panic sets in. Worst of all, someone accidentally submits a link that says `localhost:3000` or `192.168.1.5`.*  
 >  
-> *Suddenly, build scripts fail. Environment variables are missing. Port 8080 is blocked. Panic sets in. And worst of all, when the submission link is sent, it's `http://192.168.1.5` or `http://localhost:3000`.*  
+> *Remember: judges aren't on your home Wi-Fi or your laptop. They will open your link on their own phones or office laptops. If the link doesn't open right away with a secure HTTPS link, they won't be able to test your work.*  
 >  
-> *Remember this fundamental truth: **Judges are not on your local network.** They will be opening your submission from their corporate laptops, iPads, or phones on restricted enterprise Wi-Fi. If your link doesn't open immediately with a secure HTTPS connection, your project cannot be evaluated.*  
->  
-> *Our golden rule for this hackathon is: **Deploy Early**. Set up your deployment pipeline early, even if it's just a blank 'Hello World' page. That way, every single `git push` you make throughout the hackathon automatically updates your live prototype."*
+> *So our main advice today is simple: deploy early. Put up a basic working page today. That way, every time you push code to GitHub, your live site updates automatically."*
 
 ---
 
@@ -79,15 +79,15 @@
 *(Visual: Traditional VPS vs. Modern PaaS vs. Containerized Serverless)*
 
 > **[Shariq Nauman]:**  
-> *"So how do we choose the right cloud hosting strategy for a fast-paced 48-hour sprint? Let’s look at the three main tiers:*  
+> *"When it comes to hosting your project for a hackathon, you have a few options:*  
 >  
-> *First, we have **Traditional VPS or Virtual Machines** like AWS EC2 or DigitalOcean Droplets. While they give you total root control, you have to manually SSH into the server, install Node/Python/Java, configure NGINX reverse proxies, set up firewall rules, and renew SSL certificates. During a 48-hour hackathon, spending 4 hours configuring Linux servers is simply not a good use of your precious time.*  
+> *First, you could rent a raw virtual server, like on AWS EC2 or DigitalOcean. But with that, you have to log into a Linux terminal, install software, set up NGINX, and mess with SSL certificates. With only two days left, spending half your day setting up a server is just not worth your time.*  
 >  
-> *Second, we have **Modern PaaS (Platform as a Service)** like Vercel and Netlify. These are purpose-built for frontend web applications (React, Angular, Next.js, Vite, Vue). There is zero server management. You connect your GitHub repo, and in seconds it provisions global CDN caching, automatic SSL certificates, and generates preview URLs for every pull request.*  
+> *Second, you have platforms like Vercel or Netlify. These are built specifically for frontend web apps like React, Angular, Vue, or Next.js. You just connect your GitHub repository, and it builds your site, gives you a free HTTPS link, and handles all the hosting for you.*  
 >  
-> *Third, for your backend APIs and AI services, we have **Serverless Containers** like Google Cloud Run or Render. You write your FastAPI, Spring Boot, or Express code, containerize it with Docker, and it scales automatically—and scales down to zero when idle so it costs virtually nothing.*  
+> *Third, if you have a backend API in Python, Java, or Node, you can use serverless container platforms like Google Cloud Run or Render. They run your backend code in a container, scale automatically, and cost nothing when idle.*  
 >  
-> *For this hackathon, our strongest recommendation is a decoupled modern approach: host your frontend on modern edge PaaS, and run your backend API on containerized serverless infrastructure."*
+> *For this hackathon, the easiest and most reliable setup is: host your frontend on a platform like Vercel, and run your backend API on Cloud Run or Render."*
 
 ---
 
@@ -95,14 +95,15 @@
 *(Visual: Frontend Edge ➔ Backend API ➔ Managed Database with Pro-Tip)*
 
 > **[Shariq Nauman]:**  
-> *"Let’s take a look at the architecture blueprint on this slide.*  
+> *"Here's a simple setup that works really well for hackathons.*  
 >  
-> *Notice how cleanly decoupled this system is:*  
-> 1. *On the left, your **Frontend Client** is hosted on edge nodes. Whether you are using Angular, React, Vue, or Next.js, your HTML, JavaScript, and styling assets are distributed worldwide. When a judge clicks your link, the website loads in under 100 milliseconds.*  
-> 2. *In the middle, your **Backend API** runs independently on Cloud Run or Render. It handles the problem statement logic—document extraction, OCR parsing, business rules, and LLM orchestration.*  
-> 3. *On the right, your **Database** (such as managed PostgreSQL or Supabase) stores persistent records via connection pooling.*  
+> *On the frontend side, you have your web app hosted on a platform like Vercel. Because it's served through global content delivery networks, pages load almost instantly when someone opens your link.*  
 >  
-> *Why is decoupling so critical? Because if your backend server temporarily restarts or encounters a heavy OCR processing delay, your frontend website will **still stay up**! Instead of showing a dead browser 502 error, your UI can display a smooth loading animation or friendly status message. That resilience makes a huge difference in the eyes of judges."*
+> *In the middle, you have your backend API running on Cloud Run or Render, handling things like document processing, AI logic, and business rules.*  
+>  
+> *On the right, you have your database, like PostgreSQL or Supabase, holding your app data.*  
+>  
+> *One big advantage of keeping your frontend and backend separate like this is reliability. If your backend takes a few extra seconds to process an AI request, your website still loads cleanly and can show a nice loading spinner instead of giving the user a broken page."*
 
 ---
 
@@ -110,19 +111,18 @@
 *(Visual: What NEVER to do vs The Right Way)*
 
 > **[Shariq Nauman]:**  
-> *"Now, let's talk about something that can make or break your project: **Security and Environment Variables**.*  
+> *"Next, let's talk about keeping your passwords and API keys safe.*  
 >  
-> *First, what **NEVER** to do:  
-> Never, ever commit `.env` or credential files into public GitHub repositories. Automated bots scan GitHub constantly looking for leaked OpenAI tokens, database connection strings, and cloud credentials. If a key leaks, it can be drained or compromised within minutes.*  
+> *First, the most important rule: never push your `.env` file or secret keys to GitHub. There are bots that constantly scan public repos, and if an OpenAI key or database password gets posted, it will get stolen in seconds.*  
 >  
-> *Also, remember the golden rule of frontend security: **Never put secret API keys in client-side code.** In frameworks like Angular or React, anything bundled into JavaScript is completely visible to anyone who opens Developer Tools.*  
+> *Also, remember that anything you write directly into your frontend code—like inside your Angular or React files—can be seen by anyone who opens the browser's developer tools. So never hardcode secret keys in frontend code.*  
 >  
-> *So what is the right way?*  
-> 1. *Keep your `.env` file listed inside `.gitignore`.*  
-> 2. *Commit a clean `.env.example` file with placeholder dummy values so your teammates know which variables are needed.*  
-> 3. *Inject your real production keys directly into your cloud hosting dashboard under **Project Settings ➔ Environment Variables**.*  
+> *The right way to do this is simple:*  
+> 1. *Put `.env` in your `.gitignore` file so it stays on your computer.*  
+> 2. *Create a `.env.example` file with fake placeholder values so your teammates know what variables to fill in.*  
+> 3. *Add your real keys inside your cloud hosting dashboard under Environment Variables.*  
 >  
-> *This keeps your credentials completely private, secure, and separated between production and local development."*
+> *That way, your secrets stay secure and nothing sensitive gets leaked."*
 
 ---
 
@@ -130,15 +130,13 @@
 *(Visual: Free Instant HTTPS, Custom Domain Setup, Global Edge Network)*
 
 > **[Shariq Nauman]:**  
-> *"The final theory piece before our demo is **Networking, SSL, and Domains**.*  
+> *"One great thing about modern hosting platforms is that you get HTTPS completely free out of the box. As soon as you deploy, you get a working URL with a green padlock, so browsers won't show any security warnings.*  
 >  
-> *One of the greatest advantages of modern cloud platforms is that you get **free, automated HTTPS out of the box**. The moment you deploy, you receive a valid SSL certificate and a clean public URL (like `yourproject.vercel.app`).*  
+> *If your team happens to have a custom domain name, you can easily plug it in through your dashboard by adding a DNS record, and the platform sets up the SSL certificate for you.*  
 >  
-> *If your team owns a custom domain name (like `teamawesome.tech`), adding it is as simple as adding a CNAME or A record pointing to the DNS provider. The platform validates DNS records and provisions the SSL certificate automatically in under 60 seconds.*  
+> *Plus, because files are served from nearby servers in Singapore and Malaysia, your website will feel snappy and responsive for the judges.*  
 >  
-> *Furthermore, because the assets are cached across regional edge nodes in Singapore and Kuala Lumpur, latency is near zero for anyone evaluating your project here in Malaysia.*  
->  
-> *Now, theory is great—but seeing it live in action is even better. I’m going to hand over the microphone and screen to Darren, who will take us through a live deployment demo!"*
+> *Now, instead of just talking through slides, let's watch how this actually works in practice. I'll pass it over to Darren for the live demo!"*
 
 ---
 
@@ -151,22 +149,21 @@
 > **[Darren Melvern — Live Screen Share Walkthrough]:**  
 > *(Darren shares his browser screen)*  
 >  
-> *"Thank you Shariq! Hey everyone, let’s get our hands dirty and deploy a live project in real time.*  
+> *"Thanks Shariq! Hey everyone, let me share my screen and show you how easy this is.*  
 >  
-> *As you can see on my screen, I have a clean GitHub repository here. It has our project source code, our `package.json`, and our build scripts.*  
+> *So here on my screen, I have a basic GitHub repository. It has our frontend code, our package.json file, and our build script.*  
 >  
-> *Watch how simple this workflow is:*  
-> 1. ***Step 1: Logging into the Cloud Dashboard:** I head over to Vercel (or your chosen platform) and click **'Add New Project' ➔ 'Import Git Repository'**.*  
-> 2. ***Step 2: Selecting the Repo:** I select our hackathon repository. Notice how the platform instantly auto-detects our framework preset—it knows whether it's Vite, Next.js, or Angular, and configures the build command automatically.*  
-> 3. ***Step 3: Adding Secrets:** Before hitting Deploy, I open the **Environment Variables** accordion and paste in our backend API endpoint (`VITE_API_URL` or `NEXT_PUBLIC_API_URL`).*  
-> 4. ***Step 4: Deploy:** Now I click the big blue **'Deploy'** button.*  
+> *Let's walk through the steps together:*  
+> 1. ***Step 1:*** *I go to Vercel and click **'Add New Project'**, then **'Import Git Repository'**.*  
+> 2. ***Step 2:*** *I pick our hackathon repo. The platform automatically detects the framework—whether it's Next.js, Vite, or Angular—and sets up the build command for us.*  
+> 3. ***Step 3:*** *Before clicking Deploy, I open the Environment Variables section and paste our backend API URL.*  
+> 4. ***Step 4:*** *I hit Deploy.*  
 >  
-> *Look at the live build terminal right here on screen. It clones the repo, installs dependencies, builds production assets, and provisions the edge routes... and in just about 25 seconds—Boom! We have a live production URL with full HTTPS.*  
+> *And right here in the build log, you can see it cloning the code, installing packages, and building the project. In about 20 to 30 seconds... there it is! We now have a live, working URL with HTTPS that anyone in the world can open.*  
 >  
-> *Now let me show you the real superpower for team hackathons: **Branch Previews**.*  
-> *If my teammate Shariq creates a new branch called `feat/new-ui` and opens a Pull Request on GitHub, the bot automatically deploys a staging preview URL specifically for that PR. The rest of the team can test the new feature on their phones without risking our main demo link!*  
+> *Another cool feature for teams: whenever someone creates a pull request on GitHub, the platform automatically creates a preview link just for that branch. That means your team can test changes on your phones before merging them into the main branch.*  
 >  
-> *That’s how easy it is to go from zero to deployed in under 7 minutes. Shariq, taking it back to you for our submission checklist!"*
+> *That's literally all it takes to get your project online. Passing it back to Shariq to go over the final checklist!"*
 
 ---
 
@@ -174,22 +171,17 @@
 *(Visual: 5 colored cards covering SPA 404, Mixed Content, Missing Env Var, Hardcoded Host, Node Version)*
 
 > **[Shariq Nauman]:**  
-> *"Awesome demo, Darren! Thank you!*  
+> *"Thanks Darren! That was super smooth.*  
 >  
-> *Now, before you go off to deploy your own applications, take a mental screenshot or photo of this slide. These are the **Top 5 most common deployment bugs** that hackathon participants run into, and how you can fix them instantly:*  
+> *Now, before you go and set up your own deployment, here are the top 5 most common deployment issues students run into during hackathons, and how to solve them:*  
 >  
-> 1. ***Pitfall #1: The Single Page App 404 on Refresh.** You click around your app and it works great, but the moment a judge refreshes `/dashboard` or `/results`, they see a 404 error.  
->    **The Fix:** Add a simple `vercel.json` file in your root folder with a rewrite rule that redirects all routes to `index.html`.*  
-> 2. ***Pitfall #2: Mixed Content Errors.** Your frontend is secure HTTPS, but your API fetch calls `http://my-backend`. Modern browsers will block the request immediately.  
->    **The Fix:** Always ensure your backend server is deployed with HTTPS.*  
-> 3. ***Pitfall #3: Missing Environment Variables.** The app deploys, but API calls fail with `undefined`.  
->    **The Fix:** Always double-check your variable spelling in the cloud dashboard, and trigger a redeployment after saving.*  
-> 4. ***Pitfall #4: Hardcoded `localhost:8080`.** You forgot to update an internal fetch URL in a service file.  
->    **The Fix:** Centralize all API base URLs into environment variables.*  
-> 5. ***Pitfall #5: Node Version Mismatch.** The local machine has Node 22 but the cloud builder runs Node 18.  
->    **The Fix:** Specify your Node version in `package.json` engines or in project settings.*  
+> 1. ***The 404 error on page refresh:** If you click around your Single Page App and it works fine, but refreshing `/dashboard` shows a 404 error, that's because the server doesn't know about frontend routes. Fix this by adding a small `vercel.json` file that rewrites all requests back to `index.html`.*  
+> 2. ***Mixed Content errors:** If your frontend is on HTTPS but your API call goes to `http://`, browsers will block it. Always make sure your backend uses HTTPS.*  
+> 3. ***Missing environment variables:** If your app deploys but API calls fail with undefined, check your variable names in the hosting dashboard and redeploy.*  
+> 4. ***Hardcoded localhost:** If you forgot an old `localhost:8080` URL inside your code, replace it with an environment variable.*  
+> 5. ***Node version issues:** If your local machine uses Node 22 but the cloud server uses Node 18, make sure your Node version is set correctly in your settings or package.json.*  
 >  
-> *Keep these five solutions handy—they will save you hours of debugging this weekend!"*
+> *Keep these 5 tips in mind—they'll save you a ton of time if something goes wrong."*
 
 ---
 
@@ -197,27 +189,25 @@
 *(Visual: 4 green/orange/blue cards with checkmarks)*
 
 > **[Shariq Nauman]:**  
-> *"When submission day arrives on Tuesday at 12:00 PM and you are preparing to submit your project on the hackathon portal, run through this 4-point readiness checklist:*  
+> *"When Tuesday comes around and you're getting ready to submit before the 12:00 PM cut-off, here is a quick 4-point checklist to run through:*  
 >  
-> 1. ***Test on Incognito and Mobile Phone:** Open your live URL on a private browser window and on your smartphone over 4G/5G data. This confirms that your app does not rely on local cookies, localhost ports, or local caching.*  
-> 2. ***Demo Credentials Pre-filled:** If your application requires user sign-in, add a 1-click 'Guest Demo Login' button on your landing page, or clearly state the test credentials in your GitHub README. Never make a judge guess how to log in.*  
-> 3. ***Screen Recording Backup:** Always record a 3 to 5-minute video walkthrough (via Loom, YouTube, or Google Drive) demonstrating your live app working. If an upstream third-party AI model rate-limits on judging day, your video walkthrough protects your technical score.*  
-> 4. ***GitHub Repository Public & Documented:** Verify that your repository is set to Public, that your `README.md` includes clean architecture diagrams and setup instructions, and that your live deployment URL is prominently displayed at the top of the README.*"
+> 1. ***Test your live link in an incognito window and on your phone using mobile data.** This makes sure your site doesn't depend on local cookies or your home Wi-Fi.*  
+> 2. ***Make login easy for judges.** If your app has a login screen, add a simple 'Demo Login' button or clearly put test username and password credentials in your GitHub README.*  
+> 3. ***Record a short 3 to 5 minute backup video** of your working app using Loom, YouTube, or Google Drive. If an AI service or API is slow or down during judging, your video proves that your project works.*  
+> 4. ***Make sure your GitHub repository is public** and has a clear README with your live project link right at the top."*
 
 ---
 
-### 🔹 Slide 12: Questions? & Office Hours
+### 🔹 Slide 12: Questions? & Wrap Up
 *(Visual: Questions? heading, Averis X Monash branding, bullet points for Q&A and Workshop 2)*
 
 > **[Shariq Nauman]:**  
-> *"And that brings us to the end of the presentation portion of Workshop 1!*  
+> *"And that wraps up our presentation for Workshop 1!*  
 >  
-> *Both Darren and I are now opening the floor for live Q&A. If you have any questions about deployment, backend configuration, CORS errors, or setting up your repositories, feel free to drop your questions into the chat right now.*  
+> *Darren and I are here to answer any questions you have. If you're running into deployment issues, questions about backend setups, or CORS errors, go ahead and drop your questions in the chat right now.*  
 >  
-> *Also, as a reminder:*  
-> - *Full slide deck and presenter guides are available inside the repository under `docs/`.*  
-> - *Don't miss **Workshop 2** tomorrow, 21st September at 7:00 PM!*  
+> *Also, don't forget that Workshop 2 is happening tomorrow, Monday 21st September at 7:00 PM.*  
 >  
-> *Thank you all for listening, and best of luck building this weekend! Let's take the first question!"*
+> *Thank you everyone for joining, keep up the great work on your projects, and let's check the chat for questions!"*
 
 ---
