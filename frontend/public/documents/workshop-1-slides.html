@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Averis X Monash Hackathon 2026 — Workshop 1: Cloud Hosting</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-orange: #e78823;
+      --brand-sand: #efa765;
+      --brand-cream: #fbf1e2;
+      --brand-dark: #1e140a;
+      --brand-red: #fd2c25;
+      --brand-blue: #2b82fb;
+      --brand-green: #00a150;
+      --brand-yellow: #ffc119;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: #120e0a;
+      color: #1e140a;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .font-pixel {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* 16:9 Presentation Stage */
+    .presentation-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #241910 0%, #0d0906 100%);
+    }
+
+    .slide-wrapper {
+      position: relative;
+      width: 92vw;
+      max-width: 1280px;
+      aspect-ratio: 16 / 9;
+      background-color: var(--brand-cream);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(231, 136, 35, 0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Circuit Board Borders matching Hackathon PDF */
+    .circuit-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: linear-gradient(180deg, #df7914 0%, #e78823 100%);
+      clip-path: polygon(0 0, 100% 0, 100% 65%, 85% 65%, 82% 100%, 18% 100%, 15% 65%, 0 65%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .circuit-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 38px;
+      background: linear-gradient(0deg, #df7914 0%, #e78823 100%);
+      clip-path: polygon(0 100%, 100% 100%, 100% 35%, 85% 35%, 82% 0, 18% 0, 15% 35%, 0 35%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .dot-cluster {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot-item {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      opacity: 0.9;
+    }
+
+    /* Slide Background Pattern */
+    .slide-bg-network {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(231, 136, 35, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(231, 136, 35, 0.08) 0%, transparent 40%),
+        radial-gradient(rgba(231, 136, 35, 0.15) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px;
+      pointer-events: none;
+    }
+
+    /* Title Styling matching Opening Ceremony */
+    .hackathon-title {
+      color: #e78823;
+      text-shadow: 2px 2px 0px #96541b, -1px -1px 0px #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    /* Cards */
+    .theme-card {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1.5px solid rgba(231, 136, 35, 0.35);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(231, 136, 35, 0.08);
+      backdrop-filter: blur(8px);
+    }
+
+    .theme-card-orange {
+      background: linear-gradient(135deg, #e78823 0%, #c46200 100%);
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(231, 136, 35, 0.25);
+      color: white;
+    }
+
+    .badge-orange {
+      background: rgba(231, 136, 35, 0.15);
+      color: #96541b;
+      border: 1px solid rgba(231, 136, 35, 0.35);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      padding: 3px 10px;
+      border-radius: 9999px;
+    }
+
+    /* Slide transition animations */
+    .slide-content {
+      display: none;
+      height: 100%;
+      width: 100%;
+      padding: 56px 64px 44px;
+      position: relative;
+      z-index: 5;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    .slide-content.active {
+      display: flex;
+      animation: slideFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes slideFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Control Bar */
+    .controls-bar {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(20, 15, 10, 0.85);
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(231, 136, 35, 0.3);
+      backdrop-filter: blur(10px);
+      z-index: 50;
+    }
+
+    .btn-control {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-control:hover {
+      background: #e78823;
+      border-color: #e78823;
+      transform: translateY(-1px);
+    }
+
+    /* Speaker Notes Modal */
+    .notes-drawer {
+      position: absolute;
+      bottom: 44px;
+      left: 32px;
+      right: 32px;
+      background: rgba(18, 14, 10, 0.95);
+      border: 1.5px solid #e78823;
+      border-radius: 14px;
+      padding: 16px 20px;
+      color: #fbf1e2;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      z-index: 60;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="presentation-container">
+  
+  <!-- The Slide Container -->
+  <div class="slide-wrapper" id="slideStage">
+    
+    <!-- Circuit Top Border -->
+    <div class="circuit-top">
+      <div class="dot-cluster">
+        <div class="dot-item"></div>
+        <div class="dot-item"></div>
+        <div class="dot-item"></div>
+        <div class="dot-item"></div>
+        <div class="dot-item"></div>
+      </div>
+    </div>
+
+    <div class="slide-bg-network"></div>
+
+    <!-- ════════════════════════ SLIDE 1: Title ════════════════════════ -->
+    <div class="slide-content active" data-title="Title Slide">
+      <div class="flex justify-between items-center w-full mb-2">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-[#96541b] bg-[#e7882320] px-3 py-1 rounded-full border border-[#e7882340]">Workshop 1</span>
+          <span class="text-xs font-semibold text-gray-600">20 September 2026 · 12:00 PM - 1:00 PM</span>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-bold text-gray-500">
+          <span>GDG MUM</span>
+          <span>•</span>
+          <span>MUMTEC</span>
+          <span>•</span>
+          <span>AVERIS</span>
+        </div>
+      </div>
+
+      <div class="my-auto text-center flex flex-col items-center">
+        <div class="inline-flex items-center gap-2 mb-3">
+          <span class="text-2xl font-bold tracking-tight text-gray-900">averis</span>
+          <span class="text-xl font-bold text-[#e78823]">✕</span>
+          <span class="text-2xl font-bold tracking-tight text-gray-900">Monash</span>
+        </div>
+
+        <h1 class="text-5xl font-extrabold hackathon-title font-pixel mb-3">
+          /CLOUD HOSTING
+        </h1>
+        <p class="text-2xl font-bold text-gray-800 mb-2">
+          From Localhost to Live URL in Minutes
+        </p>
+        <p class="text-base text-gray-600 max-w-xl mx-auto mb-6">
+          Architecting, deploying, and showcasing zero-downtime prototypes for hackathon evaluation.
+        </p>
+
+        <div class="flex items-center gap-6 bg-white/80 border border-[#e7882340] px-8 py-3 rounded-full shadow-sm">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-[#2b82fb]"></span>
+            <span class="text-sm font-bold text-gray-800">Theory & Architecture</span>
+          </div>
+          <span class="text-gray-300">|</span>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-[#e78823]"></span>
+            <span class="text-sm font-bold text-gray-800">Live Vercel Demo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 2: Meet the Speakers ════════════════════════ -->
+    <div class="slide-content" data-title="Meet the Speakers">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <span class="badge-orange">Workshop Facilitators</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Meet the Speakers</h2>
+        </div>
+        <span class="text-sm font-bold text-[#e78823]">Averis X Monash Hackathon 2026</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-8 my-auto">
+        <!-- Speaker 1 -->
+        <div class="theme-card p-6 flex flex-col items-center text-center">
+          <div class="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#2b82fb] to-[#88baff] flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-md">
+            SN
+          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-[#2b82fb] bg-[#2b82fb15] px-3 py-1 rounded-full mb-2">Speaker 1 · Concept Lead</span>
+          <h3 class="text-xl font-bold text-gray-900">Shariq Nauman</h3>
+          <p class="text-sm text-[#e78823] font-semibold mb-3">Cloud Architecture & Deployment Strategy</p>
+          <ul class="text-xs text-gray-600 text-left space-y-1.5 w-full bg-white/70 p-3 rounded-xl border border-gray-200">
+            <li>✓ Why live deployment decides hackathon scoring</li>
+            <li>✓ 3-Tier Web Architecture (Frontend, Backend, DB)</li>
+            <li>✓ Environment Variables & Security Hygiene</li>
+          </ul>
+        </div>
+
+        <!-- Speaker 2 -->
+        <div class="theme-card p-6 flex flex-col items-center text-center">
+          <div class="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#e78823] to-[#efa765] flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-md">
+            DM
+          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-[#e78823] bg-[#e7882315] px-3 py-1 rounded-full mb-2">Speaker 2 · Demo Lead</span>
+          <h3 class="text-xl font-bold text-gray-900">Darren Melvern</h3>
+          <p class="text-sm text-[#e78823] font-semibold mb-3">Live Vercel Hosting & Hands-on Setup</p>
+          <ul class="text-xs text-gray-600 text-left space-y-1.5 w-full bg-white/70 p-3 rounded-xl border border-gray-200">
+            <li>✓ Connecting GitHub repositories to Vercel in 60s</li>
+            <li>✓ Build configurations & live environment secrets</li>
+            <li>✓ Instant branch previews & production URL setup</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 3: Why Deploying Matters ════════════════════════ -->
+    <div class="slide-content" data-title="Why Deploying Matters">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Rubric & Judge Psychology</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Why a Live URL Wins Hackathons</h2>
+        </div>
+        <div class="text-right">
+          <span class="text-2xl font-black text-[#e78823]">25%</span>
+          <p class="text-xs font-bold text-gray-500 uppercase">Working Prototype Weight</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-5 my-auto">
+        <div class="theme-card p-5 border-l-4 border-l-[#fd2c25]">
+          <div class="w-10 h-10 rounded-xl bg-[#fd2c2515] flex items-center justify-center text-[#fd2c25] text-xl font-bold mb-3">✕</div>
+          <h3 class="text-base font-bold text-gray-900 mb-2">The Localhost Trap</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Judges evaluate scores in restricted time windows. They will <strong>not</strong> clone your repository, install 300MB node_modules, configure local databases, or debug dependency errors on their machines.
+          </p>
+        </div>
+
+        <div class="theme-card p-5 border-l-4 border-l-[#e78823]">
+          <div class="w-10 h-10 rounded-xl bg-[#e7882315] flex items-center justify-center text-[#e78823] text-xl font-bold mb-3">⚡</div>
+          <h3 class="text-base font-bold text-gray-900 mb-2">Instant Proof of Concept</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            A live link inside the official submission portal lets judges click and test user journeys on real mobile & desktop browsers, immediately validating that your technical architecture works.
+          </p>
+        </div>
+
+        <div class="theme-card p-5 border-l-4 border-l-[#00a150]">
+          <div class="w-10 h-10 rounded-xl bg-[#00a15015] flex items-center justify-center text-[#00a150] text-xl font-bold mb-3">🏆</div>
+          <h3 class="text-base font-bold text-gray-900 mb-2">Pitch Day Credibility</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Top 10 Finalists who pitch live to Averis executives demonstrate production-readiness, professional software engineering practices, and cloud infrastructure maturity.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 4: 3-Tier Architecture ════════════════════════ -->
+    <div class="slide-content" data-title="3-Tier Architecture">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">System Design</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Anatomy of a Hackathon App</h2>
+        </div>
+        <span class="text-xs font-semibold text-gray-500">Decouple for Speed & Reliability</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-5 my-auto">
+        <div class="theme-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-[#2b82fb] bg-[#2b82fb15] px-2.5 py-0.5 rounded-full">Tier 1: Client</span>
+            <span class="text-xl">💻</span>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 mb-1">Frontend Layer</h3>
+          <p class="text-xs text-gray-500 mb-3">React, Next.js, Vue, Angular, Vite</p>
+          <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs text-gray-700 space-y-1">
+            <p>• Fast static HTML/CSS/JS delivery</p>
+            <p>• Deployed on Edge CDN (Vercel)</p>
+            <p>• Zero server management</p>
+          </div>
+        </div>
+
+        <div class="theme-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-[#e78823] bg-[#e7882315] px-2.5 py-0.5 rounded-full">Tier 2: Logic & AI</span>
+            <span class="text-xl">⚙️</span>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 mb-1">Backend & API</h3>
+          <p class="text-xs text-gray-500 mb-3">FastAPI, Express, Spring Boot, Flask</p>
+          <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs text-gray-700 space-y-1">
+            <p>• Document parsing & LLM pipelines</p>
+            <p>• Serverless functions or Docker</p>
+            <p>• Render / Cloud Run / Vercel API</p>
+          </div>
+        </div>
+
+        <div class="theme-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-[#00a150] bg-[#00a15015] px-2.5 py-0.5 rounded-full">Tier 3: Persistence</span>
+            <span class="text-xl">🗄️</span>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900 mb-1">Database & Storage</h3>
+          <p class="text-xs text-gray-500 mb-3">PostgreSQL, Supabase, Neon, S3</p>
+          <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs text-gray-700 space-y-1">
+            <p>• Cloud-managed connection string</p>
+            <p>• Free-tier serverless PostgreSQL</p>
+            <p>• Cloud storage for PDF/docs</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 5: Recommended Stack ════════════════════════ -->
+    <div class="slide-content" data-title="Recommended Cloud Stack">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Speed vs Complexity</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Hackathon Hosting Cheat-Sheet</h2>
+        </div>
+        <span class="text-xs font-bold text-[#00a150] bg-[#00a15015] px-3 py-1 rounded-full">100% Free Tiers</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 my-auto">
+        <div class="theme-card p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-bold text-sm">▲</div>
+            <div>
+              <h3 class="text-base font-bold text-gray-900">Vercel (Frontend & Fullstack)</h3>
+              <p class="text-xs text-gray-500">The gold standard for Next.js, React, Vite, Angular</p>
+            </div>
+          </div>
+          <ul class="text-xs text-gray-600 space-y-1.5 pl-4 list-disc">
+            <li>Automatic git-push deployment pipeline in seconds.</li>
+            <li>Free SSL certificate, custom domains, and instant preview links.</li>
+            <li>Built-in Node.js / Python serverless function support.</li>
+          </ul>
+        </div>
+
+        <div class="theme-card p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-[#2b82fb] text-white flex items-center justify-center font-bold text-sm">⚡</div>
+            <div>
+              <h3 class="text-base font-bold text-gray-900">Render / Cloud Run (Python & AI)</h3>
+              <p class="text-xs text-gray-500">Best for FastAPI, LangChain, OCR & Document models</p>
+            </div>
+          </div>
+          <ul class="text-xs text-gray-600 space-y-1.5 pl-4 list-disc">
+            <li>One-click Dockerfile or Python repository deployment.</li>
+            <li>Persistent endpoints for your heavy AI backend processing.</li>
+            <li>Scale-to-zero capability to avoid unexpected billing.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 6: Environment Variables & Secrets ════════════════════════ -->
+    <div class="slide-content" data-title="Secrets & Security">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Security Rules</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Environment Variables & Secrets</h2>
+        </div>
+        <span class="text-xs font-bold text-[#fd2c25] bg-[#fd2c2515] px-3 py-1 rounded-full">Never Commit API Keys</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 my-auto">
+        <div class="theme-card p-5 border-l-4 border-l-[#fd2c25]">
+          <h3 class="text-base font-bold text-[#fd2c25] mb-2">🚫 The Critical Mistake</h3>
+          <p class="text-xs text-gray-700 mb-3 leading-relaxed">
+            Pushing an OpenAI key, Groq key, or DB password to a public GitHub repo can get your key revoked in 60 seconds by automated GitHub secret scanners.
+          </p>
+          <div class="bg-gray-900 text-gray-200 p-3 rounded-xl font-mono text-xs">
+            # .gitignore<br>
+            .env<br>
+            .env.local<br>
+            node_modules/
+          </div>
+        </div>
+
+        <div class="theme-card p-5 border-l-4 border-l-[#00a150]">
+          <h3 class="text-base font-bold text-[#00a150] mb-2">✅ The Proper Cloud Workflow</h3>
+          <p class="text-xs text-gray-700 mb-3 leading-relaxed">
+            Keep `.env.example` in your repo with blank placeholder values for your teammates. Add real credentials directly into the <strong>Vercel Project Settings</strong> dashboard.
+          </p>
+          <div class="bg-[#00a15010] p-3 rounded-xl border border-[#00a15030] text-xs text-gray-800 space-y-1">
+            <p>• <code>GROQ_API_KEY</code> = gsk_xxxxx (Server only)</p>
+            <p>• <code>NEXT_PUBLIC_API_URL</code> = https://... (Public)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 7: Common Pitfalls ════════════════════════ -->
+    <div class="slide-content" data-title="Deployment Pitfalls">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Troubleshooting Guide</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Top 3 Deployment Pitfalls</h2>
+        </div>
+        <span class="text-xs font-semibold text-gray-500">Fix before submission</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-5 my-auto">
+        <div class="theme-card p-5">
+          <span class="text-2xl font-bold text-[#fd2c25] mb-2 block">01</span>
+          <h3 class="text-base font-bold text-gray-900 mb-1">CORS Blocked</h3>
+          <p class="text-xs text-gray-600 leading-relaxed mb-3">
+            Frontend on Vercel cannot talk to backend on Render because backend doesn't allow cross-origin requests.
+          </p>
+          <span class="text-[11px] font-mono bg-orange-100 text-orange-800 px-2 py-1 rounded">Fix: allow origin *.vercel.app</span>
+        </div>
+
+        <div class="theme-card p-5">
+          <span class="text-2xl font-bold text-[#fd2c25] mb-2 block">02</span>
+          <h3 class="text-base font-bold text-gray-900 mb-1">Hardcoded Localhost</h3>
+          <p class="text-xs text-gray-600 leading-relaxed mb-3">
+            Frontend code contains <code>http://localhost:8080/api</code>, which fails on any external computer or phone.
+          </p>
+          <span class="text-[11px] font-mono bg-orange-100 text-orange-800 px-2 py-1 rounded">Fix: use process.env.API_URL</span>
+        </div>
+
+        <div class="theme-card p-5">
+          <span class="text-2xl font-bold text-[#fd2c25] mb-2 block">03</span>
+          <h3 class="text-base font-bold text-gray-900 mb-1">Build Step Errors</h3>
+          <p class="text-xs text-gray-600 leading-relaxed mb-3">
+            TypeScript or linter errors pass in dev mode but crash during <code>npm run build</code> in CI.
+          </p>
+          <span class="text-[11px] font-mono bg-orange-100 text-orange-800 px-2 py-1 rounded">Fix: test npm run build locally</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 8: Live Demo Transition ════════════════════════ -->
+    <div class="slide-content" data-title="Live Demo Transition">
+      <div class="my-auto text-center flex flex-col items-center">
+        <span class="badge-orange mb-3">Hands-on Session</span>
+        <h2 class="text-4xl font-extrabold text-gray-900 font-pixel mb-3">
+          Live Demo: Vercel Zero-Config Deploy
+        </h2>
+        <p class="text-lg text-gray-600 max-w-lg mx-auto mb-8">
+          Watch how we take a project from GitHub to a production live URL in under 5 minutes.
+        </p>
+
+        <div class="grid grid-cols-4 gap-4 max-w-3xl w-full text-left">
+          <div class="theme-card p-4">
+            <span class="text-xs font-bold text-[#e78823]">Step 1</span>
+            <p class="text-sm font-bold text-gray-900 mt-1">Connect GitHub</p>
+          </div>
+          <div class="theme-card p-4">
+            <span class="text-xs font-bold text-[#e78823]">Step 2</span>
+            <p class="text-sm font-bold text-gray-900 mt-1">Config & Env</p>
+          </div>
+          <div class="theme-card p-4">
+            <span class="text-xs font-bold text-[#e78823]">Step 3</span>
+            <p class="text-sm font-bold text-gray-900 mt-1">Deploy Live</p>
+          </div>
+          <div class="theme-card p-4">
+            <span class="text-xs font-bold text-[#00a150]">Step 4</span>
+            <p class="text-sm font-bold text-gray-900 mt-1">Branch Previews</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 9: Step 1 Vercel Import ════════════════════════ -->
+    <div class="slide-content" data-title="Demo: Import Repo">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Live Demo · Step 1</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Importing Your GitHub Repo</h2>
+        </div>
+        <span class="text-xs font-bold text-gray-500 font-mono">vercel.com/new</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 my-auto">
+        <div class="theme-card p-6 flex flex-col justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">1. Connect Your Git Provider</h3>
+            <p class="text-xs text-gray-600 leading-relaxed mb-4">
+              Sign in to Vercel with your GitHub account. Select your hackathon team repository from the project list.
+            </p>
+            <div class="space-y-2 text-xs text-gray-700">
+              <p>✓ Auto-detects React, Next.js, Vue, Angular, Vite, Svelte</p>
+              <p>✓ Monorepo support: specify <code>frontend/</code> root directory if needed</p>
+            </div>
+          </div>
+          <div class="bg-gray-100 p-3 rounded-xl border border-gray-200 text-xs font-mono text-gray-800 mt-4">
+            Framework Preset: Automatic<br>
+            Root Directory: ./
+          </div>
+        </div>
+
+        <div class="theme-card-orange p-6 flex flex-col justify-center text-center">
+          <div class="text-4xl mb-3">🚀</div>
+          <h3 class="text-xl font-bold mb-2">Zero Build Configuration</h3>
+          <p class="text-xs text-white/90 leading-relaxed">
+            Vercel automatically sets up the build command (<code>npm run build</code>) and output directory without requiring custom YAML or Docker configurations.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 10: Step 2 Env & Build ════════════════════════ -->
+    <div class="slide-content" data-title="Demo: Env & Deploy">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Live Demo · Step 2</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Adding Secrets & Deploying</h2>
+        </div>
+        <span class="text-xs font-bold text-gray-500 font-mono">Build Logs</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 my-auto">
+        <div class="theme-card p-6">
+          <h3 class="text-base font-bold text-gray-900 mb-2">Configure Environment Variables</h3>
+          <p class="text-xs text-gray-600 mb-4">
+            Add all necessary API keys and backend endpoints in the Vercel project configuration before clicking deploy.
+          </p>
+          <div class="bg-gray-900 text-green-400 p-3 rounded-xl font-mono text-xs space-y-1">
+            <p>VITE_BACKEND_URL=https://api.myapp.com</p>
+            <p>OPENAI_API_KEY=sk-proj-xxxxxxx</p>
+          </div>
+        </div>
+
+        <div class="theme-card p-6">
+          <h3 class="text-base font-bold text-gray-900 mb-2">Real-Time Build Stream</h3>
+          <p class="text-xs text-gray-600 mb-4">
+            Click <strong>Deploy</strong> and inspect the build logs as Vercel compiles dependencies, bundles assets, and distributes your app globally.
+          </p>
+          <div class="bg-gray-50 border border-gray-200 p-3 rounded-xl text-xs text-gray-700 space-y-1">
+            <p class="text-green-600 font-bold">✓ Deployment Complete (28s)</p>
+            <p>Production URL: <code>https://team-averis.vercel.app</code></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 11: Step 3 Preview Deployments ════════════════════════ -->
+    <div class="slide-content" data-title="Demo: Previews">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Live Demo · Step 3</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Branch Previews & Team Sync</h2>
+        </div>
+        <span class="text-xs font-bold text-[#00a150] bg-[#00a15015] px-3 py-1 rounded-full">CI/CD Magic</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-5 my-auto">
+        <div class="theme-card p-5">
+          <div class="w-8 h-8 rounded-lg bg-[#2b82fb15] text-[#2b82fb] flex items-center justify-center font-bold text-sm mb-3">1</div>
+          <h3 class="text-base font-bold text-gray-900 mb-1">Create Git Branch</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Teammates create feature branches: <code>git checkout -b feature/chat-ui</code> and push commits.
+          </p>
+        </div>
+
+        <div class="theme-card p-5">
+          <div class="w-8 h-8 rounded-lg bg-[#e7882315] text-[#e78823] flex items-center justify-center font-bold text-sm mb-3">2</div>
+          <h3 class="text-base font-bold text-gray-900 mb-1">Instant Preview URL</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Vercel automatically builds a dedicated preview URL for that branch to test before merging into <code>main</code>.
+          </p>
+        </div>
+
+        <div class="theme-card p-5">
+          <div class="w-8 h-8 rounded-lg bg-[#00a15015] text-[#00a150] flex items-center justify-center font-bold text-sm mb-3">3</div>
+          <h3 class="text-base font-bold text-gray-900 mb-1">Merge to Deploy</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Merging your Pull Request immediately updates the official production URL that judges have access to.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 12: Where to Submit on Hackathon Portal ════════════════════════ -->
+    <div class="slide-content" data-title="Submission Link">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Submission Requirements</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Submitting Your Live Demo Link</h2>
+        </div>
+        <span class="text-xs font-semibold text-gray-500">Portal Preview</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 my-auto">
+        <div class="theme-card p-6">
+          <h3 class="text-base font-bold text-gray-900 mb-2">4 Mandatory Deliverables</h3>
+          <ul class="text-xs text-gray-700 space-y-2">
+            <li class="flex items-center gap-2"><span class="text-[#00a150] font-bold">✓</span> <strong>GitHub Repository Link:</strong> Public with clear README.</li>
+            <li class="flex items-center gap-2"><span class="text-[#00a150] font-bold">✓</span> <strong>Live Prototype / Demo Link:</strong> Your deployed Vercel URL.</li>
+            <li class="flex items-center gap-2"><span class="text-[#00a150] font-bold">✓</span> <strong>Video Demo (Max 5 mins):</strong> Walkthrough on YouTube or Drive.</li>
+            <li class="flex items-center gap-2"><span class="text-[#00a150] font-bold">✓</span> <strong>Slide Deck / Doc:</strong> Solution architecture & business value.</li>
+          </ul>
+        </div>
+
+        <div class="theme-card p-6 bg-amber-50/60 border border-[#e7882340]">
+          <h3 class="text-base font-bold text-[#96541b] mb-2">Participant Dashboard</h3>
+          <p class="text-xs text-gray-700 leading-relaxed mb-3">
+            Once submitted via Google Form, your submission card will immediately show your <strong>Live Demo Link</strong> locked and visible for judges:
+          </p>
+          <div class="bg-white p-3 rounded-xl border border-gray-200 text-xs font-mono text-gray-800 flex items-center justify-between">
+            <span>LIVE DEMO: https://myteam.vercel.app</span>
+            <span class="text-[#2b82fb] font-bold">Launch ↗</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 13: Top 3 Hackathon Tips ════════════════════════ -->
+    <div class="slide-content" data-title="Hackathon Pro-Tips">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <span class="badge-orange">Strategy & Planning</span>
+          <h2 class="text-3xl font-extrabold text-gray-900 mt-1">Top 3 Deployment Pro-Tips</h2>
+        </div>
+        <span class="text-xs font-bold text-[#e78823]">Averis Hackathon 2026</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-5 my-auto">
+        <div class="theme-card p-5 text-center">
+          <div class="text-3xl mb-2">⏰</div>
+          <h3 class="text-base font-bold text-gray-900 mb-2">1. Deploy on Day 1</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Deploy your boilerplate "Hello World" on Day 1. Don't leave your first cloud deployment until 11:50 AM on deadline day!
+          </p>
+        </div>
+
+        <div class="theme-card p-5 text-center">
+          <div class="text-3xl mb-2">📱</div>
+          <h3 class="text-base font-bold text-gray-900 mb-2">2. Test on Mobile & Safari</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Judges might view your site from different laptops, tablets, or phones. Ensure responsive layout and no breaking console errors.
+          </p>
+        </div>
+
+        <div class="theme-card p-5 text-center">
+          <div class="text-3xl mb-2">🎥</div>
+          <h3 class="text-base font-bold text-gray-900 mb-2">3. Record Backup Video</h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Always record a high-quality 5-minute video demo of your working prototype in case of API rate limits or network hiccups during judging.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 14: Q&A ════════════════════════ -->
+    <div class="slide-content" data-title="Questions & Support">
+      <div class="my-auto text-center flex flex-col items-center">
+        <span class="badge-orange mb-3">Interactive Q&A</span>
+        <h2 class="text-5xl font-extrabold hackathon-title font-pixel mb-2">
+          Questions?
+        </h2>
+        <p class="text-xl font-bold text-gray-800 mb-6">
+          We’re here to answer any hosting, API, or stack questions!
+        </p>
+
+        <div class="flex items-center gap-6 bg-white/90 border border-[#e7882340] px-8 py-4 rounded-2xl shadow-sm max-w-xl text-left">
+          <div class="text-3xl">💬</div>
+          <div>
+            <p class="text-sm font-bold text-gray-900">Need help during the hackathon?</p>
+            <p class="text-xs text-gray-600">Ask in Discord <code>#ask-mentors</code> or reach out to the technical team!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════ SLIDE 15: Closing / Thank You ════════════════════════ -->
+    <div class="slide-content" data-title="Thank You">
+      <div class="my-auto text-center flex flex-col items-center">
+        <h1 class="text-6xl font-extrabold hackathon-title font-pixel mb-3">
+          /THANK YOU
+        </h1>
+        <p class="text-2xl font-bold text-gray-800 mb-8">
+          Good luck building & deploying your solutions!
+        </p>
+
+        <div class="flex items-center justify-center gap-8 bg-white/80 border border-[#e7882340] px-10 py-4 rounded-2xl">
+          <span class="text-sm font-bold text-gray-800">averis</span>
+          <span class="text-gray-300">•</span>
+          <span class="text-sm font-bold text-gray-800">GDG On Campus Monash</span>
+          <span class="text-gray-300">•</span>
+          <span class="text-sm font-bold text-gray-800">MUMTEC</span>
+          <span class="text-gray-300">•</span>
+          <span class="text-sm font-bold text-gray-800">MD Premier Digital Tech</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Circuit Bottom Border -->
+    <div class="circuit-bottom">
+      <div class="dot-cluster">
+        <div class="dot-item"></div>
+        <div class="dot-item"></div>
+        <div class="dot-item"></div>
+        <div class="dot-item"></div>
+        <div class="dot-item"></div>
+      </div>
+    </div>
+
+    <!-- Speaker Notes Drawer -->
+    <div class="notes-drawer" id="notesDrawer">
+      <div class="flex justify-between items-center mb-1">
+        <span class="text-xs font-bold uppercase tracking-wider text-[#e78823]">Speaker Notes</span>
+        <button onclick="toggleNotes()" class="text-xs text-gray-400 hover:text-white">Close [N]</button>
+      </div>
+      <p id="notesContent" class="text-xs text-gray-300"></p>
+    </div>
+
+  </div>
+
+  <!-- Slide Navigation Bar -->
+  <div class="controls-bar">
+    <button class="btn-control" onclick="prevSlide()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      Prev
+    </button>
+
+    <div class="text-xs font-bold text-[#e78823] font-mono px-2">
+      <span id="slideCounter">1 / 15</span>
+    </div>
+
+    <button class="btn-control" onclick="nextSlide()">
+      Next
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+
+    <button class="btn-control" onclick="toggleNotes()">
+      📝 Notes (N)
+    </button>
+
+    <button class="btn-control" onclick="toggleFullscreen()">
+      ⛶ Fullscreen (F)
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide-content');
+  let currentSlide = 0;
+
+  const speakerNotes = [
+    /* 1 */ "Welcome participants to Workshop 1! Introduce the objective: helping teams get a working live URL ready for judging without cloud friction.",
+    /* 2 */ "Introduce yourselves! Shariq covers the architecture & security fundamentals; Darren will take over for the live hands-on Vercel demo.",
+    /* 3 */ "Emphasize the 25% rubric weighting for Working Core Prototype. Explain that judges have strict time limits and won't troubleshoot local build issues.",
+    /* 4 */ "Break down the modern 3-tier hackathon architecture: static/SSR frontend on CDN, containerized or serverless backend for AI, cloud database.",
+    /* 5 */ "Walk through the recommended free-tier hosting cheat sheet. Vercel for frontend, Render/Cloud Run for Python APIs, Supabase/Neon for DB.",
+    /* 6 */ "CRITICAL SECURITY POINT: Never commit .env to GitHub. Explain how to use .gitignore and how to safely enter secrets into the Vercel dashboard.",
+    /* 7 */ "Highlight the top 3 errors that cause demo breaks: CORS origin mismatch, hardcoded localhost URLs, and unverified build commands.",
+    /* 8 */ "Handoff to Darren for the live hands-on demo! Preview the 4 steps about to be demonstrated on screen.",
+    /* 9 */ "Demo Step 1: Show logging into vercel.com with GitHub and importing the project repo with automatic framework detection.",
+    /* 10 */ "Demo Step 2: Show where to paste environment variables in Vercel settings and clicking deploy to watch the real-time build stream.",
+    /* 11 */ "Demo Step 3: Demonstrate Git branch previews. Make a quick change in code, push to a branch, and show the instant preview link.",
+    /* 12 */ "Remind teams where the Live Demo link goes in the official hackathon submission form, and how it renders on the participant dashboard.",
+    /* 13 */ "Summarize top 3 strategy tips: Deploy early on Day 1, test on multiple devices, and always keep a 5-min backup screen recording.",
+    /* 14 */ "Open the floor to participant Q&A. Encourage questions about tech stacks, API keys, CORS, or database connections.",
+    /* 15 */ "Closing & thank you! Wish all teams best of luck in building over the next 4 days."
+  ];
+
+  function updateSlide(index) {
+    if (index < 0 || index >= slides.length) return;
+    slides[currentSlide].classList.remove('active');
+    currentSlide = index;
+    slides[currentSlide].classList.add('active');
+
+    document.getElementById('slideCounter').innerText = `${currentSlide + 1} / ${slides.length}`;
+    document.getElementById('notesContent').innerText = speakerNotes[currentSlide] || "No notes for this slide.";
+  }
+
+  function nextSlide() {
+    if (currentSlide < slides.length - 1) {
+      updateSlide(currentSlide + 1);
+    }
+  }
+
+  function prevSlide() {
+    if (currentSlide > 0) {
+      updateSlide(currentSlide - 1);
+    }
+  }
+
+  function toggleNotes() {
+    const drawer = document.getElementById('notesDrawer');
+    drawer.style.display = (drawer.style.display === 'block') ? 'none' : 'block';
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
+
+  // Keyboard Navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      nextSlide();
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      prevSlide();
+    } else if (e.key.toLowerCase() === 'n') {
+      toggleNotes();
+    } else if (e.key.toLowerCase() === 'f') {
+      toggleFullscreen();
+    }
+  });
+
+  // Initial load
+  updateSlide(0);
+</script>
+
+</body>
+</html>
