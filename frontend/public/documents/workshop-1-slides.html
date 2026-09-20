@@ -226,10 +226,12 @@
       padding: 16px 22px;
       color: #faf1e2;
       font-size: 0.9rem;
-      line-height: 1.5;
+      line-height: 1.6;
       z-index: 60;
       box-shadow: 0 15px 40px rgba(0,0,0,0.6);
       display: none;
+      max-height: 38vh;
+      overflow-y: auto;
     }
   </style>
 </head>
@@ -291,7 +293,7 @@
     <!-- ════════════════════════ SLIDE 1: EXACT OPENING CEREMONY COVER ════════════════════════ -->
     <div class="slide-content slide-cover active" data-title="Hackathon Cover">
       <div class="notes-content hidden">
-        Opening Slide: Averis X Monash Hackathon 2026. Welcome all participants, organizers, and mentors to the first official workshop session.
+        <strong>[Shariq]:</strong> "Good afternoon everyone! A warm welcome to all participants, organizers, and mentors to the Averis X Monash Hackathon 2026. Today marks our first technical workshop. Over the next 4 days you'll build amazing solutions—today we make sure judges can access them seamlessly!"
       </div>
     </div>
 
@@ -343,7 +345,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Welcome everyone to Workshop 1 on Cloud Hosting! Explain why cloud hosting is essential for judges to test prototypes smoothly.
+        <strong>[Shariq]:</strong> "Our session today is Workshop 1: Cloud Hosting. The core theme is taking your project from localhost:3000 to production HTTPS in under 7 minutes, with decoupled architecture and automated GitHub CI/CD."
       </div>
     </div>
 
@@ -395,7 +397,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Introduce yourself (Shariq Nauman) and your co-presenter (Darren Melvern). Introduce the split: Shariq covers cloud architecture and best practices; Darren runs the hands-on live deployment demo.
+        <strong>[Shariq]:</strong> "My name is Shariq Nauman, covering architecture, security, and DNS. With me is my friend Darren Melvern, who will do the hands-on live screen share deployment demo!"
       </div>
     </div>
 
@@ -448,7 +450,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Stress the psychological trap: developers focus 95% on features and leave 5% for deployment. If the link doesn't open for judges, evaluation score drops drastically.
+        <strong>[Shariq]:</strong> "Classic mistake: waiting until 2 hours before deadline to deploy. Remember: Judges are evaluating on separate networks. Deploy on Day 1 so every git push is automatically live."
       </div>
     </div>
 
@@ -525,7 +527,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Explain the spectrum: Low-level VPS gives control but takes too much time. PaaS like Vercel is ideal for static/SSR frontends. Cloud Run is ideal for backend APIs.
+        <strong>[Shariq]:</strong> "Compare the 3 hosting tiers: VPS takes too long; PaaS handles frontend with zero server ops; Serverless Containers (Cloud Run) handle backend APIs with scale-to-zero efficiency."
       </div>
     </div>
 
@@ -591,7 +593,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Highlight that decoupling frontend and backend prevents single point of failure. Vercel serves the HTML/JS instantly from CDN; API calls happen asynchronously.
+        <strong>[Shariq]:</strong> "Walk through the 3-tier architecture. Emphasize why decoupling frontend from backend makes the app resilient against single points of failure."
       </div>
     </div>
 
@@ -657,7 +659,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Warn teams about leaked API keys on GitHub. Bots scrape repositories and drain OpenAI or cloud credit balances within minutes.
+        <strong>[Shariq]:</strong> "Never commit .env to GitHub. Keep .env in .gitignore, commit a clean .env.example, and inject API secrets via the cloud dashboard."
       </div>
     </div>
 
@@ -707,7 +709,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Hand off transition: Shariq wraps up the theory and hands over the stage to Darren for the hands-on live deployment demo.
+        <strong>[Shariq]:</strong> "Instant HTTPS and global CDN caching ensure judges in Malaysia get fast load times. Now handing over to Darren for the live deployment demo!"
       </div>
     </div>
 
@@ -759,7 +761,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Darren shares screen. Open GitHub repository, show the clean branch and package.json build script before opening Vercel dashboard.
+        <strong>[Darren]:</strong> "Shares screen: connects GitHub repo, sets environment variables, clicks deploy, verifies live HTTPS URL, and demonstrates opening a Pull Request with instant Branch Preview."
       </div>
     </div>
 
@@ -835,7 +837,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Explain the vercel.json rewrite rule for Single Page Apps (React/Angular/Vue). This is the single most common question hackathon participants ask.
+        <strong>[Shariq]:</strong> "Top 5 common bugs: 1) SPA 404 rewrite in vercel.json, 2) Mixed content HTTPS requirement, 3) Missing env vars, 4) Hardcoded localhost, 5) Node version mismatch."
       </div>
     </div>
 
@@ -901,7 +903,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Stress the importance of the backup video and demo login buttons. Judges often have only 5-10 minutes per submission.
+        <strong>[Shariq]:</strong> "Final submission checklist: 1) Test on 4G phone/incognito, 2) Provide 1-click demo login, 3) Record backup demo video, 4) Keep repo public with clear README."
       </div>
     </div>
 
@@ -950,7 +952,7 @@
       </div>
 
       <div class="notes-content hidden">
-        Open floor for Q&A. Help participants debug any deployment errors or cloud build issues in their projects.
+        <strong>[Shariq]:</strong> "Open floor for Q&A. Invite questions in chat or mic. Remind them about Workshop 2 tomorrow at 7:00 PM!"
       </div>
     </div>
 
@@ -1002,7 +1004,7 @@
       notesSlideTitle.innerText = activeSlide.getAttribute('data-title') || `Slide ${currentSlide + 1}`;
     }
     if (notesText) {
-      notesText.innerText = noteContent ? noteContent.innerText.trim() : 'No speaker notes for this slide.';
+      notesText.innerHTML = noteContent ? noteContent.innerHTML.trim() : 'No speaker notes for this slide.';
     }
   }
 
@@ -1045,9 +1047,6 @@
     if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
       e.preventDefault();
       nextSlide();
-    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-      e.preventDefault();
-      prevSlide();
     } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
       e.preventDefault();
       prevSlide();
