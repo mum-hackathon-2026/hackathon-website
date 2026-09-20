@@ -21,11 +21,7 @@
 *(Visual: Averis X Monash Hackathon 2026 Title Cover with MUMTEC, MD, and GDG logos)*
 
 > **[Shariq Nauman]:**  
-> *"Hey everyone! Hope you're all having a great afternoon and that your hackathon projects are coming along nicely.*  
->  
-> *It's been about two days since Friday's opening ceremony when you received the problem statement, and with the submission deadline coming up this Tuesday at 12:00 PM—just around 48 hours left—we wanted to run this workshop to make sure deployment doesn't get in your way.*  
->  
-> *Building your app on your laptop is one thing, but making sure the judges can actually open it on their phones and laptops is what gets you evaluated. So today, we're going to show you how to get your project online, fast and headache-free."*
+> *"Hey everyone! Welcome to the first workshop of the Averis X Monash Hackathon 2026. I hope you've all been building well for the past two days since our opening ceremony. There are only about 48 hours left until Tuesday's submission deadline, so let's jump right in!"*
 
 ---
 
