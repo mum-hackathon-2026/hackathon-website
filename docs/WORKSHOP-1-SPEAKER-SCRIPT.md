@@ -159,7 +159,7 @@
 >  
 > *Another cool feature for teams: whenever someone creates a pull request on GitHub, the platform automatically creates a preview link just for that branch. That means your team can test changes on your phones before merging them into the main branch.*  
 >  
-> *That's literally all it takes to get your project online. Passing it back to Shariq to go over the final checklist!"*
+> *That's literally all it takes to get your project online. Passing it back to Shariq to go over the top pitfalls and fixes!"*
 
 ---
 
@@ -181,20 +181,7 @@
 
 ---
 
-### 🔹 Slide 11: Submission Day Readiness Checklist
-*(Visual: 4 green/orange/blue cards with checkmarks)*
-
-> **[Shariq Nauman]:**  
-> *"When Tuesday comes around and you're getting ready to submit before the 12:00 PM cut-off, here is a quick 4-point checklist to run through:*  
->  
-> 1. ***Test your live link in an incognito window and on your phone using mobile data.** This makes sure your site doesn't depend on local cookies or your home Wi-Fi.*  
-> 2. ***Make login easy for judges.** If your app has a login screen, add a simple 'Demo Login' button or clearly put test username and password credentials in your GitHub README.*  
-> 3. ***Record a short 3 to 5 minute backup video** of your working app using Loom, YouTube, or Google Drive. If an AI service or API is slow or down during judging, your video proves that your project works.*  
-> 4. ***Make sure your GitHub repository is public** and has a clear README with your live project link right at the top."*
-
----
-
-### 🔹 Slide 12: Questions? & Wrap Up
+### 🔹 Slide 11: Questions? & Wrap Up
 *(Visual: Questions? heading, Averis X Monash branding, bullet points for Q&A and Workshop 2)*
 
 > **[Shariq Nauman]:**  
