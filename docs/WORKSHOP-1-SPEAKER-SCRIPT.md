@@ -65,13 +65,13 @@
 > **[Shariq Nauman]:**  
 > *"Let’s start with a situation that almost every developer in this room has experienced: **The 'It Works on My Machine' curse**.*  
 >  
-> *Here is the classic hackathon tragedy: A team works tirelessly for 48 hours. The UI looks stunning on the developer's laptop. The AI model responds quickly. But it’s Sunday at 10:00 AM—two hours before the strict submission deadline—and someone says, 'Okay, how do we deploy this?'*  
+> *Here is the classic hackathon tragedy: A team works tirelessly building their project. The UI looks stunning on the developer's laptop. The AI model responds quickly. But it’s Tuesday morning at 10:00 AM—two hours before the strict 12:00 PM submission deadline—and someone says, 'Okay, how do we deploy this?'*  
 >  
 > *Suddenly, build scripts fail. Environment variables are missing. Port 8080 is blocked. Panic sets in. And worst of all, when the submission link is sent, it's `http://192.168.1.5` or `http://localhost:3000`.*  
 >  
 > *Remember this fundamental truth: **Judges are not on your local network.** They will be opening your submission from their corporate laptops, iPads, or phones on restricted enterprise Wi-Fi. If your link doesn't open immediately with a secure HTTPS connection, your project cannot be evaluated.*  
 >  
-> *Our golden rule for this hackathon is: **Deploy on Day 1**. Set up your deployment pipeline early, even if it's just a blank 'Hello World' page. That way, every single `git push` you make throughout the weekend automatically updates your live prototype."*
+> *Our golden rule for this hackathon is: **Deploy Early**. Set up your deployment pipeline early, even if it's just a blank 'Hello World' page. That way, every single `git push` you make throughout the hackathon automatically updates your live prototype."*
 
 ---
 
@@ -197,7 +197,7 @@
 *(Visual: 4 green/orange/blue cards with checkmarks)*
 
 > **[Shariq Nauman]:**  
-> *"When Sunday rolls around and you are preparing to submit your project on the hackathon portal, run through this 4-point readiness checklist:*  
+> *"When submission day arrives on Tuesday at 12:00 PM and you are preparing to submit your project on the hackathon portal, run through this 4-point readiness checklist:*  
 >  
 > 1. ***Test on Incognito and Mobile Phone:** Open your live URL on a private browser window and on your smartphone over 4G/5G data. This confirms that your app does not rely on local cookies, localhost ports, or local caching.*  
 > 2. ***Demo Credentials Pre-filled:** If your application requires user sign-in, add a 1-click 'Guest Demo Login' button on your landing page, or clearly state the test credentials in your GitHub README. Never make a judge guess how to log in.*  
