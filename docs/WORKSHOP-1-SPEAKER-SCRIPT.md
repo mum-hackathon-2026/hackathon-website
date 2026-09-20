@@ -212,7 +212,7 @@
 > **[Shariq Nauman]:**  
 > *"And that brings us to the end of the presentation portion of Workshop 1!*  
 >  
-> *Both Darren and I are now opening the floor for live Q&A. If you have any questions about deployment, backend configuration, CORS errors, or setting up your repositories, feel free to unmute your microphone or drop your question into the chat right now.*  
+> *Both Darren and I are now opening the floor for live Q&A. If you have any questions about deployment, backend configuration, CORS errors, or setting up your repositories, feel free to drop your questions into the chat right now.*  
 >  
 > *Also, as a reminder:*  
 > - *Full slide deck and presenter guides are available inside the repository under `docs/`.*  
