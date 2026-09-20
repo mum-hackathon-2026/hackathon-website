@@ -216,7 +216,7 @@
 >  
 > *Also, as a reminder:*  
 > - *Full slide deck and presenter guides are available inside the repository under `docs/`.*  
-> - *Don't miss **Workshop 2 (Averis Industry Problem Track)** tomorrow, 21st September at 7:00 PM!*  
+> - *Don't miss **Workshop 2** tomorrow, 21st September at 7:00 PM!*  
 >  
 > *Thank you all for listening, and best of luck building this weekend! Let's take the first question!"*
 
